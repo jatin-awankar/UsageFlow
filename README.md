@@ -37,18 +37,25 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 <!-- 
-install & init prisma -> npm install prisma @prisma/client
-                        npx prisma init 
+PRISMA >>
+Install Dependencies -> npm install prisma @types/node --save-dev 
+                        npm install prisma @prisma/client @prisma/adapter-pg dotenv
+install & init prisma -> npx prisma init 
 
 format & validate schema -> npx prisma format
                             npx prisma validate
 
 prisma migration command -> npx prisma migrate dev --name init
 
+generate prisma client -> npx prisma generate
+
+Reset DB -> npx prisma migrate reset
+
+Apply new schema -> npx prisma migrate dev
+
+DOCKER >>
 Start DB -> docker compose up -d
 check -> docker ps
 Stop DB -> docker compose down
-Reset DB -> npx prisma migrate reset
-Apply new schema -> npx prisma migrate dev
 
 -->
