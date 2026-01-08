@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { createOrganizationSchema } from "@/lib/validators";
 
 export async function createOrganization(input: unknown, userId: string) {
-  const parsed = createOrganizationSchema.safeParse({ name: input });
+  const parsed = createOrganizationSchema.safeParse(input);
 
   if (!parsed.success) {
     const firstError = parsed.error.issues[0];
