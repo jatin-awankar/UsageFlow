@@ -1,3 +1,9 @@
+## Backend Foundation
+- Multi-tenant architecture using org-based scoping
+- Role-based access control (OWNER, ADMIN, DEVELOPER, VIEWER)
+- Centralized permissions map
+- Input validation using Zod
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
