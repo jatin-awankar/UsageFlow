@@ -4,7 +4,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import prisma from "@/lib/prisma";
 import { usageEventSchema } from "@/lib/validators";
 import { usageQueue } from "@/lib/queue";
-// import { processAggregation } from "@/worker/processors/aggregateUsage";
+import { redis } from "@/lib/redis";
 
 export async function POST(req: Request) {
   try {
@@ -19,9 +19,21 @@ export async function POST(req: Request) {
 
     await rateLimit(hashed);
 
-    const key = await prisma.apiKey.findFirst({
-      where: { hashedKey: hashed, active: true },
-    });
+    // 🔥 API key cache
+    const cacheKey = `api_key:${hashed}`;
+    let key;
+
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      key = JSON.parse(cached);
+    } else {
+      key = await prisma.apiKey.findFirst({
+        where: { hashedKey: hashed, active: true },
+      });
+      if (key) {
+        await redis.set(cacheKey, JSON.stringify(key), "EX", 300);
+      }
+    }
 
     if (!key) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -34,50 +46,68 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    // processAggregation({ orgId: body.orgId, subscriptionId: body.subscriptionId });
-
-    if (idempotencyKey) {
-      const exists = await prisma.usageEvent.findUnique({
-        where: { idempotencyKey },
-      });
-      if (exists) {
-        return NextResponse.json({ success: true });
-      }
-    }
-
-    await prisma.usageEvent.create({
-      data: {
-        metricKey: parsed.data.metric,
-        amount: parsed.data.amount,
-        customerId: parsed.data.customerId,
-        metadata: parsed.data.metadata,
-        timestamp: parsed.data.timestamp
-          ? new Date(parsed.data.timestamp)
-          : new Date(),
-        idempotencyKey,
+    // 🔐 Resolve subscription safely
+    const subscription = await prisma.subscription.findFirst({
+      where: {
         orgId: key.orgId,
-        apiKeyId: key.id,
-        subscriptionId: body.subscriptionId,
+        status: "ACTIVE",
       },
     });
 
-    await usageQueue.add(
-        "AGGREGATE_USAGE",
-        {
-          orgId: key.orgId,
-          subscriptionId: body.subscriptionId,
-        },
-        {
-          removeOnComplete: true,
-          attempts: 3,
-        }
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "No active subscription" },
+        { status: 400 }
       );
-      
+    }
+
+    try {
+      await prisma.usageEvent.create({
+        data: {
+          metricKey: parsed.data.metric,
+          amount: parsed.data.amount,
+          customerId: parsed.data.customerId,
+          metadata: parsed.data.metadata,
+          timestamp: parsed.data.timestamp
+            ? new Date(parsed.data.timestamp)
+            : new Date(),
+          idempotencyKey,
+          orgId: key.orgId,
+          apiKeyId: key.id,
+          subscriptionId: subscription.id,
+        },
+      });
+    } catch (err) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code: string }).code === "P2002"
+      ) {
+        // Duplicate idempotency key
+        return NextResponse.json({ success: true });
+      }
+      throw err;
+    }
+
+    await usageQueue.add(
+      "AGGREGATE_USAGE",
+      {
+        orgId: key.orgId,
+        subscriptionId: subscription.id,
+      },
+      {
+        jobId: `agg:${subscription.id}`,
+        removeOnComplete: true,
+        attempts: 3,
+      }
+    );
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error("Track API error:", err);
     return NextResponse.json(
-      { error: `Internal server error ${err}` },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

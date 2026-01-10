@@ -12,7 +12,7 @@ const adapter = new PrismaPg(pool)
 
 // 3. Pass the adapter to the constructor
 export const prisma =
-  globalForPrisma.prisma || new PrismaClient({ adapter })
+  globalForPrisma.prisma || new PrismaClient({ adapter,log: ["query", "error"]})
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
