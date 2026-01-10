@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import prisma from "@/lib/prisma";
 import { usageEventSchema } from "@/lib/validators";
 import { usageQueue } from "@/lib/queue";
+// import { processAggregation } from "@/worker/processors/aggregateUsage";
 
 export async function POST(req: Request) {
   try {
@@ -32,6 +33,8 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
+
+    // processAggregation({ orgId: body.orgId, subscriptionId: body.subscriptionId });
 
     if (idempotencyKey) {
       const exists = await prisma.usageEvent.findUnique({
@@ -72,9 +75,9 @@ export async function POST(req: Request) {
       
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
     return NextResponse.json(
-      { error: `Internal server error` },
+      { error: `Internal server error ${err}` },
       { status: 500 }
     );
   }

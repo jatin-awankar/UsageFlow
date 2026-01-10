@@ -1,3 +1,4 @@
+import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
 import { AppError } from "@/lib/errors";
@@ -22,13 +23,30 @@ export async function createApiKey(
   const rawKey = crypto.randomUUID();
   const hashedKey = hashkey(rawKey);
 
-  await prisma.apiKey.create({
+  const apiKey = await prisma.apiKey.create({
     data: {
       name,
       hashedKey,
       orgId,
     },
   });
+
+  await writeAuditLog({
+    orgId,
+    userId,
+    action: "API_KEY_CREATED",
+    entity: "ApiKey",
+    entityId: apiKey.id,
+    metadata: { name: apiKey.name },
+  });
+  
+  // await writeAuditLog({
+  //   orgId,
+  //   userId,
+  //   action: "API_KEY_REVOKED",
+  //   entity: "ApiKey",
+  //   entityId: apiKey.id,
+  // });    
 
   return rawKey;
 }

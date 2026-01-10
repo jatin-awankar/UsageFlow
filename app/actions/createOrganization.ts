@@ -1,3 +1,4 @@
+import { writeAuditLog } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { createOrganizationSchema } from "@/lib/validators";
@@ -24,6 +25,15 @@ export async function createOrganization(input: unknown, userId: string) {
           },
         },
       },
+    });
+
+    await writeAuditLog({
+      orgId: org.id,
+      userId,
+      action: "ORG_CREATED",
+      entity: "Organization",
+      entityId: org.id,
+      metadata: { name: org.name },
     });
 
     return org;

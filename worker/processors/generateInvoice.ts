@@ -1,8 +1,13 @@
 // worker/processors/generateInvoice.ts
+import { writeAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { usageQueue } from "@/lib/queue";
 
-export async function processInvoice({ subscriptionId }: { subscriptionId: string }) {
+export async function processInvoice({
+  subscriptionId,
+}: {
+  subscriptionId: string;
+}) {
   const subscription = await prisma.subscription.findUnique({
     where: { id: subscriptionId },
     include: {
@@ -38,35 +43,48 @@ export async function processInvoice({ subscriptionId }: { subscriptionId: strin
       periodEnd: subscription.periodEnd,
     },
   });
-
-
-const endpoints = await prisma.webhookEndpoint.findMany({
-  where: {
+  
+  // ✅ ADD THIS BLOCK
+  await writeAuditLog({
     orgId: subscription.orgId,
-    active: true,
-    events: { has: "invoice.created" },
-  },
-});
+    action: "INVOICE_GENERATED",
+    entity: "Invoice",
+    entityId: invoice.id,
+    metadata: {
+      amount: invoice.amount,
+      subscriptionId,
+      periodStart: invoice.periodStart,
+      periodEnd: invoice.periodEnd,
+    },
+  });
+  
 
-for (const endpoint of endpoints) {
-  const event = await prisma.webhookEvent.create({
-    data: {
-      type: "invoice.created",
-      payload: {
-        invoiceId: invoice.id,
-        amount: invoice.amount,
-        periodStart: invoice.periodStart,
-        periodEnd: invoice.periodEnd,
-      },
+  const endpoints = await prisma.webhookEndpoint.findMany({
+    where: {
       orgId: subscription.orgId,
-      endpointId: endpoint.id,
-      status: "PENDING",
+      active: true,
+      events: { has: "invoice.created" },
     },
   });
 
-  await usageQueue.add("DELIVER_WEBHOOK", {
-    webhookEventId: event.id,
-  });
-}
+  for (const endpoint of endpoints) {
+    const event = await prisma.webhookEvent.create({
+      data: {
+        type: "invoice.created",
+        payload: {
+          invoiceId: invoice.id,
+          amount: invoice.amount,
+          periodStart: invoice.periodStart,
+          periodEnd: invoice.periodEnd,
+        },
+        orgId: subscription.orgId,
+        endpointId: endpoint.id,
+        status: "PENDING",
+      },
+    });
 
+    await usageQueue.add("DELIVER_WEBHOOK", {
+      webhookEventId: event.id,
+    });
+  }
 }
