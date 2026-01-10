@@ -122,7 +122,8 @@ model UsageEvent {
   org            Organization @relation(fields: [orgId], references: [id])
   subscription   Subscription @relation(fields: [subscriptionId], references: [id])
 
-  @@index([orgId, metricKey, timestamp])
+  @@index([orgId, subscriptionId, metricKey, timestamp])
+  @@index([idempotencyKey])
 }
 
 model AggregatedUsage {
@@ -137,6 +138,8 @@ model AggregatedUsage {
   subscription   Subscription @relation(fields: [subscriptionId], references: [id])
 
   @@unique([orgId, subscriptionId, metricKey, periodStart])
+  @@index([orgId, subscriptionId])
+  @@index([orgId, metricKey])
 }
 
 model Invoice {
@@ -151,6 +154,9 @@ model Invoice {
   org            Organization  @relation(fields: [orgId], references: [id])
   subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
   lineItems      Json?
+
+  @@index([orgId, createdAt])
+  @@index([subscriptionId])
 }
 
 model WebhookEndpoint {
@@ -175,6 +181,8 @@ model AuditLog {
   createdAt DateTime     @default(now())
   org       Organization @relation(fields: [orgId], references: [id])
   user      User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId, createdAt])
 }
 
 model WebhookEvent {
