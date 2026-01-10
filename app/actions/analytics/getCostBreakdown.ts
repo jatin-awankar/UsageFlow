@@ -8,7 +8,7 @@ export async function getCostBreakdown(
   userId: string,
   orgId: string
 ) {
-  // 🔐 Authorization
+  // 🔐 Authorization (read-only access for all roles)
   await requireRole(userId, orgId, [
     Role.OWNER,
     Role.ADMIN,
@@ -16,17 +16,31 @@ export async function getCostBreakdown(
     Role.VIEWER,
   ]);
 
-  // ✅ Find ACTIVE subscription for org
+  /**
+   * 1️⃣ Find the ACTIVE subscription for this org
+   * Subscription context is derived server-side
+   */
   const subscription = await prisma.subscription.findFirst({
     where: {
       orgId,
       status: "ACTIVE",
     },
-    include: {
+    select: {
+      id: true,
+      orgId: true,
       plan: {
-        include: {
+        select: {
+          basePrice: true,
           planMetrics: {
-            include: { metric: true },
+            select: {
+              includedUnits: true,
+              pricePerUnit: true,
+              metric: {
+                select: {
+                  key: true,
+                },
+              },
+            },
           },
         },
       },
@@ -37,13 +51,23 @@ export async function getCostBreakdown(
     throw new AppError("No active subscription found", 404);
   }
 
+  /**
+   * 2️⃣ Fetch aggregated usage for THIS subscription
+   */
   const usage = await prisma.aggregatedUsage.findMany({
     where: {
       orgId,
       subscriptionId: subscription.id,
     },
+    select: {
+      metricKey: true,
+      total: true,
+    },
   });
 
+  /**
+   * 3️⃣ Compute per-metric cost breakdown
+   */
   const breakdown = usage.map((row) => {
     const pricing = subscription.plan.planMetrics.find(
       (pm) => pm.metric.key === row.metricKey
@@ -65,6 +89,9 @@ export async function getCostBreakdown(
     };
   });
 
+  /**
+   * 4️⃣ Final totals
+   */
   const basePrice = subscription.plan.basePrice;
   const usageCost = breakdown.reduce((sum, r) => sum + r.cost, 0);
 
