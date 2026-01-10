@@ -25,6 +25,15 @@ export const createSubscriptionSchema = z.object({
   periodEnd: z.date(),
 });
 
+export const usageEventSchema = z.object({
+  metric: z.string().min(1),
+  amount: z.number().int().positive(),
+  customerId: z.string().optional(),
+  timestamp: z.iso.datetime().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+
 export const createWebhookSchema = z.object({
   url: z.string().url(),
+  events: z.array(z.string()).min(1),
 });
