@@ -1,3 +1,4 @@
+import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
 import { AppError } from "@/lib/errors";
@@ -17,10 +18,32 @@ export async function createPlan(
 
   await requireRole(userId, orgId, permissions.createPlan);
 
-  return prisma.plan.create({
+  const plan = await prisma.plan.create({
     data: {
       ...parsed.data,
       orgId,
     },
   });
+
+  await writeAuditLog({
+    orgId,
+    userId,
+    action: "PLAN_CREATED",
+    entity: "Plan",
+    entityId: plan.id,
+    metadata: {
+      name: plan.name,
+      basePrice: plan.basePrice,
+    },
+  });
+
+  // await writeAuditLog({
+  //   orgId,
+  //   userId,
+  //   action: "PLAN_UPDATED",
+  //   entity: "Plan",
+  //   entityId: plan.id,
+  // });  
+
+  return plan;
 }

@@ -1,3 +1,4 @@
+import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
 import { AppError } from "@/lib/errors";
@@ -17,11 +18,21 @@ export async function createSubscription(
 
   await requireRole(userId, orgId, permissions.createSubscription);
 
-  return prisma.subscription.create({
+  const subscription = await prisma.subscription.create({
     data: {
       ...parsed.data,
       orgId,
       status: "ACTIVE",
     },
   });
+
+  await writeAuditLog({
+    orgId,
+    userId,
+    action: "SUBSCRIPTION_CREATED",
+    entity: "Subscription",
+    entityId: subscription.id,
+  });
+
+  return subscription;
 }
