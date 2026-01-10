@@ -8,30 +8,198 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-
-  memberships Membership[]
+  id          String       @id @default(uuid())
+  email       String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
   auditLogs   AuditLog[]
+  memberships Membership[]
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-
-  memberships      Membership[]
+  id               String            @id @default(uuid())
+  name             String
+  createdAt        DateTime          @default(now())
+  aggregatedUsages AggregatedUsage[]
   apiKeys          ApiKey[]
+  auditLogs        AuditLog[]
+  invoices         Invoice[]
+  memberships      Membership[]
   metrics          Metric[]
   plans            Plan[]
   subscriptions    Subscription[]
-  invoices         Invoice[]
-  webhookEndpoints WebhookEndpoint[]
-  auditLogs        AuditLog[]
   usageEvents      UsageEvent[]
-  aggregatedUsages AggregatedUsage[]
+  webhookEndpoints WebhookEndpoint[]
+  webhookEvents    WebhookEvent[]
+}
+
+model Membership {
+  id     String       @id @default(uuid())
+  role   Role
+  userId String
+  orgId  String
+  org    Organization @relation(fields: [orgId], references: [id])
+  user   User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, orgId])
+}
+
+model ApiKey {
+  id          String       @id @default(uuid())
+  name        String
+  hashedKey   String       @unique
+  active      Boolean      @default(true)
+  lastUsedAt  DateTime?
+  orgId       String
+  createdAt   DateTime     @default(now())
+  org         Organization @relation(fields: [orgId], references: [id])
+  usageEvents UsageEvent[]
+}
+
+model Metric {
+  id          String       @id @default(uuid())
+  name        String
+  key         String
+  unit        String
+  description String?
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  planMetrics PlanMetric[]
+
+  @@unique([orgId, key])
+}
+
+model Plan {
+  id            String         @id @default(uuid())
+  name          String
+  basePrice     Int
+  billingPeriod BillingPeriod
+  orgId         String
+  org           Organization   @relation(fields: [orgId], references: [id])
+  planMetrics   PlanMetric[]
+  subscriptions Subscription[]
+}
+
+model PlanMetric {
+  id            String @id @default(uuid())
+  includedUnits Int
+  pricePerUnit  Int
+  planId        String
+  metricId      String
+  metric        Metric @relation(fields: [metricId], references: [id])
+  plan          Plan   @relation(fields: [planId], references: [id])
+
+  @@unique([planId, metricId])
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  status             SubscriptionStatus
+  periodStart        DateTime
+  periodEnd          DateTime
+  orgId              String
+  planId             String
+  externalCustomerId String?
+  aggregatedUsages   AggregatedUsage[]
+  invoices           Invoice[]
+  org                Organization       @relation(fields: [orgId], references: [id])
+  plan               Plan               @relation(fields: [planId], references: [id])
+  usageEvents        UsageEvent[]
+}
+
+model UsageEvent {
+  id             String       @id @default(uuid())
+  metricKey      String
+  amount         Int
+  customerId     String?
+  metadata       Json?
+  timestamp      DateTime     @default(now())
+  orgId          String
+  subscriptionId String
+  apiKeyId       String
+  idempotencyKey String?      @unique
+  apiKey         ApiKey       @relation(fields: [apiKeyId], references: [id])
+  org            Organization @relation(fields: [orgId], references: [id])
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([orgId, metricKey, timestamp])
+}
+
+model AggregatedUsage {
+  id             String       @id @default(uuid())
+  metricKey      String
+  total          Int
+  periodStart    DateTime
+  periodEnd      DateTime
+  orgId          String
+  subscriptionId String
+  org            Organization @relation(fields: [orgId], references: [id])
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([orgId, subscriptionId, metricKey, periodStart])
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  amount         Int
+  status         InvoiceStatus
+  periodStart    DateTime
+  periodEnd      DateTime
+  orgId          String
+  subscriptionId String
+  createdAt      DateTime      @default(now())
+  org            Organization  @relation(fields: [orgId], references: [id])
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
+  lineItems      Json?
+}
+
+model WebhookEndpoint {
+  id            String         @id @default(uuid())
+  url           String
+  secret        String
+  active        Boolean        @default(true)
+  events        String[]
+  orgId         String
+  org           Organization   @relation(fields: [orgId], references: [id])
+  webhookEvents WebhookEvent[]
+}
+
+model AuditLog {
+  id        String       @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  orgId     String
+  userId    String?
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id])
+  user      User?        @relation(fields: [userId], references: [id])
+}
+
+model WebhookEvent {
+  id              String             @id @default(uuid())
+  type            String
+  payload         Json
+  status          WebhookEventStatus @default(PENDING)
+  orgId           String
+  endpointId      String
+  createdAt       DateTime           @default(now())
+  deliveries      WebhookDelivery[]
+  webhookEndpoint WebhookEndpoint    @relation(fields: [endpointId], references: [id])
+  organization    Organization       @relation(fields: [orgId], references: [id])
+}
+
+model WebhookDelivery {
+  id             String             @id @default(uuid())
+  webhookEventId String
+  status         WebhookEventStatus @default(PENDING)
+  responseCode   Int?
+  responseBody   String?
+  attempt        Int                @default(1)
+  createdAt      DateTime           @default(now())
+  durationMs     Int?
+  webhookEvent   WebhookEvent       @relation(fields: [webhookEventId], references: [id])
 }
 
 enum Role {
@@ -41,79 +209,9 @@ enum Role {
   VIEWER
 }
 
-model Membership {
-  id   String @id @default(uuid())
-  role Role
-
-  userId String
-  orgId  String
-
-  user User         @relation(fields: [userId], references: [id])
-  org  Organization @relation(fields: [orgId], references: [id])
-
-  @@unique([userId, orgId])
-}
-
-model ApiKey {
-  id         String    @id @default(uuid())
-  name       String
-  hashedKey  String
-  active     Boolean   @default(true)
-  lastUsedAt DateTime?
-
-  orgId String
-  org   Organization @relation(fields: [orgId], references: [id])
-
-  createdAt   DateTime     @default(now())
-  usageEvents UsageEvent[]
-}
-
-model Metric {
-  id          String  @id @default(uuid())
-  name        String
-  key         String
-  unit        String
-  description String?
-
-  orgId String
-  org   Organization @relation(fields: [orgId], references: [id])
-
-  planMetrics PlanMetric[]
-
-  @@unique([orgId, key])
-}
-
 enum BillingPeriod {
   MONTHLY
   YEARLY
-}
-
-model Plan {
-  id            String        @id @default(uuid())
-  name          String
-  basePrice     Int
-  billingPeriod BillingPeriod
-
-  orgId String
-  org   Organization @relation(fields: [orgId], references: [id])
-
-  planMetrics   PlanMetric[]
-  subscriptions Subscription[]
-}
-
-model PlanMetric {
-  id String @id @default(uuid())
-
-  includedUnits Int
-  pricePerUnit  Int
-
-  planId   String
-  metricId String
-
-  plan   Plan   @relation(fields: [planId], references: [id])
-  metric Metric @relation(fields: [metricId], references: [id])
-
-  @@unique([planId, metricId])
 }
 
 enum SubscriptionStatus {
@@ -122,105 +220,14 @@ enum SubscriptionStatus {
   PAUSED
 }
 
-model Subscription {
-  id          String             @id @default(uuid())
-  status      SubscriptionStatus
-  periodStart DateTime
-  periodEnd   DateTime
-
-  orgId  String
-  planId String
-
-  org  Organization @relation(fields: [orgId], references: [id])
-  plan Plan         @relation(fields: [planId], references: [id])
-
-  usageEvents      UsageEvent[]
-  invoices         Invoice[]
-  aggregatedUsages AggregatedUsage[]
-}
-
-model UsageEvent {
-  id         String  @id @default(uuid())
-  metricKey  String
-  amount     Int
-  customerId String?
-  metadata   Json?
-
-  timestamp DateTime @default(now())
-
-  orgId          String
-  subscriptionId String
-  apiKeyId       String
-
-  org          Organization @relation(fields: [orgId], references: [id])
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
-  apiKey       ApiKey       @relation(fields: [apiKeyId], references: [id])
-
-  @@index([orgId, metricKey, timestamp])
-}
-
-model AggregatedUsage {
-  id        String @id @default(uuid())
-  metricKey String
-  total     Int
-
-  periodStart DateTime
-  periodEnd   DateTime
-
-  orgId          String
-  subscriptionId String
-
-  org          Organization @relation(fields: [orgId], references: [id])
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
-
-  @@unique([orgId, subscriptionId, metricKey, periodStart])
-}
-
 enum InvoiceStatus {
   PENDING
   PAID
   FAILED
 }
 
-model Invoice {
-  id     String        @id @default(uuid())
-  amount Int
-  status InvoiceStatus
-
-  periodStart DateTime
-  periodEnd   DateTime
-
-  orgId          String
-  subscriptionId String
-
-  createdAt DateTime @default(now())
-
-  org          Organization @relation(fields: [orgId], references: [id])
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
-}
-
-model WebhookEndpoint {
-  id     String  @id @default(uuid())
-  url    String
-  secret String
-  active Boolean @default(true)
-
-  orgId String
-  org   Organization @relation(fields: [orgId], references: [id])
-}
-
-model AuditLog {
-  id       String  @id @default(uuid())
-  action   String
-  entity   String
-  entityId String?
-  metadata Json?
-
-  orgId  String
-  userId String?
-
-  createdAt DateTime @default(now())
-
-  org  Organization @relation(fields: [orgId], references: [id])
-  user User?        @relation(fields: [userId], references: [id])
+enum WebhookEventStatus {
+  PENDING
+  DELIVERED
+  FAILED
 }
