@@ -31,4 +31,5 @@ npm install bullmq ioredis
 npm i axios
 npm install -D tsx
 
+npm install next-auth @auth/prisma-adapter bcryptjs
 -->
