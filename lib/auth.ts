@@ -1,5 +1,5 @@
 // src/lib/auth.ts
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
 /**
  * TEMPORARY AUTH HELPER

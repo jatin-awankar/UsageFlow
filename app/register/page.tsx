@@ -1,7 +1,8 @@
+// app/register/page.tsx
 "use client";
 
 import { useActionState, useState } from "react";
-import { registerUser } from "@/app/actions/register";
+import { registerUser } from "@/actions/register";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
@@ -20,6 +21,7 @@ export default function RegisterPage() {
           name="email"
           type="email"
           placeholder="Email"
+          disabled={isPending}
           required
           className="w-full border p-2"
         />
@@ -33,11 +35,13 @@ export default function RegisterPage() {
           name="password"
           type={showPassword ? "text" : "password"}
           placeholder="Password"
+          disabled={isPending}
           required
           className="w-full border p-2 "
         />
         <button
           type="button"
+          disabled={isPending}
           onClick={() => setShowPassword(!showPassword)}
           className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
         >

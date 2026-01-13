@@ -1,3 +1,4 @@
+// app/login/page.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -46,6 +47,7 @@ export default function LoginPage() {
         name="email"
         type="email"
         placeholder="Email"
+        disabled={loading}
         required
         className="w-full border p-2"
       />
@@ -55,12 +57,14 @@ export default function LoginPage() {
           name="password"
           type={showPassword ? "text" : "password"}
           placeholder="Password"
+          disabled={loading}
           required
           className="w-full border p-2 pr-10"
         />
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
+          disabled={loading}
           className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
         >
           {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}

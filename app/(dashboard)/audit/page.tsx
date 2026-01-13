@@ -1,4 +1,4 @@
-import { getAuditLogs } from "@/app/actions/audits/getAuditLogs";
+import { getAuditLogs } from "@/actions/audit/getAuditLogs";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 

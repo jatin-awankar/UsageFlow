@@ -1,6 +1,7 @@
+// app/actions/register.ts
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { redirect } from "next/navigation";
 import { createUserSchema } from "@/lib/validators";
@@ -20,7 +21,9 @@ export async function registerUser(
     };
   }
 
-  const { email, password } = validated.data;
+  const email = validated.data.email.toLowerCase().trim();
+  const password = validated.data.password;
+
 
   try {
     const existingUser = await prisma.user.findUnique({

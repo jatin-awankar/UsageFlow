@@ -1,5 +1,5 @@
 // app/(dashboard)/usage/page.tsx
-import { getUsageSummary } from "@/app/actions/analytics/getUsageSummary";
+import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
 import { getCurrentUser } from "@/lib/auth";
 import { UsageTable } from "./usage-table";
 
