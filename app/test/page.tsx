@@ -1,9 +1,9 @@
 export const runtime = "nodejs";
 
-import { createApiKey } from "../actions/createApiKey";
-import { createMetric } from "../actions/createMetric";
-import { createOrganization } from "../actions/createOrganization";
 
+import { createApiKey } from "@/actions/apiKeys/createApiKey";
+import { createMetric } from "@/actions/metrics/createMetric";
+import { createOrganization } from "@/actions/organization/createOrganization";
 import { usageQueue } from "@/lib/queue";
 
 export default async function TestPage() {

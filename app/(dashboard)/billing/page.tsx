@@ -1,4 +1,4 @@
-import { getCostBreakdown } from "@/app/actions/analytics/getCostBreakdown";
+import { getCostBreakdown } from "@/actions/analytics/getCostBreakdown";
 import { getCurrentUser } from "@/lib/auth";
 
 /**
