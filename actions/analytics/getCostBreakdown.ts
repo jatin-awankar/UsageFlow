@@ -6,7 +6,8 @@ import { Role } from "@/generated/prisma/enums";
 
 export async function getCostBreakdown(
   userId: string,
-  orgId: string
+  orgId: string,
+  subId: string
 ) {
   // 🔐 Authorization (read-only access for all roles)
   await requireRole(userId, orgId, [
@@ -22,6 +23,7 @@ export async function getCostBreakdown(
    */
   const subscription = await prisma.subscription.findFirst({
     where: {
+      id: subId,
       orgId,
       status: "ACTIVE",
     },

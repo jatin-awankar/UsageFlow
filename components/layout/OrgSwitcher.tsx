@@ -1,15 +1,15 @@
 import React from "react";
 
 type OrgSwitcherProps = {
-    currentOrgId: string;
+    currentOrg: string;
   };
   
   export default function OrgSwitcher({
-    currentOrgId,
+    currentOrg,
   }: OrgSwitcherProps) {
     return (
       <div className="text-sm font-medium">
-        Org: {currentOrgId}
+        Org: {currentOrg}
       </div>
     );
   }
