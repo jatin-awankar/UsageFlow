@@ -19,7 +19,7 @@ export default async function OrgLayout({
   const orgId = resolvedParams.orgId;
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       {/* Sidebar */}
       <Sidebar orgId={orgId} />
 

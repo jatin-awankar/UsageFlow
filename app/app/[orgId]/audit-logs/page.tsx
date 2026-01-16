@@ -2,18 +2,22 @@ import { getAuditLogs } from "@/actions/audit/getAuditLogs";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 5;
 
 export default async function AuditPage({
-  searchParams,
+  params,
 }: {
-  searchParams: { page?: string };
+  params: Promise<
+    { orgId: string; page?: string } | { orgId: string; page?: string }
+  >;
 }) {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const page = Number(searchParams.page ?? 0);
-  const orgId = user.currentOrgId;
+  const resolvedParams = await Promise.resolve(params);
+
+  const page = Number(resolvedParams.page ?? 0);
+  const orgId = resolvedParams.orgId;
 
   const logs = await getAuditLogs(user.id, orgId, page, PAGE_SIZE);
 
@@ -65,7 +69,7 @@ export default async function AuditPage({
             </Link>
 
             <Link
-              href={`/audit?page=${page + 1}`}
+              href={`/app/${orgId}/audit-logs?page=${page + 1}`}
               className={`px-3 py-1 border rounded ${
                 logs.length < PAGE_SIZE ? "pointer-events-none opacity-50" : ""
               }`}
