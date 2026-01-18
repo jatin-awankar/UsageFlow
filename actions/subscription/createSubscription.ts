@@ -1,7 +1,6 @@
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
-import { AppError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { createSubscriptionSchema } from "@/lib/validators";
 
@@ -13,26 +12,49 @@ export async function createSubscription(
   const parsed = createSubscriptionSchema.safeParse(input);
 
   if (!parsed.success) {
-    throw new AppError("Invalid subscription data", 400);
+    return { success: false, error: "Invalid subscription data", status: 400 };
   }
 
   await requireRole(userId, orgId, permissions.createSubscription);
 
-  const subscription = await prisma.subscription.create({
-    data: {
-      ...parsed.data,
-      orgId,
-      status: "ACTIVE",
-    },
-  });
+  try {
+    return prisma.$transaction(async (tx) => {
+      // Deactivate existing active subscriptions
+      await tx.subscription.updateMany({
+        where: {
+          orgId,
+          status: "ACTIVE",
+        },
+        data: {
+          status: "CANCELED",
+        },
+      });
 
-  await writeAuditLog({
-    orgId,
-    userId,
-    action: "SUBSCRIPTION_CREATED",
-    entity: "Subscription",
-    entityId: subscription.id,
-  });
+      // Create new active subscription
+      const subscription = await tx.subscription.create({
+        data: {
+          ...parsed.data,
+          orgId,
+          status: "ACTIVE",
+          periodStart: new Date(),
+        },
+      });
 
-  return subscription;
+      await writeAuditLog({
+        orgId,
+        userId,
+        action: "SUBSCRIPTION_CREATED",
+        entity: "Subscription",
+        entityId: subscription.id,
+        metadata: {
+          planId: parsed.data.planId,
+        },
+      });
+
+      return { success: true, data: subscription, status: 201 };
+    });
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: "Error Creating Subscription" };
+  }
 }

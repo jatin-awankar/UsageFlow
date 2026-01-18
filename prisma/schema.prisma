@@ -36,12 +36,13 @@ model Organization {
 }
 
 model Membership {
-  id     String       @id @default(uuid())
-  role   Role
-  userId String
-  orgId  String
-  org    Organization @relation(fields: [orgId], references: [id])
-  user   User         @relation(fields: [userId], references: [id])
+  id        String       @id @default(uuid())
+  role      Role
+  userId    String
+  orgId     String
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
 
   @@unique([userId, orgId])
 }
@@ -65,8 +66,10 @@ model Metric {
   unit        String
   description String?
   orgId       String
+  createdAt   DateTime     @default(now())
   org         Organization @relation(fields: [orgId], references: [id])
   planMetrics PlanMetric[]
+  usageEvents UsageEvent[]
 
   @@unique([orgId, key])
 }
@@ -77,19 +80,21 @@ model Plan {
   basePrice     Int
   billingPeriod BillingPeriod
   orgId         String
+  createdAt     DateTime       @default(now())
   org           Organization   @relation(fields: [orgId], references: [id])
   planMetrics   PlanMetric[]
   subscriptions Subscription[]
 }
 
 model PlanMetric {
-  id            String @id @default(uuid())
+  id            String   @id @default(uuid())
   includedUnits Int
   pricePerUnit  Int
   planId        String
   metricId      String
-  metric        Metric @relation(fields: [metricId], references: [id])
-  plan          Plan   @relation(fields: [planId], references: [id])
+  createdAt     DateTime @default(now())
+  metric        Metric   @relation(fields: [metricId], references: [id])
+  plan          Plan     @relation(fields: [planId], references: [id])
 
   @@unique([planId, metricId])
 }
@@ -98,7 +103,7 @@ model Subscription {
   id                 String             @id @default(uuid())
   status             SubscriptionStatus
   periodStart        DateTime
-  periodEnd          DateTime
+  periodEnd          DateTime?
   orgId              String
   planId             String
   externalCustomerId String?
@@ -110,19 +115,23 @@ model Subscription {
 }
 
 model UsageEvent {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   metricKey      String
   amount         Int
   customerId     String?
   metadata       Json?
-  timestamp      DateTime     @default(now())
+  timestamp      DateTime @default(now())
   orgId          String
   subscriptionId String
   apiKeyId       String
-  idempotencyKey String?      @unique
-  apiKey         ApiKey       @relation(fields: [apiKeyId], references: [id])
-  org            Organization @relation(fields: [orgId], references: [id])
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  idempotencyKey String?  @unique
+  metricId       String?
+  createdAt      DateTime @default(now())
+  metric         Metric?  @relation(fields: [metricId], references: [id])
+
+  apiKey       ApiKey       @relation(fields: [apiKeyId], references: [id])
+  org          Organization @relation(fields: [orgId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
@@ -136,6 +145,7 @@ model AggregatedUsage {
   periodEnd      DateTime
   orgId          String
   subscriptionId String
+  createdAt      DateTime     @default(now())
   org            Organization @relation(fields: [orgId], references: [id])
   subscription   Subscription @relation(fields: [subscriptionId], references: [id])
 
@@ -168,6 +178,7 @@ model WebhookEndpoint {
   active        Boolean        @default(true)
   events        String[]
   orgId         String
+  createdAt     DateTime       @default(now())
   org           Organization   @relation(fields: [orgId], references: [id])
   webhookEvents WebhookEvent[]
 }
@@ -198,6 +209,8 @@ model WebhookEvent {
   deliveries      WebhookDelivery[]
   webhookEndpoint WebhookEndpoint    @relation(fields: [endpointId], references: [id])
   organization    Organization       @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, createdAt])
 }
 
 model WebhookDelivery {

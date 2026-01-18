@@ -18,8 +18,8 @@ export const createOrganizationSchema = z.object({
 });
 
 export const createMetricSchema = z.object({
-  name: z.string().min(2),
-  key: z.string().min(2),
+  name: z.string().min(2, "Metric name must be at least 2 characters"),
+  key: z.string().min(2, "Metric key must be at least 2 characters"),
   unit: z.string().min(1),
 });
 
