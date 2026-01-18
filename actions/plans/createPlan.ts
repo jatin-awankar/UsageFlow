@@ -1,3 +1,5 @@
+"use server";
+
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
@@ -41,7 +43,7 @@ export async function createPlan(
       },
     });
 
-    return plan;
+    return {success: true, data: plan};
   } catch (err) {
     console.log(err);
     return { success: false, error: "Error Creating Plan" };

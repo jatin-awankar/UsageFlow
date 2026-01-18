@@ -2,27 +2,26 @@ import { getAuditLogs } from "@/actions/audit/getAuditLogs";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 
-const PAGE_SIZE = 5;
-
-interface Props {
+export default async function AuditPage({
+  params,
+  searchParams,
+}: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ page?: string }>; // Page is here, not in params
-}
-
-export default async function AuditPage({ params, searchParams }: Props) {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  // Await both in parallel for better performance
-  const [resolvedParams, resolvedSearchParams] = await Promise.all([
-    params,
-    searchParams,
-  ]);
+  const { cursor, direction } = await searchParams;
 
-  const orgId = resolvedParams.orgId;
-  const page = Number(resolvedSearchParams.page ?? 0);
+  const { orgId } = await params;
 
-  const logs = await getAuditLogs(user.id, orgId, page, PAGE_SIZE);
+  const { data: logs, prevCursor, nextCursor, hasPrev, hasNext } = await getAuditLogs({
+    userId: user.id,
+    orgId,
+    cursor,
+    direction: direction === "prev" ? "prev" : "next",
+  });
 
   return (
     <div className="p-6">
@@ -64,20 +63,15 @@ export default async function AuditPage({ params, searchParams }: Props) {
           {/* Pagination */}
           <div className="flex justify-between mt-4">
             <Link
-              // Use consistent URL pathing
-              href={`/app/${orgId}/audit-logs?page=${Math.max(page - 1, 0)}`}
-              className={`px-3 py-1 border rounded transition-opacity ${
-                page === 0 ? "pointer-events-none opacity-30" : "hover:bg-gray-500"
-              }`}
+              href={`/app/${orgId}/audit-logs?cursor=${prevCursor}&direction=prev`}
+              className={`px-3 py-1 border rounded transition-opacity ${!hasPrev ? "pointer-events-none opacity-30" : "hover:bg-gray-500"}`}
             >
               Previous
             </Link>
 
             <Link
-              href={`/app/${orgId}/audit-logs?page=${page + 1}`}
-              className={`px-3 py-1 border rounded transition-opacity ${
-                logs.length < PAGE_SIZE ? "pointer-events-none opacity-30" : "hover:bg-gray-500"
-              }`}
+              href={`/app/${orgId}/audit-logs?cursor=${nextCursor}&direction=next`}
+              className={`px-3 py-1 border rounded transition-opacity ${!hasNext ? "pointer-events-none opacity-30" : "hover:bg-gray-500"}`}
             >
               Next
             </Link>
