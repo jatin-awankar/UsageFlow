@@ -30,7 +30,7 @@ export const createPlanSchema = z.object({
 });
 
 export const createSubscriptionSchema = z.object({
-  planId: z.string().uuid(),
+  planId: z.uuid(),
   periodStart: z.date(),
   periodEnd: z.date(),
 });
@@ -44,6 +44,6 @@ export const usageEventSchema = z.object({
 });
 
 export const createWebhookSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   events: z.array(z.string()).min(1),
 });

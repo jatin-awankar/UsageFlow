@@ -7,7 +7,13 @@ export async function getActiveSubscription(orgId: string) {
       status: "ACTIVE",
     },
     include: {
-      plan: true,
+      plan: {
+        include: {
+          planMetrics: {
+            include: { metric: true },
+          },
+        },
+      },
     },
   });
 }

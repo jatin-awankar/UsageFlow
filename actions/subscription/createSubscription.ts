@@ -1,19 +1,20 @@
+"use server";
+
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
-import { createSubscriptionSchema } from "@/lib/validators";
 
 export async function createSubscription(
-  input: unknown,
   userId: string,
-  orgId: string
+  orgId: string,
+  planId: string,
 ) {
-  const parsed = createSubscriptionSchema.safeParse(input);
+  // const parsed = createSubscriptionSchema.safeParse(input);
 
-  if (!parsed.success) {
-    return { success: false, error: "Invalid subscription data", status: 400 };
-  }
+  // if (!parsed.success) {
+  //   return { success: false, error: "Invalid subscription data", status: 400 };
+  // }
 
   await requireRole(userId, orgId, permissions.createSubscription);
 
@@ -27,13 +28,15 @@ export async function createSubscription(
         },
         data: {
           status: "CANCELED",
+          periodEnd: new Date(),
         },
       });
 
       // Create new active subscription
       const subscription = await tx.subscription.create({
         data: {
-          ...parsed.data,
+          externalCustomerId: userId,
+          planId,
           orgId,
           status: "ACTIVE",
           periodStart: new Date(),
@@ -47,7 +50,7 @@ export async function createSubscription(
         entity: "Subscription",
         entityId: subscription.id,
         metadata: {
-          planId: parsed.data.planId,
+          planId: planId,
         },
       });
 

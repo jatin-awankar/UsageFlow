@@ -4,6 +4,8 @@ import CreatePlanForm from "@/components/forms/CreatePlanForm";
 import { redirect } from "next/navigation";
 import { getMetrics } from "@/actions/metrics/getMetrics";
 import AddMetricToPlanForm from "@/components/forms/AddMetricToPlanForm";
+import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
+import ActivatePlanButton from "@/components/forms/ActivatePlanButton";
 
 
 export default async function PlansPage({
@@ -16,8 +18,9 @@ export default async function PlansPage({
 
   const { orgId } = await params;
 
-  const metrics = await getMetrics(user.id, params.orgId);
+  const metrics = await getMetrics(user.id, orgId);
   const plans = await getPlans(user.id, orgId);
+  const activeSub = await getActiveSubscription(orgId);
 
   return (
     <div className="p-6 space-y-6">
@@ -35,31 +38,39 @@ export default async function PlansPage({
       ) : (
         <>
           <h2 className="pt-4 text-xl font-semibold">Ongoing plans</h2>
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className="border rounded p-4 space-y-2"
-            >
-              <h2 className="font-semibold">
-                {plan.name} — ₹{plan.basePrice}/month
-              </h2>
+          {plans.map((plan) => {
+            const isActive = activeSub?.planId === plan.id;
+            return (
+              <div
+                key={plan.id}
+                className="border rounded p-4 space-y-2"
+              >
+                <h2 className="font-semibold">
+                  {plan.name} — ₹{plan.basePrice}/month
+                </h2>
 
-              <ul className="text-sm text-gray-600">
-                {plan.planMetrics.map((pm) => (
-                  <li key={pm.id}>
-                    {pm.metric.name}: {pm.includedUnits} included, ₹
-                    {pm.pricePerUnit}/unit
-                  </li>
-                ))}
-              </ul>
-              <AddMetricToPlanForm
-                userId={user.id}
-                orgId={orgId}
-                planId={plan.id}
-                metrics={metrics}
-              />
-            </div>
-          ))}
+                <ul className="text-sm text-gray-600">
+                  {plan.planMetrics.map((pm) => (
+                    <li key={pm.id}>
+                      {pm.metric.name}: {pm.includedUnits} included, ₹
+                      {pm.pricePerUnit}/unit
+                    </li>
+                  ))}
+                </ul>
+                {isActive ? (
+                  <span className="text-green-600 font-medium">Active</span>
+                ) : (
+                  <ActivatePlanButton userId={user.id} orgId={orgId} planId={plan.id} />
+                )}
+                <AddMetricToPlanForm
+                  userId={user.id}
+                  orgId={orgId}
+                  planId={plan.id}
+                  metrics={metrics}
+                />
+              </div>
+            )
+          })}
         </>
       )}
     </div>

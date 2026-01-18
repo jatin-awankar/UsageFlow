@@ -78,7 +78,7 @@ export default function AddMetricToPlanForm({
 
             <button
                 disabled={loading}
-                className="bg-gray-800 hover:bg-gray-500 px-3 py-1"
+                className="bg-gray-800 hover:bg-gray-500 px-3 py-1 disabled:bg-gray-500"
             >
                 {loading ? "Adding..." : "Add Metric"}
             </button>
