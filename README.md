@@ -1,8 +1,78 @@
-## Backend Foundation
-- Multi-tenant architecture using org-based scoping
-- Role-based access control (OWNER, ADMIN, DEVELOPER, VIEWER)
-- Centralized permissions map
-- Input validation using Zod
+# UsageFlow – Usage-Based Billing & Webhook Platform
+
+UsageFlow is a multi-tenant SaaS platform that enables applications to track usage events, configure pricing plans, generate invoices, and deliver billing events to external systems via reliable webhooks.
+It is designed as a developer-first, production-oriented system, inspired by real-world billing platforms like Stripe.
+
+## 🚀 Key Features
+
+- Multi-Tenant Architecture
+  - Organizations with role-based access control (RBAC)
+  - Single active subscription per organization
+- Usage Tracking
+  - Secure ingestion via API keys
+  - Event-based usage collection
+- Flexible Pricing Engine
+  - Metrics (API calls, users, etc.)
+  - Plans with base price + per-metric overages
+- Subscription & Invoicing
+  - Plan activation per organization
+  - Invoice generation per billing period
+- Reliable Webhooks
+  - Durable event storage
+  - Background delivery with retries
+  - Secure HMAC signature verification
+  - Delivery logs & observability UI
+- Audit Logging
+  - Track all sensitive actions (plans, keys, subscriptions, webhooks)
+- Background Workers
+  - Usage aggregation
+  - Invoice generation
+  - Webhook delivery via BullMQ
+- Validation using Zod
+
+## 🧠 Architecture Overview
+
+UsageFlow is built with a decoupled, event-driven architecture:
+- Next.js App
+  - Dashboard UI
+  - Authenticated server actions
+  - Public ingestion API
+- PostgreSQL (Prisma)
+  - Source of truth for all data
+- Redis + BullMQ
+  - Background job queue
+- Worker Service
+  - Usage aggregation
+  - Invoice generation
+  - Webhook delivery
+
+## 🛠️ Tech Stack
+
+- Frontend / Backend: Next.js (App Router), TypeScript
+- Auth: NextAuth
+- Database: PostgreSQL (Prisma ORM)
+- Queue & Cache: Redis (BullMQ)
+- Workers: Node.js + BullMQ Workers
+- Deployment: Vercel (App), Railway / Render (Worker)
+
+## 🔐 Security Practices
+
+- API keys stored as hashed values
+- Webhook secrets shown only once
+- HMAC-signed webhook payloads
+- Strict server-side RBAC enforcement
+- No sensitive logic on the client
+
+## 📈 Why This Project Matters
+
+UsageFlow is not a CRUD app.
+
+It demonstrates real SaaS engineering concepts:
+- Multi-tenancy
+- Event-driven systems
+- Background processing
+- Reliable webhooks
+- Observability & auditability
 
 <!-- 
 PRISMA >>
