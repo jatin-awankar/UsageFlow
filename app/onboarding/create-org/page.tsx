@@ -16,8 +16,8 @@ export default async function CreateOrgPage({
     resolvedSearchParams.error === "duplicate"
       ? "An organization with this name already exists"
       : resolvedSearchParams.error === "failed"
-      ? "Failed to create organization. Please try again."
-      : null;
+        ? "Failed to create organization. Please try again."
+        : null;
 
   async function action(formData: FormData) {
     "use server";
@@ -34,7 +34,7 @@ export default async function CreateOrgPage({
       redirect(`/onboarding/create-org?error=${errorParam}`);
     }
 
-    redirect(`/app/${result.org.id}/dashboard`);
+    redirect(`/app/${result.data.id}/dashboard`);
   }
 
   return (
