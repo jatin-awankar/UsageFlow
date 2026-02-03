@@ -1,48 +1,63 @@
+"use server"
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
-import { AppError } from "@/lib/errors";
 import prisma from "@/lib/prisma";
 import { createMetricSchema } from "@/lib/validators";
 
 export async function createMetric(
-  input: unknown,
   userId: string,
-  orgId: string
+  orgId: string,
+  data: {
+    name: string;
+    key: string;
+    unit: string;
+  }
 ) {
-  const parsed = createMetricSchema.safeParse(input);
+  const parsed = createMetricSchema.safeParse(data);
 
   if (!parsed.success) {
-    throw new AppError("Invalid input", 400);
+    return { success: false, error: "Invalid Metric data", status: 400 };
   }
 
   // Authorization
   await requireRole(userId, orgId, permissions.createMetric);
 
+  const normalizedKey = parsed.data.key.trim().toUpperCase();
+
   // Business Logic
-  const metric = await prisma.metric.create({
-    data: {
-      ...parsed.data,
+  const existing = await prisma.metric.findFirst({
+    where: {
       orgId,
+      key: normalizedKey,
     },
   });
 
-  await writeAuditLog({
-    orgId,
-    userId,
-    action: "METRIC_CREATED",
-    entity: "Metric",
-    entityId: metric.id,
-    metadata: { key: metric.key },
-  });
+  if (existing) {
+    return { success: false, error: "Metric key already exists"};
+  }
+  
+  try {
+    const metric = await prisma.metric.create({
+      data: {
+        ...parsed.data,
+        key: normalizedKey,
+        orgId,
+      },
+    });
 
-  // await writeAuditLog({
-  //   orgId,
-  //   userId,
-  //   action: "METRIC_UPDATED",
-  //   entity: "Metric",
-  //   entityId: metric.id,
-  // });  
+    await writeAuditLog({
+      orgId,
+      userId,
+      action: "METRIC_CREATED",
+      entity: "Metric",
+      entityId: metric.id,
+      metadata: { key: metric.key },
+    });
 
-  return metric;
+    return {success: true , data: metric};
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: "Metric key already exists" };
+  }
 }

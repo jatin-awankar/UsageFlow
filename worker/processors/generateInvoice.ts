@@ -1,7 +1,7 @@
 // worker/processors/generateInvoice.ts
+import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
 import { writeAuditLog } from "@/lib/audit";
-import { prisma } from "@/lib/prisma";
-import { usageQueue } from "@/lib/queue";
+import prisma from "@/lib/prisma";
 
 export async function processInvoice({
   subscriptionId,
@@ -11,7 +11,11 @@ export async function processInvoice({
   const subscription = await prisma.subscription.findUnique({
     where: { id: subscriptionId },
     include: {
-      plan: { include: { planMetrics: { include: { metric: true } } } },
+      plan: {
+        include: {
+          planMetrics: { include: { metric: true } },
+        },
+      },
     },
   });
 
@@ -27,26 +31,29 @@ export async function processInvoice({
     const pricing = subscription.plan.planMetrics.find(
       (pm) => pm.metric.key === row.metricKey
     );
+
     if (!pricing) continue;
 
     const overage = Math.max(0, row.total - pricing.includedUnits);
     total += overage * pricing.pricePerUnit;
   }
 
+  const orgId = subscription.orgId;
+
   const invoice = await prisma.invoice.create({
     data: {
-      orgId: subscription.orgId,
+      orgId,
       subscriptionId,
       amount: total,
       status: "PENDING",
       periodStart: subscription.periodStart,
-      periodEnd: subscription.periodEnd,
+      periodEnd: subscription.periodEnd!,
     },
   });
-  
-  // ✅ ADD THIS BLOCK
+
+  // Audit log
   await writeAuditLog({
-    orgId: subscription.orgId,
+    orgId,
     action: "INVOICE_GENERATED",
     entity: "Invoice",
     entityId: invoice.id,
@@ -57,34 +64,12 @@ export async function processInvoice({
       periodEnd: invoice.periodEnd,
     },
   });
-  
 
-  const endpoints = await prisma.webhookEndpoint.findMany({
-    where: {
-      orgId: subscription.orgId,
-      active: true,
-      events: { has: "invoice.created" },
-    },
+  await createWebhookEvent(orgId, "invoice.created", {
+    invoiceId: invoice.id,
+    amount: invoice.amount,
+    periodStart: invoice.periodStart,
+    periodEnd: invoice.periodEnd,
   });
 
-  for (const endpoint of endpoints) {
-    const event = await prisma.webhookEvent.create({
-      data: {
-        type: "invoice.created",
-        payload: {
-          invoiceId: invoice.id,
-          amount: invoice.amount,
-          periodStart: invoice.periodStart,
-          periodEnd: invoice.periodEnd,
-        },
-        orgId: subscription.orgId,
-        endpointId: endpoint.id,
-        status: "PENDING",
-      },
-    });
-
-    await usageQueue.add("DELIVER_WEBHOOK", {
-      webhookEventId: event.id,
-    });
-  }
 }

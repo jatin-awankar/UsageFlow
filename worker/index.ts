@@ -7,22 +7,26 @@ import { processAggregation } from "./processors/aggregateUsage";
 import { processInvoice } from "./processors/generateInvoice";
 import { processWebhook } from "./processors/deliverWebhook";
 
-console.log("🚀 UsageFlow worker started");
-
+console.log("UsageFlow worker started");
 new Worker(
   "usageflow",
   async (job) => {
-    console.log(`📦 Processing job: ${job.name}`, job.data);
+    try {
+      console.log(`Processing job: ${job.name}`, job.data);
 
-    switch (job.name) {
-      case "AGGREGATE_USAGE":
-        return processAggregation(job.data);
-      case "GENERATE_INVOICE":
-        return processInvoice(job.data);
-      case "DELIVER_WEBHOOK":
-        return processWebhook(job.data);
-      default:
-        console.warn("⚠️ Unknown job:", job.name);
+      switch (job.name) {
+        case "AGGREGATE_USAGE":
+          return processAggregation(job.data);
+        case "GENERATE_INVOICE":
+          return processInvoice(job.data);
+        case "DELIVER_WEBHOOK":
+          return processWebhook(job.data);
+        default:
+          throw new Error(`Unknown job: ${job.name}`);
+      }
+    } catch (err) {
+      console.error("Job failed:", job.name, err);
+      return { success: false, error: err }; // IMPORTANT: let BullMQ handle retries
     }
   },
   {

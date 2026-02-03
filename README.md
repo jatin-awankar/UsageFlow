@@ -32,4 +32,20 @@ npm i axios
 npm install -D tsx
 
 npm install next-auth @auth/prisma-adapter bcryptjs
+
+
+CREATE UNIQUE INDEX one_active_subscription_per_org
+ON "Subscription"(orgId)
+WHERE status = 'ACTIVE';
+
+Audit:
+{
+  metric: "API_CALL",
+  used: 1200,
+  included: 1000,
+  overage: 200,
+  cost: 400
+}
+
+
 -->

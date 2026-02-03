@@ -18,8 +18,8 @@ export const createOrganizationSchema = z.object({
 });
 
 export const createMetricSchema = z.object({
-  name: z.string().min(2),
-  key: z.string().min(2),
+  name: z.string().min(2, "Metric name must be at least 2 characters"),
+  key: z.string().min(2, "Metric key must be at least 2 characters"),
   unit: z.string().min(1),
 });
 
@@ -30,7 +30,7 @@ export const createPlanSchema = z.object({
 });
 
 export const createSubscriptionSchema = z.object({
-  planId: z.string().uuid(),
+  planId: z.uuid(),
   periodStart: z.date(),
   periodEnd: z.date(),
 });
@@ -44,6 +44,6 @@ export const usageEventSchema = z.object({
 });
 
 export const createWebhookSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   events: z.array(z.string()).min(1),
 });

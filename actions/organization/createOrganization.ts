@@ -17,7 +17,7 @@ export async function createOrganization(input: unknown, userId: string) {
   `;
 
   if (existingOrg && existingOrg.length > 0) {
-    return { error: "An organization with this name already exists" };
+    return { success: false, error: "An organization with this name already exists" };
   }
 
   try {
@@ -42,12 +42,12 @@ export async function createOrganization(input: unknown, userId: string) {
       metadata: { name: org.name },
     });
 
-    return { org };
+    return { success: true, data: org };
   } catch (error) {
     // Handle Prisma unique constraint errors as a fallback
     if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
       return { error: "An organization with this name already exists" };
     }
-    return { error: "Failed to create organization" };
+    return { success: false, error: "Failed to create organization" };
   }
 }

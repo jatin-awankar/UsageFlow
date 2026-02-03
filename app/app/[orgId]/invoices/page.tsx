@@ -21,7 +21,7 @@ export default async function InvoicesPage({
       <h1 className="text-2xl font-semibold mb-4">Invoices</h1>
 
       {invoices.length === 0 ? (
-        <p>No Usage to show</p>
+        <p className="text-gray-500">Invoices are yet to generate</p>
       ) : (
         <InvoicesTable invoices={invoices} />
       )}

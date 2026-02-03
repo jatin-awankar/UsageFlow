@@ -35,7 +35,7 @@ export default async function BillingPage({
           This organization does not have an active subscription.
         </p>
       ) : (
-        <section>
+        <section className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <SummaryCard
               title="Base Price"
@@ -53,7 +53,6 @@ export default async function BillingPage({
               description="Estimated invoice total"
               highlight
             />
-            s
           </div>
 
           {/* ---------- Cost Breakdown Table ---------- */}
@@ -120,9 +119,8 @@ function SummaryCard({
 }) {
   return (
     <div
-      className={`border rounded-lg p-4 ${
-        highlight ? "bg-primary/5 border-primary" : ""
-      }`}
+      className={`border rounded-lg p-4 ${highlight ? "bg-primary/5 border-primary" : ""
+        }`}
     >
       <p className="text-sm text-muted-foreground">{title}</p>
       <p className="text-2xl font-semibold mt-1">{value}</p>

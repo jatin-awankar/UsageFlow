@@ -20,7 +20,7 @@ export default async function UsagePage({
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-4">Usage</h1>
       {usage.length === 0 ? (
-        <p>No Usage to show</p>
+        <p className="text-gray-500">No Usage to show</p>
       ) : (
         <UsageTable usage={usage} />
       )}
