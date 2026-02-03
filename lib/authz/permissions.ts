@@ -1,4 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 
 export const permissions = {
   createMetric: [Role.OWNER, Role.ADMIN],

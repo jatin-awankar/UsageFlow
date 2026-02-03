@@ -1,7 +1,7 @@
 // app/[orgId]/dashboard/page.tsx
 import { getCostBreakdown } from "@/actions/analytics/getCostBreakdown";
 import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth/session";
 import { requireRole } from "@/lib/authz/requireRole";
 import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";

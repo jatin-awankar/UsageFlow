@@ -1,5 +1,5 @@
 import { getMembership } from "@/lib/authz/getMembership";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 
 export async function requireRole(
   userId: string,
