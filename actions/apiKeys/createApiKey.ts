@@ -5,6 +5,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
+import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
 
 
 export async function createApiKey(
@@ -45,6 +46,11 @@ export async function createApiKey(
       entity: "ApiKey",
       entityId: apiKey.id,
       metadata: { name },
+    });
+
+    await createWebhookEvent(orgId, "api_key.created", {
+      apiKeyId: apiKey.id,
+      name,
     });
 
     return { success: true, data: { id: apiKey.id, rawKey } };

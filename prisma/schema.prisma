@@ -172,15 +172,16 @@ model Invoice {
 }
 
 model WebhookEndpoint {
-  id            String         @id @default(uuid())
-  url           String
-  secret        String
-  active        Boolean        @default(true)
-  events        String[]
-  orgId         String
-  createdAt     DateTime       @default(now())
-  org           Organization   @relation(fields: [orgId], references: [id])
-  webhookEvents WebhookEvent[]
+  id        String       @id @default(uuid())
+  url       String
+  secret    String
+  active    Boolean      @default(true)
+  events    String[]
+  orgId     String
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id])
+
+  webhookDeliveries WebhookDelivery[]
 }
 
 model AuditLog {
@@ -199,30 +200,33 @@ model AuditLog {
 }
 
 model WebhookEvent {
-  id              String             @id @default(uuid())
-  type            String
-  payload         Json
-  status          WebhookEventStatus @default(PENDING)
-  orgId           String
-  endpointId      String
-  createdAt       DateTime           @default(now())
-  deliveries      WebhookDelivery[]
-  webhookEndpoint WebhookEndpoint    @relation(fields: [endpointId], references: [id])
-  organization    Organization       @relation(fields: [orgId], references: [id])
+  id           String             @id @default(uuid())
+  type         String
+  payload      Json
+  status       WebhookEventStatus @default(PENDING)
+  orgId        String
+  createdAt    DateTime           @default(now())
+  deliveries   WebhookDelivery[]
+  organization Organization       @relation(fields: [orgId], references: [id])
 
   @@index([orgId, createdAt])
 }
 
 model WebhookDelivery {
-  id             String             @id @default(uuid())
+  id             String                @id @default(uuid())
   webhookEventId String
-  status         WebhookEventStatus @default(PENDING)
+  endpointId     String
+  status         WebhookDeliveryStatus @default(PENDING)
   responseCode   Int?
   responseBody   String?
-  attempt        Int                @default(1)
-  createdAt      DateTime           @default(now())
+  attempt        Int                   @default(1)
   durationMs     Int?
-  webhookEvent   WebhookEvent       @relation(fields: [webhookEventId], references: [id])
+  createdAt      DateTime              @default(now())
+
+  webhookEvent WebhookEvent    @relation(fields: [webhookEventId], references: [id])
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id])
+
+  @@unique([webhookEventId, endpointId, attempt])
 }
 
 enum Role {
@@ -252,5 +256,11 @@ enum InvoiceStatus {
 enum WebhookEventStatus {
   PENDING
   DELIVERED
+  FAILED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
   FAILED
 }

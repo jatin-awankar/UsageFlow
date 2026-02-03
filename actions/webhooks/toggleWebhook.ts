@@ -1,19 +1,39 @@
 // app/actions/toggleWebhook.ts
+"use server";
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
 import { Role } from "@/generated/prisma/enums";
+import { writeAuditLog } from "@/lib/audit";
 
 export async function toggleWebhook(
-  webhookId: string,
   userId: string,
   orgId: string,
-  active: boolean
+  webhookEndpointId: string,
+  active: boolean,
 ) {
   await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
 
-  return prisma.webhookEndpoint.update({
-    where: { id: webhookId, orgId },
-    data: { active },
-  });
+  try {
+    await prisma.webhookEndpoint.updateMany({
+      where: { id: webhookEndpointId, orgId },
+      data: { active },
+    });
+
+    await writeAuditLog({
+      orgId,
+      userId,
+      action: active
+        ? "WEBHOOK_ACTIVATED"
+        : "WEBHOOK_DEACTIVATED",
+      entity: "WebhookEndpoint",
+      entityId: webhookEndpointId,
+    });
+
+    return { success: true, message: "Updated successfully" };
+  } catch (err) {
+    console.log("Something went wrong", err);
+    return { success: false, error: "Something went wrong" }
+  }
+
 }

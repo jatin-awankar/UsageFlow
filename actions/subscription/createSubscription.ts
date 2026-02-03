@@ -4,6 +4,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
+import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
 
 export async function createSubscription(
   userId: string,
@@ -52,6 +53,12 @@ export async function createSubscription(
         metadata: {
           planId: planId,
         },
+      });
+
+      await createWebhookEvent(orgId, "subscription.activated", {
+        subscriptionId: subscription.id,
+        planId,
+        activatedAt: new Date().toISOString(),
       });
 
       return { success: true, data: subscription, status: 201 };
