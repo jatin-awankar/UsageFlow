@@ -3,7 +3,14 @@
 UsageFlow is a multi-tenant SaaS platform that enables applications to track usage events, configure pricing plans, generate invoices, and deliver billing events to external systems via reliable webhooks.
 It is designed as a developer-first, production-oriented system, inspired by real-world billing platforms like Stripe.
 
-## 🚀 Key Features
+## 📋 <a name="table">Table of Content</a>
+- 🚀 [Key Features](#key-features)
+- 🧠 [Architecture Overview](#architecture-overview)
+- 🛠️ [Tech Stack](#techstack)
+- 🔐 [Security Practices](#security-practices)
+- 📈 [Why This Project Matters](#why-matters)
+
+## 🚀 <a name="key-features">Key Features</a>
 
 - Multi-Tenant Architecture
   - Organizations with role-based access control (RBAC)
@@ -30,7 +37,7 @@ It is designed as a developer-first, production-oriented system, inspired by rea
   - Webhook delivery via BullMQ
 - Validation using Zod
 
-## 🧠 Architecture Overview
+## 🧠 <a name="architecture-overview">Architecture Overview</a>
 
 UsageFlow is built with a decoupled, event-driven architecture:
 - Next.js App
@@ -46,7 +53,7 @@ UsageFlow is built with a decoupled, event-driven architecture:
   - Invoice generation
   - Webhook delivery
 
-## 🛠️ Tech Stack
+## 🛠️ <a name="techstack">Tech Stack</a>
 
 - Frontend / Backend: Next.js (App Router), TypeScript
 - Auth: NextAuth
@@ -55,7 +62,7 @@ UsageFlow is built with a decoupled, event-driven architecture:
 - Workers: Node.js + BullMQ Workers
 - Deployment: Vercel (App), Railway / Render (Worker)
 
-## 🔐 Security Practices
+## 🔐 <a name="security-practices">Security Practices</a>
 
 - API keys stored as hashed values
 - Webhook secrets shown only once
@@ -63,7 +70,7 @@ UsageFlow is built with a decoupled, event-driven architecture:
 - Strict server-side RBAC enforcement
 - No sensitive logic on the client
 
-## 📈 Why This Project Matters
+## 📈 <a name="why-matters">Why This Project Matters</a>
 
 UsageFlow is not a CRUD app.
 
