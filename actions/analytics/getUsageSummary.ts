@@ -1,6 +1,8 @@
+"use server";
+
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 
 /**
  * Returns aggregated usage per metric for an organization.

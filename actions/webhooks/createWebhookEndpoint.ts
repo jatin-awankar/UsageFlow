@@ -7,7 +7,7 @@ import { AppError } from "@/lib/errors";
 import { writeAuditLog } from "@/lib/audit";
 import crypto from "crypto";
 import { createWebhookSchema } from "@/lib/validators";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 
 export async function createWebhookEndpoint(
   userId: string,

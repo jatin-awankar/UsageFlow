@@ -1,3 +1,5 @@
+"use server";
+
 import { usageFlowQueue } from "@/lib/bullmq";
 import prisma from "@/lib/prisma";
 

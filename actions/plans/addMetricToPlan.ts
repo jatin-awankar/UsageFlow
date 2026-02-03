@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
 import { writeAuditLog } from "@/lib/audit";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 
 export async function addMetricToPlan(
     userId: string,

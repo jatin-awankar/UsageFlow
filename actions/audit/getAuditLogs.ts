@@ -2,7 +2,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/authz/requireRole";
 
 export async function getAuditLogs({

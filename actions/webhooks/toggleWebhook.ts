@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 import { writeAuditLog } from "@/lib/audit";
 
 export async function toggleWebhook(

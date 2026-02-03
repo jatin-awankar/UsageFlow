@@ -1,8 +1,10 @@
 // app/actions/analytics/getCostBreakdown.ts
+"use server";
+
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
 import { AppError } from "@/lib/errors";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 
 export async function getCostBreakdown(
   userId: string,

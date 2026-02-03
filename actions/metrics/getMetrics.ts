@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
-import { Role } from "@/generated/prisma/enums";
+import { Role } from "@prisma/client";
 
 export async function getMetrics(userId: string, orgId: string, page = 0, pageSize = 5) {
   await requireRole(userId, orgId, [

@@ -1,4 +1,5 @@
 "use server"
+
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
 import { requireRole } from "@/lib/authz/requireRole";
@@ -34,9 +35,9 @@ export async function createMetric(
   });
 
   if (existing) {
-    return { success: false, error: "Metric key already exists"};
+    return { success: false, error: "Metric key already exists" };
   }
-  
+
   try {
     const metric = await prisma.metric.create({
       data: {
@@ -55,7 +56,7 @@ export async function createMetric(
       metadata: { key: metric.key },
     });
 
-    return {success: true , data: metric};
+    return { success: true, data: metric };
   } catch (err) {
     console.log(err);
     return { success: false, error: "Metric key already exists" };

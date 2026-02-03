@@ -1,3 +1,5 @@
+"use server";
+
 import { writeAuditLog } from "@/lib/audit";
 import prisma from "@/lib/prisma";
 import { createOrganizationSchema } from "@/lib/validators";

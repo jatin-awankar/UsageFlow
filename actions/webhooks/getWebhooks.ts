@@ -1,4 +1,6 @@
-import { Role } from "@/generated/prisma/enums";
+"use server";
+
+import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
 

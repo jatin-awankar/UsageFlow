@@ -1,4 +1,6 @@
 // app/actions/debug/testAuditLog.ts
+"use server";
+
 import { writeAuditLog } from "@/lib/audit";
 
 export async function testAuditLog(orgId: string, userId: string) {
