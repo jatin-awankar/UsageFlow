@@ -10,7 +10,7 @@ import Feature from "./Feature";
 
 export default function KeyFeatures() {
   return (
-    <section className="mx-auto max-w-5xl px-6 py-24 space-y-8 text-center">
+    <section className="mx-auto max-w-5xl px-6 space-y-8 text-center">
       <div className="space-y-3">
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
           Key Features

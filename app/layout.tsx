@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   applicationName: "UsageFlow",
   authors: [{ name: "Jatin Awankar" }],
   creator: "Jatin Awankar",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 
   metadataBase: new URL("https://usageflow.vercel.app"),
 

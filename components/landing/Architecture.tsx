@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function Architecture() {
   return (
-    <section className="mx-auto max-w-5xl px-6 py-24 space-y-6">
+    <section className="mx-auto max-w-5xl px-6 space-y-6">
       <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
         Architecture & Reliability
       </h2>
