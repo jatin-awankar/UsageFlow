@@ -1,6 +1,5 @@
 // lib/rateLimit.ts
 
-import { AppError } from "./errors";
 import { redis } from "./redis";
 
 export async function rateLimit(
@@ -17,6 +16,6 @@ export async function rateLimit(
   }
 
   if (count > limit) {
-    throw new AppError("Too many requests", 429);
+    return { success: false, error: "Too many requests", status: 429 }
   }
 }

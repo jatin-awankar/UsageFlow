@@ -5,7 +5,7 @@ import { Github } from "lucide-react";
 export default function CTA() {
   return (
     <section className="mx-auto max-w-5xl px-6">
-      <div className="rounded-2xl bg-muted/40 py-16 text-center space-y-6">
+      <div className="rounded-2xl bg-muted/40 text-center space-y-6">
         <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
           Explore UsageFlow in action
         </h2>

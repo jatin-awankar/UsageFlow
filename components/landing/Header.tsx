@@ -25,14 +25,14 @@ export default function Header() {
           : "bg-transparent"
       )}
     >
-      <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between">
+      <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/usageFlow.png"
+            src="/icon.png"
             alt="UsageFlow logo"
-            width={24}
-            height={24}
+            width={26}
+            height={26}
             priority
           />
           <span className="text-lg font-semibold">UsageFlow</span>

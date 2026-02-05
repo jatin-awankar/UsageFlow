@@ -9,13 +9,11 @@ export async function requireRole(
   const membership = await getMembership(userId, orgId);
 
   if (!membership) {
-    // throw new AppError("Not a member of this organization", 403);
-    return { ok: false, error: "NOT_MEMBER" };
+    return { success: false, error: "Not a member of this organization", status: 403 };
   }
 
   if (!allowedRoles.includes(membership.role)) {
-    // throw new AppError("Insufficient permissions", 403);
-    return { ok: false, error: "INSUFFICIENT_ROLE" };
+    return { success: false, error: "Insufficient permissions", status: 403 };
   }
 
   return membership;

@@ -1,7 +1,8 @@
 // app/(dashboard)/usage/page.tsx
 import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
 import { UsageTable } from "./usage-table";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
 export default async function UsagePage({
   params,
@@ -9,7 +10,7 @@ export default async function UsagePage({
   params: Promise<{ orgId: string }> | { orgId: string };
 }) {
   const user = await getCurrentUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
 
   const resolvedParams = await Promise.resolve(params);
   const orgId = resolvedParams.orgId;

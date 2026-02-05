@@ -1,13 +1,15 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMetrics } from "@/actions/metrics/getMetrics";
 import { redirect } from "next/navigation";
+import { PaginationProps } from "@/types";
 import CreateMetricForm from "@/components/forms/CreateMetricForm";
 import Link from "next/link";
 
 const PAGE_SIZE = 5;
 
 export default async function MetricsPage({
-  params, searchParams
+  params,
+  searchParams,
 }: PaginationProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -56,7 +58,12 @@ export default async function MetricsPage({
 
           {/* Pagination */}
           <div className="flex justify-between mt-4">
-            <Link href={`/app/${orgId}/metrics?page=${Math.max(page - 1, 0)}`} className={`px-3 py-1 border rounded transition-opacity ${page === 0 ? "pointer-events-none opacity-30" : "hover:bg-gray-500"
+            <Link
+              href={`/app/${orgId}/metrics?page=${Math.max(page - 1, 0)}`}
+              className={`px-3 py-1 border rounded transition-opacity ${
+                page === 0
+                  ? "pointer-events-none opacity-30"
+                  : "hover:bg-gray-500"
               }`}
             >
               Previous
@@ -64,8 +71,11 @@ export default async function MetricsPage({
 
             <Link
               href={`/app/${orgId}/metrics?page=${page + 1}`}
-              className={`px-3 py-1 border rounded transition-opacity ${metrics.length < PAGE_SIZE ? "pointer-events-none opacity-30" : "hover:bg-gray-500"
-                }`}
+              className={`px-3 py-1 border rounded transition-opacity ${
+                metrics.length < PAGE_SIZE
+                  ? "pointer-events-none opacity-30"
+                  : "hover:bg-gray-500"
+              }`}
             >
               Next
             </Link>
