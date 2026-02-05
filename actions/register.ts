@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { redirect } from "next/navigation";
 import { createUserSchema } from "@/lib/validators";
-import { FormState } from "@/lib/types";
+import { FormState } from "@/types";
 
 export async function registerUser(
   prevState: FormState,

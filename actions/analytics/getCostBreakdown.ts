@@ -3,7 +3,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
-import { AppError } from "@/lib/errors";
 import { Role } from "@prisma/client";
 
 export async function getCostBreakdown(
@@ -52,7 +51,7 @@ export async function getCostBreakdown(
   });
 
   if (!subscription) {
-    throw new AppError("No active subscription found", 404);
+    return { success: false, error: "No active subscription found", status: 404 }
   }
 
   /**

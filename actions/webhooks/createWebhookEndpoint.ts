@@ -3,7 +3,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
-import { AppError } from "@/lib/errors";
 import { writeAuditLog } from "@/lib/audit";
 import crypto from "crypto";
 import { createWebhookSchema } from "@/lib/validators";
@@ -20,7 +19,7 @@ export async function createWebhookEndpoint(
   // 1️⃣ Validate input
   const parsed = createWebhookSchema.safeParse(data);
   if (!parsed.success) {
-    throw new AppError("Invalid webhook data", 400);
+    return { success: false, error: "Invalid webhook data", status: 400 }
   }
 
   const { url, events } = parsed.data;
