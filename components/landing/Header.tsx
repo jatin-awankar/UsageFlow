@@ -29,7 +29,7 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/icon1.png"
+            src="/icon.png"
             alt="UsageFlow logo"
             width={26}
             height={26}
