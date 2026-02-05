@@ -1,5 +1,6 @@
 import { getAuditLogs } from "@/actions/audit/getAuditLogs";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export default async function AuditPage({
@@ -10,13 +11,21 @@ export default async function AuditPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const user = await getCurrentUser();
-  if (!user) return null;
+  if (!user) {
+    redirect("/login");
+  }
 
   const { cursor, direction } = await searchParams;
 
   const { orgId } = await params;
 
-  const { data: logs, prevCursor, nextCursor, hasPrev, hasNext } = await getAuditLogs({
+  const {
+    data: logs,
+    prevCursor,
+    nextCursor,
+    hasPrev,
+    hasNext,
+  } = await getAuditLogs({
     userId: user.id,
     orgId,
     cursor,
@@ -43,7 +52,10 @@ export default async function AuditPage({
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="border-b hover:bg-gray-500 transition-colors">
+                  <tr
+                    key={log.id}
+                    className="border-b hover:bg-gray-500 transition-colors"
+                  >
                     <td className="p-2 text-sm">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
@@ -64,14 +76,22 @@ export default async function AuditPage({
           <div className="flex justify-between mt-4">
             <Link
               href={`/app/${orgId}/audit-logs?cursor=${prevCursor}&direction=prev`}
-              className={`px-3 py-1 border rounded transition-opacity ${!hasPrev ? "pointer-events-none opacity-30" : "hover:bg-gray-500"}`}
+              className={`px-3 py-1 border rounded transition-opacity ${
+                !hasPrev
+                  ? "pointer-events-none opacity-30"
+                  : "hover:bg-gray-500"
+              }`}
             >
               Previous
             </Link>
 
             <Link
               href={`/app/${orgId}/audit-logs?cursor=${nextCursor}&direction=next`}
-              className={`px-3 py-1 border rounded transition-opacity ${!hasNext ? "pointer-events-none opacity-30" : "hover:bg-gray-500"}`}
+              className={`px-3 py-1 border rounded transition-opacity ${
+                !hasNext
+                  ? "pointer-events-none opacity-30"
+                  : "hover:bg-gray-500"
+              }`}
             >
               Next
             </Link>

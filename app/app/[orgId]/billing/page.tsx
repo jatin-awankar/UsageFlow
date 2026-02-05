@@ -70,7 +70,7 @@ export default async function BillingPage({
               </thead>
 
               <tbody>
-                {data?.breakdown.length === 0 ? (
+                {!data?.breakdown || data.breakdown.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
@@ -119,8 +119,9 @@ function SummaryCard({
 }) {
   return (
     <div
-      className={`border rounded-lg p-4 ${highlight ? "bg-primary/5 border-primary" : ""
-        }`}
+      className={`border rounded-lg p-4 ${
+        highlight ? "bg-primary/5 border-primary" : ""
+      }`}
     >
       <p className="text-sm text-muted-foreground">{title}</p>
       <p className="text-2xl font-semibold mt-1">{value}</p>
