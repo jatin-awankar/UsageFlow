@@ -27,7 +27,7 @@ export default function HeroSection() {
             </Link>
           </div>
 
-          <p className="hidden md:flex font-light text-muted-foreground">
+          <p className="hidden md:block text-sm font-light text-muted-foreground leading-relaxed">
             Designed with real-world SaaS architecture patterns.
           </p>
         </div>
@@ -38,7 +38,7 @@ export default function HeroSection() {
               <span>POST</span>
             </div>
 
-            <pre className="bg-zinc-900 text-zinc-100 p-5 text-sm leading-relaxed overflow-x-auto">
+            <pre className="bg-foreground text-background p-5 text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap wrap-break-word">
               <code>
                 {`POST /api/track
     x-usageflow-api-key: uf_live_***
@@ -51,13 +51,13 @@ export default function HeroSection() {
               </code>
             </pre>
           </div>
-          <div className="absolute -bottom-10 -right-16 rounded-lg border bg-background shadow-2xl shadow-primary">
+          <div className="absolute hidden md:block -bottom-10 -right-16 rounded-lg border bg-background shadow-2xl shadow-primary">
             <div className="flex items-center justify-between px-4 py-2 border-b text-xs text-muted-foreground">
               <span>Webhook Payload</span>
               <span>POST</span>
             </div>
 
-            <pre className="bg-zinc-950/90 text-zinc-100 p-5 text-sm leading-relaxed overflow-x-auto">
+            <pre className="bg-foreground/95 text-background/90 p-5 text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap wrap-break-word">
               <code>
                 {`{
     "type": "invoice.created",

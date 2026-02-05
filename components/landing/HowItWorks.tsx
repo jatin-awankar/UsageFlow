@@ -3,12 +3,14 @@ import Step from "./Step";
 export default function HowItWorks() {
   return (
     <div className="mx-auto max-w-5xl px-6 space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold">How It Works</h2>
-      <p className="text-base text-muted-foreground">
+      <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
+        How It Works
+      </h2>
+      <p className="text-base text-muted-foreground leading-relaxed">
         UsageFlow follows a clear, event-driven flow from usage tracking to
         billing and delivery.
       </p>
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         <Step
           number="01"
           title="Track usage"

@@ -37,10 +37,27 @@ export default function Home() {
           <CTA />
         </section>
 
-        <section className="py-24">
-          <Footer />
-        </section>
+        <Footer />
       </main>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "UsageFlow",
+            applicationCategory: "DeveloperApplication",
+            operatingSystem: "Web",
+            description:
+              "UsageFlow is a production-grade SaaS platform for usage-based billing and webhooks.",
+            author: {
+              "@type": "Person",
+              name: "Jatin Awankar",
+            },
+          }),
+        }}
+      />
     </>
   );
 }

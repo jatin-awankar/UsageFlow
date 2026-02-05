@@ -19,20 +19,20 @@ export default function Header() {
   return (
     <nav
       className={cn(
-        "sticky top-0 z-50 w-full transition-all",
+        "sticky top-0 z-50 w-full transition-all duration-200 ease-out",
         isScrolled
           ? "bg-background/80 backdrop-blur border-b"
           : "bg-transparent"
       )}
     >
-      <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/usageFlow.png"
             alt="UsageFlow logo"
-            width={28}
-            height={28}
+            width={24}
+            height={24}
             priority
           />
           <span className="text-lg font-semibold">UsageFlow</span>
@@ -56,7 +56,7 @@ export default function Header() {
             <ExternalLink size={14} />
           </Link>
 
-          <Button asChild variant="secondary">
+          <Button asChild>
             <Link href="/app">Open Dashboard</Link>
           </Button>
         </div>

@@ -8,7 +8,7 @@ export default function Step({
   desc: string;
 }) {
   return (
-    <div className="flex-1 rounded-lg border bg-background p-6 space-y-3 shadow-2xl">
+    <div className="rounded-lg border bg-background p-6 space-y-3 shadow-sm">
       {/* Step number */}
       <span className="inline-block rounded bg-muted px-2 py-1 text-xs font-mono text-muted-foreground">
         {number}
