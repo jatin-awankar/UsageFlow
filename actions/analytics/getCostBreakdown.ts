@@ -51,7 +51,7 @@ export async function getCostBreakdown(
   });
 
   if (!subscription) {
-    return { success: false, error: "No active subscription found", status: 404 }
+    throw new Error("No active subscription found");
   }
 
   /**
@@ -104,4 +104,5 @@ export async function getCostBreakdown(
     total: basePrice + usageCost,
     breakdown,
   };
+
 }

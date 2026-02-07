@@ -1,4 +1,4 @@
-// onboarding/create-org/page.tsx
+// app/onboarding/create-org/page.tsx
 import { createOrganization } from "@/actions/organization/createOrganization";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
@@ -12,12 +12,13 @@ export default async function CreateOrgPage({
   if (!user) redirect("/login");
 
   const resolvedSearchParams = await Promise.resolve(searchParams);
+
   const errorMessage =
     resolvedSearchParams.error === "duplicate"
-      ? "An organization with this name already exists"
+      ? "An organization with this name already exists."
       : resolvedSearchParams.error === "failed"
-        ? "Failed to create organization. Please try again."
-        : null;
+      ? "Failed to create organization. Please try again."
+      : null;
 
   async function action(formData: FormData) {
     "use server";
@@ -31,6 +32,7 @@ export default async function CreateOrgPage({
         result.error === "An organization with this name already exists"
           ? "duplicate"
           : "failed";
+
       redirect(`/onboarding/create-org?error=${errorParam}`);
     }
 
@@ -38,26 +40,47 @@ export default async function CreateOrgPage({
   }
 
   return (
-    <div className="max-w-md mx-auto mt-24">
-      <h1 className="text-2xl font-semibold mb-4">Create your organization</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white border rounded-lg p-6 space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-1">
+          <div className="text-xl font-semibold">UsageFlow</div>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">
+            Step 1 of 1
+          </p>
+          <h1 className="text-lg font-medium">Create your organization</h1>
+          <p className="text-sm text-gray-500">
+            This will be your workspace. You can rename it anytime.
+          </p>
+        </div>
 
-      <form action={action} className="space-y-4">
-        <input
-          name="name"
-          placeholder="Organization name"
-          required
-          className="w-full border p-2"
-        />
-
-        {errorMessage && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
-            {errorMessage}
+        {/* Form */}
+        <form action={action} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Organization name</label>
+            <input
+              name="name"
+              placeholder="e.g. Acme Inc"
+              required
+              autoFocus
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            />
           </div>
-        )}
-        <button className="w-full bg-black text-white p-2">
-          Create Organization
-        </button>
-      </form>
+
+          {errorMessage && (
+            <p className="text-sm text-red-600">{errorMessage}</p>
+          )}
+
+          <button className="w-full bg-black text-white rounded-md py-2 text-sm font-medium hover:cursor-pointer">
+            Create organization
+          </button>
+        </form>
+
+        {/* Footer hint */}
+        <p className="text-xs text-center text-gray-500">
+          You can invite teammates later
+        </p>
+      </div>
     </div>
   );
 }

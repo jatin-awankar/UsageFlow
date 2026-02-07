@@ -47,3 +47,7 @@ export const createWebhookSchema = z.object({
   url: z.url(),
   events: z.array(z.string()).min(1),
 });
+
+export const updateOrganizationSchema = z.object({
+  name: z.string().min(2, "Organization name is too short"),
+});
