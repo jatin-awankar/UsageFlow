@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
