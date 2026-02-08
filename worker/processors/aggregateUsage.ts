@@ -1,5 +1,5 @@
 // worker/processors/aggregateUsage.ts
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
 export async function processAggregation({
   orgId,

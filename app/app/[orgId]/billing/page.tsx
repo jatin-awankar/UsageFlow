@@ -3,19 +3,19 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
 import { redirect } from "next/navigation";
 
+import PageHeader from "@/components/layout/PageHeader";
+import EmptyState from "@/components/ui/EmptyState";
+import { CreditCard } from "lucide-react";
+
 export default async function BillingPage({
   params,
 }: {
   params: Promise<{ orgId: string }> | { orgId: string };
 }) {
   const user = await getCurrentUser();
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
-  const resolvedParams = await Promise.resolve(params);
-  const orgId = resolvedParams.orgId;
-
+  const { orgId } = await params;
   const subscription = await getActiveSubscription(orgId);
 
   const data = subscription
@@ -23,49 +23,65 @@ export default async function BillingPage({
     : null;
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold mb-4">Billing</h1>
-        <p className="text-sm text-muted-foreground">
-          Usage-based cost breakdown for the current billing period
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Billing"
+        description="Usage-based cost breakdown for the current billing period."
+      />
+
       {!subscription ? (
-        <p className="text-gray-500">
-          This organization does not have an active subscription.
-        </p>
+        <EmptyState
+          title="No active subscription"
+          description="Select a plan to start tracking usage and billing."
+          action={"Get Subscription"}
+          icon={<CreditCard />}
+          navigate={`/app/${orgId}/plans`}
+        />
       ) : (
         <section className="space-y-6">
+          {/* Summary cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <SummaryCard
-              title="Base Price"
+              title="Base price"
               value={`₹${data?.basePrice}`}
               description="Fixed cost for the plan"
             />
             <SummaryCard
-              title="Usage Cost"
+              title="Usage cost"
               value={`₹${data?.usageCost}`}
-              description="Charges for usage beyond included limits"
+              description="Charges beyond included limits"
             />
             <SummaryCard
-              title="Total Amount"
+              title="Estimated total"
               value={`₹${data?.total}`}
-              description="Estimated invoice total"
+              description="Projected invoice amount"
               highlight
             />
           </div>
 
-          {/* ---------- Cost Breakdown Table ---------- */}
-          <div className="border rounded-lg overflow-hidden">
+          {/* Cost breakdown table */}
+          <div className="overflow-hidden rounded-lg border bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-muted">
+              <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="p-3 text-left">Metric</th>
-                  <th className="p-3 text-right">Used</th>
-                  <th className="p-3 text-right">Included</th>
-                  <th className="p-3 text-right">Overage</th>
-                  <th className="p-3 text-right">Price / Unit</th>
-                  <th className="p-3 text-right">Cost</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">
+                    Metric
+                  </th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">
+                    Used
+                  </th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">
+                    Included
+                  </th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">
+                    Overage
+                  </th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">
+                    Price / unit
+                  </th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-600">
+                    Cost
+                  </th>
                 </tr>
               </thead>
 
@@ -74,20 +90,33 @@ export default async function BillingPage({
                   <tr>
                     <td
                       colSpan={6}
-                      className="p-4 text-center text-muted-foreground"
+                      className="px-4 py-6 text-center text-gray-500"
                     >
                       No usage recorded for this billing period
                     </td>
                   </tr>
                 ) : (
-                  data?.breakdown.map((row) => (
-                    <tr key={`${row.metric}-${row.used}`} className="border-t">
-                      <td className="p-3 font-medium">{row.metric}</td>
-                      <td className="p-3 text-right">{row.used}</td>
-                      <td className="p-3 text-right">{row.included}</td>
-                      <td className="p-3 text-right">{row.overage}</td>
-                      <td className="p-3 text-right">₹{row.pricePerUnit}</td>
-                      <td className="p-3 text-right font-medium">
+                  data.breakdown.map((row) => (
+                    <tr
+                      key={`${row.metric}-${row.used}`}
+                      className="border-b last:border-0"
+                    >
+                      <td className="px-4 py-2 font-medium text-gray-900">
+                        {row.metric}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-700">
+                        {row.used}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-700">
+                        {row.included}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-700">
+                        {row.overage}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-700">
+                        ₹{row.pricePerUnit}
+                      </td>
+                      <td className="px-4 py-2 text-right font-medium text-gray-900">
                         ₹{row.cost}
                       </td>
                     </tr>
@@ -96,13 +125,15 @@ export default async function BillingPage({
               </tbody>
             </table>
           </div>
+
+          {/* Notes */}
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>• Overage is charged only when usage exceeds included units.</p>
+            <p>• Final invoice may differ due to adjustments or discounts.</p>
+          </div>
         </section>
       )}
-      <div className="text-sm text-muted-foreground space-y-1">
-        <p>• Overage is charged only when usage exceeds included units.</p>
-        <p>• Final invoice may differ due to adjustments or discounts.</p>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -119,13 +150,13 @@ function SummaryCard({
 }) {
   return (
     <div
-      className={`border rounded-lg p-4 ${
-        highlight ? "bg-primary/5 border-primary" : ""
+      className={`rounded-lg border p-4 ${
+        highlight ? "bg-gray-50 border-gray-900" : "bg-white"
       }`}
     >
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="text-2xl font-semibold mt-1">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      <p className="text-sm text-gray-500">{title}</p>
+      <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
+      <p className="mt-1 text-xs text-gray-500">{description}</p>
     </div>
   );
 }

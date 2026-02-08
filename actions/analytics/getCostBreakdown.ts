@@ -1,7 +1,7 @@
 // app/actions/analytics/getCostBreakdown.ts
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
@@ -51,7 +51,7 @@ export async function getCostBreakdown(
   });
 
   if (!subscription) {
-    return { success: false, error: "No active subscription found", status: 404 }
+    throw new Error("No active subscription found");
   }
 
   /**
@@ -104,4 +104,5 @@ export async function getCostBreakdown(
     total: basePrice + usageCost,
     breakdown,
   };
+
 }

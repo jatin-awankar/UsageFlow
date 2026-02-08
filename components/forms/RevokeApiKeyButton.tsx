@@ -3,41 +3,44 @@
 import { revokeApiKey } from "@/actions/apiKeys/revokeApiKey";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 
 export default function RevokeApiKeyButton({
-    userId,
-    apiKeyId,
-    orgId,
+  userId,
+  apiKeyId,
+  orgId,
 }: {
-    userId: string;
-    orgId: string;
-    apiKeyId: string;
+  userId: string;
+  orgId: string;
+  apiKeyId: string;
 }) {
-    const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-    async function revoke() {
-        setLoading(true);
+  async function revoke() {
+    setLoading(true);
 
-        const result = await revokeApiKey(userId, orgId, apiKeyId);
+    const result = await revokeApiKey(userId, orgId, apiKeyId);
 
-        if (result.success) {
-            toast.success("ApiKey revoked successfully");
-            window.location.reload();
-        } else {
-            toast.error(result.error || "Error creating ApiKey");
-        }
-
-        setLoading(false);
+    if (result.success) {
+      toast.success("API key revoked");
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to revoke API key");
     }
 
-    return (
-        <button
-            onClick={revoke}
-            disabled={loading}
-            className="text-red-600 p-2 border hover:cursor-pointer hover:bg-red-300 disabled:bg-red-300 disabled:cursor-not-allowed transition-colors">
-            Revoke
-        </button>
-    );
-}
+    setLoading(false);
+  }
 
-// uf_live_39d7559588a8c628036d143f93484f938a92288b4476d0da
+  return (
+    <Button
+      variant="destructive"
+      onClick={revoke}
+      disabled={loading}
+      className="text-sm font-medium hover:cursor-pointer disabled:opacity-50"
+    >
+      Revoke
+    </Button>
+  );
+}

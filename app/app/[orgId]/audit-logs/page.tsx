@@ -3,21 +3,22 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
+import PageHeader from "@/components/layout/PageHeader";
+import EmptyState from "@/components/ui/EmptyState";
+import { Shield } from "lucide-react";
+
 export default async function AuditPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgId: string }>;
-  searchParams: Promise<Record<string, string | undefined>>;
+  params: Promise<{ orgId: string }> | { orgId: string };
+  searchParams: Record<string, string | undefined>;
 }) {
   const user = await getCurrentUser();
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { cursor, direction } = await searchParams;
+  if (!user) redirect("/login");
 
   const { orgId } = await params;
+  const { cursor, direction } = await searchParams;
 
   const {
     data: logs,
@@ -33,38 +34,57 @@ export default async function AuditPage({
   });
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Audit Logs</h1>
+    <>
+      <PageHeader
+        title="Audit Logs"
+        description="A chronological record of actions taken within this organization."
+      />
 
       {logs.length === 0 ? (
-        <p className="text-gray-500">No audit logs found.</p>
+        <EmptyState
+          title="No audit activity yet"
+          description="Actions such as creating metrics, activating plans, or managing API keys will appear here."
+          icon={<Shield />}
+        />
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full border text-left">
-              <thead>
-                <tr className="border-b">
-                  <th className="p-2">Time</th>
-                  <th className="p-2">Action</th>
-                  <th className="p-2">Entity</th>
-                  <th className="p-2">Details</th>
+          <div className="overflow-hidden rounded-lg border bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">
+                    Time
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">
+                    Action
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">
+                    Entity
+                  </th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">
+                    Details
+                  </th>
                 </tr>
               </thead>
+
               <tbody>
                 {logs.map((log) => (
                   <tr
                     key={log.id}
-                    className="border-b hover:bg-gray-500 transition-colors"
+                    className="border-b last:border-0 hover:bg-gray-50"
                   >
-                    <td className="p-2 text-sm">
+                    <td className="px-4 py-2 text-xs text-gray-600">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
-                    <td className="p-2 font-medium">{log.action}</td>
-                    <td className="p-2">{log.entity}</td>
-                    <td className="p-2 text-xs text-gray-400 hover:text-gray-300 font-mono">
-                      {log.metadata
-                        ? JSON.stringify(log.metadata).slice(0, 100)
-                        : "-"}
+
+                    <td className="px-4 py-2 font-medium text-gray-900">
+                      {log.action}
+                    </td>
+
+                    <td className="px-4 py-2 text-gray-700">{log.entity}</td>
+
+                    <td className="px-4 py-2 text-xs font-mono text-gray-500 max-w-md truncate">
+                      {log.metadata ? JSON.stringify(log.metadata) : "—"}
                     </td>
                   </tr>
                 ))}
@@ -73,31 +93,31 @@ export default async function AuditPage({
           </div>
 
           {/* Pagination */}
-          <div className="flex justify-between mt-4">
+          <div className="mt-4 flex items-center justify-between">
             <Link
               href={`/app/${orgId}/audit-logs?cursor=${prevCursor}&direction=prev`}
-              className={`px-3 py-1 border rounded transition-opacity ${
-                !hasPrev
-                  ? "pointer-events-none opacity-30"
-                  : "hover:bg-gray-500"
+              className={`text-sm ${
+                hasPrev
+                  ? "text-gray-600 hover:text-gray-900"
+                  : "pointer-events-none text-gray-300"
               }`}
             >
-              Previous
+              ← Newer
             </Link>
 
             <Link
               href={`/app/${orgId}/audit-logs?cursor=${nextCursor}&direction=next`}
-              className={`px-3 py-1 border rounded transition-opacity ${
-                !hasNext
-                  ? "pointer-events-none opacity-30"
-                  : "hover:bg-gray-500"
+              className={`text-sm ${
+                hasNext
+                  ? "text-gray-600 hover:text-gray-900"
+                  : "pointer-events-none text-gray-300"
               }`}
             >
-              Next
+              Older →
             </Link>
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }

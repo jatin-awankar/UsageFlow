@@ -1,43 +1,59 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import PageHeader from "@/components/layout/PageHeader";
+import EmptyState from "@/components/ui/EmptyState";
+import { getMembers } from "@/actions/members/getMembers";
+import { RoleBadge } from "@/components/members/RoleBadge";
 
 export default async function MembersPage({
   params,
 }: {
-  params: Promise<{orgId: string}> | { orgId: string };
+  params: Promise<{ orgId: string }> | { orgId: string };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const resolvedParams = await Promise.resolve(params)
-  const orgId = resolvedParams.orgId
-
-  const members = await prisma.membership.findMany({
-    where: { orgId },
-    include: { user: true },
-  });
+  const { orgId } = await params;
+  const members = await getMembers(user.id, orgId);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Members</h1>
+    <>
+      <PageHeader
+        title="Members"
+        description="Manage who has access to this organization."
+      />
 
-      <table className="w-full border">
-        <thead>
-          <tr className="border-b">
-            <th className="p-2 text-left">Email</th>
-            <th className="p-2 text-left">Role</th>
-          </tr>
-        </thead>
-        <tbody>
-          {members.map((m) => (
-            <tr key={m.id} className="border-b">
-              <td className="p-2">{m.user.email}</td>
-              <td className="p-2">{m.role}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      {members.length === 0 ? (
+        <EmptyState
+          title="No members"
+          description="Invite teammates to collaborate in this organization."
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border bg-white">
+          <table className="w-full text-sm">
+            <thead className="border-b bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">
+                  Email
+                </th>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">
+                  Role
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((m) => (
+                <tr key={m.id} className="border-b last:border-0">
+                  <td className="px-4 py-2 text-gray-900">{m.user.email}</td>
+                  <td className="px-4 py-2">
+                    <RoleBadge role={m.role} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   );
 }

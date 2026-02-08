@@ -3,60 +3,46 @@
 import { useState } from "react";
 import { toggleWebhook } from "@/actions/webhooks/toggleWebhook";
 import { toast } from "sonner";
-
-type ToggleWebhookButtonProps = {
-    userId: string;
-    orgId: string;
-    webhookEndpointId: string;
-    active: boolean;
-};
+import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 
 export default function ToggleWebhookButton({
-    userId,
-    orgId,
-    webhookEndpointId,
-    active,
-}: ToggleWebhookButtonProps) {
-    const [loading, setLoading] = useState(false);
+  userId,
+  orgId,
+  webhookEndpointId,
+  active,
+}: {
+  userId: string;
+  orgId: string;
+  webhookEndpointId: string;
+  active: boolean;
+}) {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-    async function handleToggle() {
-        setLoading(true);
+  async function handleToggle() {
+    setLoading(true);
 
-        try {
-            const res = await toggleWebhook(
-                userId,
-                orgId,
-                webhookEndpointId,
-                !active
-            );
-            if (res.success) {
-                toast.success(res.message);
-            } else {
-                toast.error(res.error);
-            }
-        } catch (err) {
-            console.error("Failed to toggle webhook", err);
-            alert("Failed to update webhook status");
-        } finally {
-            setLoading(false);
-            window.location.reload(); // safe & simple for now
-        }
+    const res = await toggleWebhook(userId, orgId, webhookEndpointId, !active);
+
+    if (res.success) {
+      toast.success(res.message);
+      router.refresh();
+    } else {
+      toast.error(res.error || "Failed to update webhook");
     }
 
-    return (
-        <button
-            onClick={handleToggle}
-            disabled={loading}
-            className={`px-3 py-1 rounded text-sm hover:cursor-pointer ${active
-                ? "bg-red-100 text-red-700"
-                : "bg-blue-100 text-blue-700"
-                }`}
-        >
-            {loading
-                ? "Updating..."
-                : active
-                    ? "Deactivate"
-                    : "Activate"}
-        </button>
-    );
+    setLoading(false);
+  }
+
+  return (
+    <Button
+      variant={active ? "destructive" : "default"}
+      onClick={handleToggle}
+      disabled={loading}
+      className="text-sm font-medium disabled:opacity-50"
+    >
+      {loading ? "Updating…" : active ? "Deactivate" : "Activate"}
+    </Button>
+  );
 }

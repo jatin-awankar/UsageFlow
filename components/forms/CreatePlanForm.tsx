@@ -1,67 +1,68 @@
 "use client";
 
-import React from "react";
 import { useState } from "react";
 import { createPlan } from "@/actions/plans/createPlan";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function CreatePlanForm({
-    userId,
-    orgId,
+  userId,
+  orgId,
 }: {
-    userId: string;
-    orgId: string;
+  userId: string;
+  orgId: string;
 }) {
-    const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-    async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        setLoading(true);
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
 
-        const form = e.currentTarget;
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
-        const formData = new FormData(form);
-        const result = await createPlan(userId, orgId, {
-            name: formData.get("name") as string,
-            basePrice: Number(formData.get("basePrice")),
-            billingPeriod: "MONTHLY",
-        });
+    const result = await createPlan(userId, orgId, {
+      name: formData.get("name") as string,
+      basePrice: Number(formData.get("basePrice")),
+      billingPeriod: "MONTHLY",
+    });
 
-        if (result.success) {
-            toast.success("Metric created successfully!");
-            form.reset();
-        } else {
-            toast.error(result.error || "An unexpected error occurred");
-        }
-
-        setLoading(false);
+    if (result.success) {
+      toast.success("Plan created successfully");
+      form.reset();
+      router.refresh();
+    } else {
+      toast.error(result.error || "Failed to create plan");
     }
 
-    return (
-        <form className="flex flex-col space-y-3" onSubmit={onSubmit}>
-            <input
-                name="name"
-                disabled={loading}
-                placeholder="Plan name"
-                required
-                className="border border-gray-500 p-1 px-2 md:w-1/2 disabled:opacity-50"
-            />
-            <input
-                name="basePrice"
-                disabled={loading}
-                type="number"
-                placeholder="Base price"
-                required
-                className="border border-gray-500 p-1 px-2 md:w-1/2 disabled:opacity-50"
-            />
+    setLoading(false);
+  }
 
-            <button
-                disabled={loading}
-                type="submit"
-                className="md:w-1/2 p-2 border hover:cursor-pointer hover:bg-gray-500 disabled:bg-gray-500 transition-colors"
-            >
-                {loading ? "Creating..." : "Create Plan"}
-            </button>
-        </form>
-    )
+  return (
+    <form onSubmit={onSubmit} className="flex items-center gap-2">
+      <input
+        name="name"
+        required
+        placeholder="Plan name"
+        disabled={loading}
+        className="w-40 rounded-md border px-3 py-2 text-sm"
+      />
+      <input
+        name="basePrice"
+        type="number"
+        required
+        placeholder="Base price"
+        disabled={loading}
+        className="w-32 rounded-md border px-3 py-2 text-sm"
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+      >
+        Create
+      </button>
+    </form>
+  );
 }

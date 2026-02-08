@@ -1,7 +1,9 @@
-import React from "react";
-import OrgSwitcher from "./OrgSwitcher";
+// components/layout/Topbar.tsx
 import { getCurrentUser } from "@/lib/auth/session";
+import OrgSwitcher from "./OrgSwitcher";
+import UserMenu from "./UserMenu";
 import { getOrganization } from "@/actions/organization/getOrganization";
+import { getUserOrganizations } from "@/lib/org/getUserOrganizations";
 
 type TopbarProps = {
   orgId: string;
@@ -9,17 +11,24 @@ type TopbarProps = {
 
 export default async function Topbar({ orgId }: TopbarProps) {
   const user = await getCurrentUser();
+  if (!user) return null;
 
-  const orgName = await getOrganization(orgId)
+  const currentOrg = await getOrganization(orgId);
+  const orgs = await getUserOrganizations(user.id);
 
   return (
-    <header className="h-14 border-b px-6 flex items-center justify-between">
-      {/* Left */}
-      <OrgSwitcher currentOrg={orgName?.name || "Organization name not specified"} />
+    <header className="h-14 border-b px-8 flex items-center justify-between">
+      {/* Left: reserved for page title */}
+      <div id="page-title-slot" />
 
-      {/* Right */}
-      <div className="text-sm text-gray-500">
-        {user?.email}
+      {/* Right: org + user */}
+      <div className="flex items-center gap-4">
+        <OrgSwitcher
+          currentOrgId={orgId}
+          currentOrgName={currentOrg?.name || "Organization"}
+          organizations={orgs}
+        />
+        <UserMenu email={user?.email || ""} />
       </div>
     </header>
   );

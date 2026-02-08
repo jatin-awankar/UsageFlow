@@ -1,8 +1,11 @@
-// app/(dashboard)/usage/page.tsx
 import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
-import { UsageTable } from "./usage-table";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+
+import PageHeader from "@/components/layout/PageHeader";
+import EmptyState from "@/components/ui/EmptyState";
+import { UsageTable } from "./usage-table";
+import { BarChart3 } from "lucide-react";
 
 export default async function UsagePage({
   params,
@@ -12,19 +15,25 @@ export default async function UsagePage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const resolvedParams = await Promise.resolve(params);
-  const orgId = resolvedParams.orgId;
-
-  const [usage] = await Promise.all([getUsageSummary(user.id, orgId)]);
+  const { orgId } = await params;
+  const usage = await getUsageSummary(user.id, orgId);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Usage</h1>
+    <>
+      <PageHeader
+        title="Usage"
+        description="View how metrics are being consumed in the current billing period."
+      />
+
       {usage.length === 0 ? (
-        <p className="text-gray-500">No Usage to show</p>
+        <EmptyState
+          title="No usage recorded yet"
+          description="Usage data will appear once your application starts sending usage events."
+          icon={<BarChart3 />}
+        />
       ) : (
         <UsageTable usage={usage} />
       )}
-    </div>
+    </>
   );
 }

@@ -14,21 +14,19 @@ export default async function OrgLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // Ensure params is always an object, even if it's a Promise.
-  const resolvedParams = await Promise.resolve(params);
-  const orgId = resolvedParams.orgId;
+  const { orgId } = await Promise.resolve(params);
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <Sidebar orgId={orgId} />
+    <div className="flex h-screen bg-gray-50">
+      <div>
+        <Sidebar orgId={orgId} />
+      </div>
 
-      {/* Main Area */}
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 overflow-hidden">
         <Topbar orgId={orgId} />
 
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
+        <main className="flex-1 overflow-y-auto px-8 py-6">
+          <div className="max-w-6xl mx-auto">{children}</div>
         </main>
       </div>
     </div>

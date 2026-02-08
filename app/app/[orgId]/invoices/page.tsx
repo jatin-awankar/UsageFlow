@@ -1,7 +1,10 @@
 import { getInvoices } from "@/actions/billing/getInvoices";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import PageHeader from "@/components/layout/PageHeader";
+import EmptyState from "@/components/ui/EmptyState";
 import { InvoicesTable } from "./invoices-table";
+import { FileText } from "lucide-react";
 
 export default async function InvoicesPage({
   params,
@@ -11,20 +14,25 @@ export default async function InvoicesPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const resolvedParams = await Promise.resolve(params);
-  const orgId = resolvedParams.orgId;
-
+  const { orgId } = await params;
   const invoices = await getInvoices(user.id, orgId);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Invoices</h1>
+    <>
+      <PageHeader
+        title="Invoices"
+        description="View invoices generated for your billing cycles."
+      />
 
       {invoices.length === 0 ? (
-        <p className="text-gray-500">Invoices are yet to generate</p>
+        <EmptyState
+          title="No invoices yet"
+          description="Invoices will be generated automatically at the end of each billing period."
+          icon={<FileText />}
+        />
       ) : (
         <InvoicesTable invoices={invoices} />
       )}
-    </div>
+    </>
   );
 }

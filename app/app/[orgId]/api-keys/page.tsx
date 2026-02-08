@@ -1,70 +1,89 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { getApiKeys } from "@/actions/apiKeys/getApiKeys";
+import { redirect } from "next/navigation";
+import PageHeader from "@/components/layout/PageHeader";
+import EmptyState from "@/components/ui/EmptyState";
 import CreateApiKeyForm from "@/components/forms/CreateApiKeyForm";
 import RevokeApiKeyButton from "@/components/forms/RevokeApiKeyButton";
-import { redirect } from "next/navigation";
+import { Key } from "lucide-react";
 
 export default async function ApiKeysPage({
-    params,
+  params,
 }: {
-    params: { orgId: string };
+  params: Promise<{ orgId: string }> | { orgId: string };
 }) {
-    const user = await getCurrentUser();
-    if (!user) redirect("/login");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
 
-    const { orgId } = await params;
+  const { orgId } = await Promise.resolve(params);
+  const keys = await getApiKeys(user.id, orgId);
 
-    const keys = await getApiKeys(user.id, orgId);
+  return (
+    <>
+      <PageHeader
+        title="API Keys"
+        description="Manage API keys used to authenticate usage ingestion."
+        actions={<CreateApiKeyForm userId={user.id} orgId={orgId} />}
+      />
 
-    return (
-        <div className="p-6 space-y-6">
-            <h1 className="text-2xl font-semibold">API Keys</h1>
-
-            <CreateApiKeyForm userId={user.id} orgId={orgId} />
-
-            {keys.length === 0 ? (
-                <div className="border rounded p-6 text-gray-600">
-                    <p className="font-medium">No ApiKeys</p>
-                    <p className="text-sm mt-1">
-                        Create your first ApiKey
-                    </p>
-                </div>
-            ) : (
-                <>
-                    <table className="w-full border">
-                        <thead>
-                            <tr className="border-b">
-                                <th className="p-2 text-left">Name</th>
-                                <th className="p-2 text-left">Created</th>
-                                <th className="p-2 text-left">Status</th>
-                                <th />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {keys.map((k) => (
-                                <tr key={k.id} className="border-b">
-                                    <td className="p-2">{k.name}</td>
-                                    <td className="p-2">
-                                        {new Date(k.createdAt).toLocaleDateString()}
-                                    </td>
-                                    <td className="p-2">
-                                        {k.active ? "Active" : "Revoked"}
-                                    </td>
-                                    <td className="p-2">
-                                        {k.active && (
-                                            <RevokeApiKeyButton
-                                                userId={user.id}
-                                                apiKeyId={k.id}
-                                                orgId={orgId}
-                                            />
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </>
-            )}
+      {keys.length === 0 ? (
+        <EmptyState
+          title="No API keys created"
+          description="Create an API key to allow your application to send usage events."
+          icon={<Key />}
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border bg-white">
+          <table className="w-full text-sm">
+            <thead className="border-b bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">
+                  Name
+                </th>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">
+                  Created
+                </th>
+                <th className="px-4 py-2 text-left font-medium text-gray-600">
+                  Status
+                </th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {keys.map((k) => (
+                <tr key={k.id} className="border-b last:border-0">
+                  <td className="px-4 py-2 font-medium text-gray-900">
+                    {k.name}
+                  </td>
+                  <td className="px-4 py-2 text-gray-700">
+                    {new Date(k.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                        k.active
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {k.active ? "Active" : "Revoked"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {k.active && (
+                      <RevokeApiKeyButton
+                        userId={user.id}
+                        apiKeyId={k.id}
+                        orgId={orgId}
+                      />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-    );
+      )}
+    </>
+  );
 }

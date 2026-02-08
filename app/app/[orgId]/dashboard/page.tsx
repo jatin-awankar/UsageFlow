@@ -1,11 +1,18 @@
-// app/[orgId]/dashboard/page.tsx
-import { getCostBreakdown } from "@/actions/analytics/getCostBreakdown";
-import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
-import { Role } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth/session";
-import { requireRole } from "@/lib/authz/requireRole";
-import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
 import { redirect } from "next/navigation";
+
+import PageHeader from "@/components/layout/PageHeader";
+import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
+import { getCostBreakdown } from "@/actions/analytics/getCostBreakdown";
+import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
+import { getAuditLogs } from "@/actions/audit/getAuditLogs";
+
+import DashboardKPIs from "@/components/dashboard/DashboardKPIs";
+import UsageTrendChart from "@/components/dashboard/UsageTrendChart";
+import CostBreakdownCard from "@/components/dashboard/CostBreakdownCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
+import EmptyState from "@/components/ui/EmptyState";
+import { LayoutDashboard } from "lucide-react";
 
 export default async function DashboardPage({
   params,
@@ -15,60 +22,59 @@ export default async function DashboardPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // Await params if it's a Promise (Next.js 16+)
-  const resolvedParams = await Promise.resolve(params);
-  const orgId = resolvedParams.orgId;
-
-  const usage = await getUsageSummary(user.id, orgId);
-
-  if (!orgId) {
-    redirect("/app");
-  }
+  const { orgId } = await params;
 
   const subscription = await getActiveSubscription(orgId);
 
-  const billing = subscription
-    ? await getCostBreakdown(user.id, orgId, subscription.id)
-    : null;
-
-  // 🔐 Ensure user belongs to this org
-  const membership = await requireRole(user.id, orgId, [
-    Role.OWNER,
-    Role.ADMIN,
-    Role.DEVELOPER,
-    Role.VIEWER,
-  ]);
-
-  if (!membership || ("ok" in membership && !membership.ok)) {
-    redirect("/app");
+  if (!subscription) {
+    return (
+      <>
+        <PageHeader
+          title="Dashboard"
+          description="Overview of usage and billing activity."
+        />
+        <EmptyState
+          title="No active subscription"
+          description="Select a plan to start tracking usage and costs."
+          action={"Get Subscription"}
+          icon={<LayoutDashboard />}
+          navigate={`/app/${orgId}/plans`}
+        />
+      </>
+    );
   }
 
+  const [usage, billing, auditLogs] = await Promise.all([
+    getUsageSummary(user.id, orgId),
+    getCostBreakdown(user.id, orgId, subscription.id),
+    getAuditLogs({
+      userId: user.id,
+      orgId,
+      pageSize: 5,
+    }),
+  ]);
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Overview</h1>
+    <>
+      <PageHeader
+        title="Dashboard"
+        description="High-level overview of usage, billing, and activity."
+      />
 
-      {!subscription ? (
-        <p className="text-gray-500">
-          This organization does not have an active subscription.
-        </p>
-      ) : (
-        <div className="grid grid-cols-3 gap-4">
-          <div className=" p-4 border rounded">
-            <p className="text-sm text-gray-500">Metrics Tracked</p>
-            <p className="text-xl font-semibold">{usage.length}</p>
-          </div>
+      <div className="space-y-8">
+        <DashboardKPIs
+          usage={usage}
+          billing={billing}
+          subscription={subscription}
+        />
 
-          <div className=" p-4 border rounded">
-            <p className="text-sm text-gray-500">Usage Cost</p>
-            <p className="text-xl font-semibold">₹{billing?.usageCost ?? 0}</p>
-          </div>
+        <UsageTrendChart usage={usage} />
 
-          <div className=" p-4 border rounded">
-            <p className="text-sm text-gray-500">Estimated Total</p>
-            <p className="text-xl font-semibold">₹{billing?.total ?? 0}</p>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CostBreakdownCard breakdown={billing.breakdown} />
+          <RecentActivity logs={auditLogs.data} />
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 // app/actions/createWebhookEndpoint.ts
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import { requireRole } from "@/lib/authz/requireRole";
 import { writeAuditLog } from "@/lib/audit";
 import crypto from "crypto";
