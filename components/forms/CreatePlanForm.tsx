@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPlan } from "@/actions/plans/createPlan";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function CreatePlanForm({
   userId,
@@ -12,12 +13,14 @@ export default function CreatePlanForm({
   orgId: string;
 }) {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
     const result = await createPlan(userId, orgId, {
       name: formData.get("name") as string,
@@ -26,8 +29,9 @@ export default function CreatePlanForm({
     });
 
     if (result.success) {
-      toast.success("Plan created");
-      e.currentTarget.reset();
+      toast.success("Plan created successfully");
+      form.reset();
+      router.refresh();
     } else {
       toast.error(result.error || "Failed to create plan");
     }

@@ -61,7 +61,7 @@ export default function DangerZone({
         variant="destructive"
         onClick={handleDelete}
         disabled={loading}
-        className="text-sm font-medium hover:cursor-pointer disabled:opacity-50"
+        className="text-sm font-medium hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Deleting..." : "Delete organization"}
       </Button>

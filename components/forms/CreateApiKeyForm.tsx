@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { createApiKey } from "@/actions/apiKeys/createApiKey";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+import { useRouter } from "next/navigation";
 
 export default function CreateApiKeyForm({
   userId,
@@ -15,12 +16,15 @@ export default function CreateApiKeyForm({
   const [rawKey, setRawKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
+    const form = formRef.current!;
+    const formData = new FormData(form);
+
     const name = formData.get("name") as string;
 
     const result = await createApiKey(name, userId, orgId);
@@ -28,7 +32,8 @@ export default function CreateApiKeyForm({
     if (result.success && result.data) {
       toast.success("API key created");
       setRawKey(result.data.rawKey);
-      formRef.current?.reset();
+      form.reset();
+      router.refresh();
     } else {
       toast.error(result.error || "Failed to create API key");
       setRawKey(null);
@@ -55,7 +60,7 @@ export default function CreateApiKeyForm({
         <Button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 hover:cursor-pointer disabled:opacity-50"
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Create
         </Button>

@@ -62,7 +62,7 @@ export default function OrganizationForm({
       <Button
         type="submit"
         disabled={loading}
-        className="text-sm font-medium hover:cursor-pointer disabled:opacity-50"
+        className="text-sm font-medium hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Saving..." : "Save changes"}
       </Button>

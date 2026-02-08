@@ -1,5 +1,6 @@
 // app/onboarding/create-org/page.tsx
 import { createOrganization } from "@/actions/organization/createOrganization";
+import { CreateOrgForm } from "@/components/forms/CreateOrgForm";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
@@ -54,29 +55,10 @@ export default async function CreateOrgPage({
           </p>
         </div>
 
-        {/* Form */}
-        <form action={action} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Organization name</label>
-            <input
-              name="name"
-              placeholder="e.g. Acme Inc"
-              required
-              autoFocus
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            />
-          </div>
+        {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
-          {errorMessage && (
-            <p className="text-sm text-red-600">{errorMessage}</p>
-          )}
+        <CreateOrgForm action={action} />
 
-          <button className="w-full bg-black text-white rounded-md py-2 text-sm font-medium hover:cursor-pointer">
-            Create organization
-          </button>
-        </form>
-
-        {/* Footer hint */}
         <p className="text-xs text-center text-gray-500">
           You can invite teammates later
         </p>

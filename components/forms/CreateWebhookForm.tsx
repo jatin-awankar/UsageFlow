@@ -1,6 +1,7 @@
 "use client";
 
 import { createWebhookEndpoint } from "@/actions/webhooks/createWebhookEndpoint";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -14,12 +15,14 @@ export default function CreateWebhookForm({
   const [secret, setSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const url = formData.get("url") as string;
 
     const res = await createWebhookEndpoint(userId, orgId, {
@@ -30,7 +33,8 @@ export default function CreateWebhookForm({
     if (res.success && res.data) {
       toast.success("Webhook created");
       setSecret(res.data.secret);
-      formRef.current?.reset();
+      form.reset();
+      router.refresh();
     } else {
       toast.error(res.error || "Failed to create webhook");
     }
@@ -55,7 +59,7 @@ export default function CreateWebhookForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Create
         </button>
