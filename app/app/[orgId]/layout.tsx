@@ -22,7 +22,6 @@ export default async function OrgLayout({
       org: true,
     },
   });
-  // if (!memberships) redirect("/onboarding");
 
   const currentMembership = memberships.find((m) => m.orgId === orgId);
 
