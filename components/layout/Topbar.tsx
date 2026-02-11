@@ -17,7 +17,7 @@ export default async function Topbar({ orgId }: TopbarProps) {
   const orgs = await getUserOrganizations(user.id);
 
   return (
-    <header className="h-14 border-b px-8 flex items-center justify-between">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-8">
       {/* Left: reserved for page title */}
       <div id="page-title-slot" />
 
@@ -28,7 +28,7 @@ export default async function Topbar({ orgId }: TopbarProps) {
           currentOrgName={currentOrg?.name || "Organization"}
           organizations={orgs}
         />
-        <UserMenu email={user?.email || ""} />
+        <UserMenu email={user?.email || ""} orgId={orgId} />
       </div>
     </header>
   );

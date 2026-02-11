@@ -3,8 +3,8 @@
 import { useRef, useState } from "react";
 import { createApiKey } from "@/actions/apiKeys/createApiKey";
 import { toast } from "sonner";
-import { Button } from "../ui/button";
 import { useRouter } from "next/navigation";
+import { Check, Copy } from "lucide-react";
 
 export default function CreateApiKeyForm({
   userId,
@@ -17,6 +17,7 @@ export default function CreateApiKeyForm({
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const [isCopied, setIsCopied] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -42,6 +43,18 @@ export default function CreateApiKeyForm({
     setLoading(false);
   }
 
+  const handleCopy = async () => {
+    if (rawKey == null) return;
+    try {
+      await navigator.clipboard.writeText(rawKey);
+      setIsCopied(true);
+      // Reset the "Copied!" message after 2 seconds
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <form
@@ -57,13 +70,13 @@ export default function CreateApiKeyForm({
           className="w-48 rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 disabled:opacity-50"
         />
 
-        <Button
+        <button
           type="submit"
           disabled={loading}
           className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Create
-        </Button>
+        </button>
       </form>
 
       {rawKey && (
@@ -72,8 +85,14 @@ export default function CreateApiKeyForm({
           <p className="mt-1 text-xs text-gray-500">
             This key will only be shown once.
           </p>
-          <code className="mt-2 block break-all rounded bg-white p-2 font-mono text-xs">
-            {rawKey}
+          <code className="relative mt-2 block break-all rounded bg-white p-2 font-mono text-xs">
+            <p>{rawKey}</p>
+            <button
+              onClick={handleCopy}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 bg-gray-300 border rounded-md hover:cursor-pointer"
+            >
+              {isCopied ? <Check size={16} /> : <Copy size={16} />}
+            </button>
           </code>
         </div>
       )}

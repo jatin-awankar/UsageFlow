@@ -61,6 +61,13 @@ export default async function DashboardPage({
         description="High-level overview of usage, billing, and activity."
       />
 
+      <p className="text-sm text-gray-500 mb-2">
+        Current billing period: {subscription.periodStart.toDateString()} -{" "}
+        {subscription.periodEnd
+          ? subscription.periodEnd.toDateString()
+          : "Current"}
+      </p>
+
       <div className="space-y-8">
         <DashboardKPIs
           usage={usage}

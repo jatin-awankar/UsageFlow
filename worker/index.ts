@@ -20,7 +20,7 @@ new Worker(
         case "GENERATE_INVOICE":
           return processInvoice(job.data);
         case "DELIVER_WEBHOOK":
-          return processWebhook(job.data);
+          return processWebhook(job.data.webhookEventId);
         default:
           throw new Error(`Unknown job: ${job.name}`);
       }

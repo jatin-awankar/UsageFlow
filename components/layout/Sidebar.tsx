@@ -19,6 +19,7 @@ import {
 
 type SidebarProps = {
   orgId: string;
+  role: "OWNER" | "ADMIN" | "DEVELOPER" | "VIEWER";
 };
 
 const navSections = [
@@ -33,27 +34,34 @@ const navSections = [
     ],
   },
   {
-    label: "Observe",
+    label: "Analytics",
     items: [
       {
-        name: "Usage",
-        path: "usage",
+        name: "Usage Analytics",
+        path: "analytics",
         icon: BarChart3,
       },
+    ],
+  },
+  {
+    label: "Billing",
+    roles: ["OWNER", "ADMIN"],
+    items: [
       {
-        name: "Billing",
+        name: "Overview",
         path: "billing",
         icon: CreditCard,
       },
       {
         name: "Invoices",
-        path: "invoices",
+        path: "billing/invoices",
         icon: FileText,
       },
     ],
   },
   {
     label: "Configure",
+    roles: ["OWNER", "ADMIN"],
     items: [
       {
         name: "Metrics",
@@ -69,6 +77,7 @@ const navSections = [
   },
   {
     label: "Developers",
+    roles: ["OWNER", "ADMIN", "DEVELOPER"],
     items: [
       {
         name: "API Keys",
@@ -89,6 +98,7 @@ const navSections = [
   },
   {
     label: "Organization",
+    roles: ["OWNER", "ADMIN"],
     items: [
       {
         name: "Members",
@@ -109,50 +119,51 @@ const navSections = [
   },
 ];
 
-export default function Sidebar({ orgId }: SidebarProps) {
+export default function Sidebar({ orgId, role }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 border-r bg-white px-4 py-6">
+    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white px-4 py-6">
       {/* Brand */}
-      <div className="mb-8 px-2">
+      <div className="shrink-0 px-2 pb-4">
         <h1 className="text-lg font-semibold text-gray-900">UsageFlow</h1>
-        <p className="text-xs text-gray-500">Usage-based billing</p>
+        <p className="text-xs text-gray-500">Usage-based billing platform</p>
       </div>
 
-      {/* Navigation */}
-      <nav className="space-y-6 mb-6">
-        {navSections.map((section) => (
-          <div key={section.label}>
-            <p className="mb-2 px-2 text-xs font-semibold uppercase text-gray-400">
-              {section.label}
-            </p>
+      <nav className="flex-1 space-y-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {navSections
+          .filter((section) => !section.roles || section.roles.includes(role))
+          .map((section) => (
+            <div key={section.label}>
+              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {section.label}
+              </p>
 
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const href = `/app/${orgId}/${item.path}`;
-                const active =
-                  pathname === href || pathname.startsWith(`${href}/`);
-                const Icon = item.icon;
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const href = `/app/${orgId}/${item.path}`;
+                  const active =
+                    pathname === href || pathname.startsWith(`${href}/`);
+                  const Icon = item.icon;
 
-                return (
-                  <Link
-                    key={item.path}
-                    href={href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
-                      active
-                        ? "bg-gray-100 text-gray-900 font-medium"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.name}
-                  </Link>
-                );
-              })}
+                  return (
+                    <Link
+                      key={item.path}
+                      href={href}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+                        active
+                          ? "bg-gray-100 text-gray-900 font-medium ring-1 ring-gray-200"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </nav>
     </aside>
   );
