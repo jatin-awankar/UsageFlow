@@ -8,7 +8,7 @@ import { processInvoice } from "./processors/generateInvoice";
 import { processWebhook } from "./processors/deliverWebhook";
 
 console.log("UsageFlow worker started");
-new Worker(
+const worker = new Worker(
   "usageflow",
   async (job) => {
     try {
@@ -22,7 +22,7 @@ new Worker(
         case "DELIVER_WEBHOOK":
           return processWebhook(job.data.webhookEventId);
         default:
-          throw new Error(`Unknown job: ${job.name}`);
+          console.warn("Unknown job:", job.name);
       }
     } catch (err) {
       console.error("Job failed:", job.name, err);
@@ -34,3 +34,15 @@ new Worker(
     concurrency: 5,
   }
 );
+
+worker.on("completed", (job) => {
+  console.log(`Job completed: ${job.name}`);
+});
+
+worker.on("failed", (job, err) => {
+  console.error(`Job failed: ${job?.name}`, err);
+});
+
+worker.on("error", (err) => {
+  console.error("Worker error:", err);
+});
