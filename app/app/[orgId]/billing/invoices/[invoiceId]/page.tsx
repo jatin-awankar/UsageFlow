@@ -1,5 +1,5 @@
-import { Role } from "@/generated/prisma/enums";
 import { getCurrentUser } from "@/lib/auth/session";
+import { Role } from "@prisma/client";
 import { requireRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
