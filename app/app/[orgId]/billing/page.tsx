@@ -2,10 +2,11 @@ import { getCostBreakdown } from "@/actions/analytics/getCostBreakdown";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
 import { redirect } from "next/navigation";
+import { CreditCard } from "lucide-react";
 
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
-import { CreditCard } from "lucide-react";
+import prisma from "@/lib/prisma";
 
 export default async function BillingPage({
   params,
@@ -17,6 +18,11 @@ export default async function BillingPage({
 
   const { orgId } = await params;
   const subscription = await getActiveSubscription(orgId);
+
+  const latestInvoice = await prisma.invoice.findFirst({
+    where: { orgId },
+    orderBy: { createdAt: "desc" },
+  });
 
   const data = subscription
     ? await getCostBreakdown(user.id, orgId, subscription.id)
@@ -58,6 +64,28 @@ export default async function BillingPage({
               highlight
             />
           </div>
+
+          {latestInvoice && (
+            <div className="rounded-lg border bg-white p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Latest invoice</p>
+                <p className="font-medium text-gray-900">
+                  ₹{latestInvoice.amount} · {latestInvoice.status}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {latestInvoice.periodStart.toDateString()} –{" "}
+                  {latestInvoice.periodEnd.toDateString()}
+                </p>
+              </div>
+
+              <a
+                href={`/app/${orgId}/billing/invoices/${latestInvoice.id}`}
+                className="text-sm font-medium text-black hover:underline"
+              >
+                View invoice →
+              </a>
+            </div>
+          )}
 
           {/* Cost breakdown table */}
           <div className="overflow-hidden rounded-lg border bg-white">

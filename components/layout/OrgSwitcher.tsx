@@ -1,8 +1,8 @@
 "use client";
 
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { ChevronDown } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ChevronDown, Check } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 
 type Organization = {
   id: string;
@@ -21,9 +21,12 @@ export default function OrgSwitcher({
   organizations,
 }: OrgSwitcherProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   function switchOrg(orgId: string) {
-    router.push(`/app/${orgId}/dashboard`);
+    // Preserve current route, just replace orgId
+    const nextPath = pathname.replace(`/app/${currentOrgId}`, `/app/${orgId}`);
+    router.push(nextPath);
   }
 
   return (
@@ -33,27 +36,32 @@ export default function OrgSwitcher({
         <ChevronDown className="h-4 w-4 text-gray-500" />
       </MenuButton>
 
-      <MenuItems className="absolute right-0 mt-2 w-56 rounded-md border shadow-sm focus:outline-none">
+      <MenuItems className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm focus:outline-none">
         <div className="py-1">
-          {organizations.map((org) => (
-            <MenuItem key={org.id}>
-              {({ focus }) => (
-                <button
-                  onClick={() => switchOrg(org.id)}
-                  disabled={org.id === currentOrgId}
-                  className={`w-full px-3 py-2 text-left text-sm ${
-                    org.id === currentOrgId
-                      ? "text-gray-500 cursor-not-allowed"
-                      : focus
-                      ? "bg-gray-200 text-gray-900"
-                      : "text-gray-700"
-                  }`}
-                >
-                  {org.name}
-                </button>
-              )}
-            </MenuItem>
-          ))}
+          {organizations.map((org) => {
+            const isCurrent = org.id === currentOrgId;
+
+            return (
+              <MenuItem key={org.id}>
+                {({ focus }) => (
+                  <button
+                    onClick={() => switchOrg(org.id)}
+                    disabled={isCurrent}
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
+                      isCurrent
+                        ? "text-gray-400 cursor-not-allowed"
+                        : focus
+                        ? "bg-gray-100 text-gray-900"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    <span>{org.name}</span>
+                    {isCurrent && <Check className="h-4 w-4 text-gray-400" />}
+                  </button>
+                )}
+              </MenuItem>
+            );
+          })}
         </div>
       </MenuItems>
     </Menu>

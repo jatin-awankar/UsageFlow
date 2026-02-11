@@ -1,19 +1,21 @@
-// worker/processors/generateInvoice.ts
+import prisma from "@/lib/prisma";
 import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
 import { writeAuditLog } from "@/lib/audit";
-import prisma from "@/lib/prisma";
 
 export async function processInvoice({
   subscriptionId,
 }: {
   subscriptionId: string;
 }) {
+  // Load subscription + plan
   const subscription = await prisma.subscription.findUnique({
     where: { id: subscriptionId },
     include: {
       plan: {
         include: {
-          planMetrics: { include: { metric: true } },
+          planMetrics: {
+            include: { metric: true },
+          },
         },
       },
     },
@@ -21,35 +23,75 @@ export async function processInvoice({
 
   if (!subscription) return;
 
-  const usage = await prisma.aggregatedUsage.findMany({
-    where: { subscriptionId },
+  const {
+    orgId,
+    periodStart,
+    periodEnd,
+    plan,
+  } = subscription;
+
+  if (!periodEnd) {
+    console.warn("Subscription has no periodEnd", subscriptionId);
+    return;
+  }
+
+  // Prevent duplicate invoices for same period
+  const existingInvoice = await prisma.invoice.findFirst({
+    where: {
+      subscriptionId,
+      periodStart: periodStart,
+      periodEnd: periodEnd,
+    },
   });
 
-  let total = subscription.plan.basePrice;
+  if (existingInvoice) {
+    console.log("Invoice already exists for period", subscriptionId);
+    return;
+  }
+
+  // Fetch aggregated usage for THIS billing period
+  const usage = await prisma.aggregatedUsage.findMany({
+    where: {
+      subscriptionId,
+      periodStart: periodStart,
+    },
+  });
+
+  // Calculate total
+  let total = plan.basePrice;
 
   for (const row of usage) {
-    const pricing = subscription.plan.planMetrics.find(
+    const pricing = plan.planMetrics.find(
       (pm) => pm.metric.key === row.metricKey
     );
 
     if (!pricing) continue;
 
-    const overage = Math.max(0, row.total - pricing.includedUnits);
-    total += overage * pricing.pricePerUnit;
+    const overageUnits = Math.max(
+      0,
+      row.total - pricing.includedUnits
+    );
+
+    total += overageUnits * pricing.pricePerUnit;
   }
 
-  const orgId = subscription.orgId;
-
+  // Create invoice
   const invoice = await prisma.invoice.create({
     data: {
-      orgId,
-      subscriptionId,
       amount: total,
       status: "PENDING",
-      periodStart: subscription.periodStart,
-      periodEnd: subscription.periodEnd!,
+      periodStart: periodStart,
+      periodEnd: periodEnd,
+
+      org: {
+        connect: { id: orgId },
+      },
+      subscription: {
+        connect: { id: subscriptionId },
+      },
     },
   });
+
 
   // Audit log
   await writeAuditLog({
@@ -65,6 +107,7 @@ export async function processInvoice({
     },
   });
 
+  // Emit webhook event
   await createWebhookEvent(orgId, "invoice.created", {
     invoiceId: invoice.id,
     amount: invoice.amount,
@@ -72,4 +115,8 @@ export async function processInvoice({
     periodEnd: invoice.periodEnd,
   });
 
+  console.log("Invoice generated", {
+    invoiceId: invoice.id,
+    amount: total,
+  });
 }

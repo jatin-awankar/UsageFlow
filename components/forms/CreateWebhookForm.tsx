@@ -1,6 +1,7 @@
 "use client";
 
 import { createWebhookEndpoint } from "@/actions/webhooks/createWebhookEndpoint";
+import { Check, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ export default function CreateWebhookForm({
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const [isCopied, setIsCopied] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,6 +43,18 @@ export default function CreateWebhookForm({
 
     setLoading(false);
   }
+
+  const handleCopy = async () => {
+    if (secret == null) return;
+    try {
+      await navigator.clipboard.writeText(secret);
+      setIsCopied(true);
+      // Reset the "Copied!" message after 2 seconds
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -71,8 +85,14 @@ export default function CreateWebhookForm({
           <p className="mt-1 text-xs text-gray-500">
             This secret will only be shown once. Save it securely.
           </p>
-          <code className="mt-2 block break-all rounded bg-white p-2 font-mono text-xs">
-            {secret}
+          <code className="relative mt-2 block break-all rounded bg-white p-2 font-mono text-xs">
+            <p>{secret}</p>
+            <button
+              onClick={handleCopy}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 bg-gray-300 border rounded-md hover:cursor-pointer"
+            >
+              {isCopied ? <Check size={16} /> : <Copy size={16} />}
+            </button>
           </code>
         </div>
       )}

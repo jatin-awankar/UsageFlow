@@ -22,7 +22,7 @@ app.post("/webhook", (req, res) => {
   const signature = req.headers["x-usageflow-signature"];
 
   if (!signature) {
-    console.log("❌ Missing signature");
+    console.log("Missing signature");
     return res.status(401).send("Missing signature");
   }
 
@@ -35,14 +35,14 @@ app.post("/webhook", (req, res) => {
     .digest("hex");
 
   if (signature !== expectedSignature) {
-    console.log("❌ Invalid signature");
+    console.log("Invalid signature");
     return res.status(401).send("Invalid signature");
   }
 
   /**
    * Payload is now trusted
    */
-  console.log("✅ Webhook verified");
+  console.log("Webhook verified");
   console.log("Event type:", req.body.type);
   console.log("Payload:", req.body.data);
 
@@ -54,5 +54,5 @@ app.post("/webhook", (req, res) => {
 });
 
 app.listen(4000, () => {
-  console.log("🚀 Webhook receiver running on http://localhost:4000/webhook");
+  console.log("Webhook receiver running on http://localhost:4000/webhook");
 });
