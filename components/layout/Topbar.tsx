@@ -2,18 +2,21 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import OrgSwitcher from "./OrgSwitcher";
 import UserMenu from "./UserMenu";
-import { getOrganization } from "@/actions/organization/getOrganization";
 import { getUserOrganizations } from "@/lib/org/getUserOrganizations";
 
 type TopbarProps = {
   orgId: string;
+  role: string;
+  organizations: {
+    id: string;
+    name: string;
+  }[];
 };
 
 export default async function Topbar({ orgId }: TopbarProps) {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const currentOrg = await getOrganization(orgId);
   const orgs = await getUserOrganizations(user.id);
 
   return (
@@ -23,11 +26,7 @@ export default async function Topbar({ orgId }: TopbarProps) {
 
       {/* Right: org + user */}
       <div className="flex items-center gap-4">
-        <OrgSwitcher
-          currentOrgId={orgId}
-          currentOrgName={currentOrg?.name || "Organization"}
-          organizations={orgs}
-        />
+        <OrgSwitcher currentOrgId={orgId} organizations={orgs} />
         <UserMenu email={user?.email || ""} orgId={orgId} />
       </div>
     </header>
