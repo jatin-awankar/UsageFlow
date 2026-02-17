@@ -18,20 +18,21 @@ model User {
 }
 
 model Organization {
-  id               String            @id @default(uuid())
-  name             String
-  createdAt        DateTime          @default(now())
-  aggregatedUsages AggregatedUsage[]
-  apiKeys          ApiKey[]
-  auditLogs        AuditLog[]
-  invoices         Invoice[]
-  memberships      Membership[]
-  metrics          Metric[]
-  plans            Plan[]
-  subscriptions    Subscription[]
-  usageEvents      UsageEvent[]
-  webhookEndpoints WebhookEndpoint[]
-  webhookEvents    WebhookEvent[]
+  id                  String               @id @default(uuid())
+  name                String
+  createdAt           DateTime             @default(now())
+  aggregatedUsages    AggregatedUsage[]
+  apiKeys             ApiKey[]
+  auditLogs           AuditLog[]
+  invoices            Invoice[]
+  memberships         Membership[]
+  metrics             Metric[]
+  plans               Plan[]
+  subscriptions       Subscription[]
+  usageEvents         UsageEvent[]
+  webhookEndpoints    WebhookEndpoint[]
+  webhookEvents       WebhookEvent[]
+  organizationInvites OrganizationInvite[]
 }
 
 model Membership {
@@ -226,6 +227,22 @@ model WebhookDelivery {
   endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id])
 
   @@unique([webhookEventId, endpointId, attempt])
+}
+
+model OrganizationInvite {
+  id        String   @id @default(uuid())
+  orgId     String
+  email     String
+  role      Role
+  token     String   @unique
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+  @@index([email])
 }
 
 enum Role {
