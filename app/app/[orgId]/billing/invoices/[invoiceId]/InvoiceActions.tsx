@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { markInvoicePaid } from "@/actions/invoices/markInvoicePaid";
 import { markInvoiceFailed } from "@/actions/invoices/markInvoiceFailed";
+import { markInvoicePaid } from "@/actions/invoices/markInvoicePaid";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { toast } from "sonner";
 
 export function InvoiceActions({
   userId,
@@ -19,15 +20,30 @@ export function InvoiceActions({
 
   function handlePaid() {
     startTransition(async () => {
-      await markInvoicePaid(userId, orgId, invoiceId);
-      router.refresh();
+      try {
+        await markInvoicePaid(userId, orgId, invoiceId);
+        toast.success("Invoice marked as paid");
+        router.refresh();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to update invoice";
+        toast.error(msg);
+      }
     });
   }
 
   function handleFailed() {
     startTransition(async () => {
-      await markInvoiceFailed(userId, orgId, invoiceId);
-      router.refresh();
+      try {
+        const res = await markInvoiceFailed(userId, orgId, invoiceId);
+        if (res?.success) {
+          toast.success("Invoice marked as failed");
+          router.refresh();
+        } else {
+          toast.error(res?.error ?? "Failed to update invoice");
+        }
+      } catch {
+        toast.error("Failed to update invoice");
+      }
     });
   }
 

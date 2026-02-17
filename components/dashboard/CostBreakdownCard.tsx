@@ -8,7 +8,9 @@ export default function CostBreakdownCard({
 }) {
   return (
     <div className="rounded-lg border bg-white p-4">
-      <h3 className="mb-3 text-sm font-medium text-gray-700">Cost by metric</h3>
+      <h3 className="mb-3 text-sm font-medium text-gray-700">
+        Metric breakdown
+      </h3>
 
       {breakdown.length === 0 ? (
         <p className="text-sm text-gray-500">No billable usage yet.</p>

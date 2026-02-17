@@ -1,85 +1,110 @@
 "use server";
 
-import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
-import { writeAuditLog } from "@/lib/audit";
 import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
-import { Role, InvoiceStatus, SubscriptionStatus } from "@prisma/client";
-import { getCurrentUser } from "@/lib/auth/session";
+import { writeAuditLog } from "@/lib/audit";
+import { requireRole } from "@/lib/authz/requireRole";
+import prisma from "@/lib/prisma";
+import {
+  InvoiceStatus,
+  Role,
+  SubscriptionStatus,
+} from "@prisma/client";
 
 export async function markInvoiceFailed(
-    orgId: string,
-    invoiceId: string,
-    reason?: string
+  userId: string,
+  orgId: string,
+  invoiceId: string,
+  reason?: string
 ) {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Unauthorized");
+  if (!userId || !orgId || !invoiceId) {
+    return { success: false, error: "Invalid request" };
+  }
 
-    await requireRole(user.id, orgId, [Role.OWNER, Role.ADMIN]);
-
-    // 1️⃣ Load invoice + subscription
-    const invoice = await prisma.invoice.findUnique({
-        where: { id: invoiceId },
-        include: { subscription: true },
-    });
-
-    if (!invoice || invoice.orgId !== orgId) {
-        throw new Error("Invoice not found");
+  try {
+    await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Access denied";
+    if (message === "NOT_A_MEMBER") {
+      return {
+        success: false,
+        error: "You are not a member of this organization",
+      };
     }
-
-    if (invoice.status !== InvoiceStatus.PENDING) {
-        throw new Error("Invoice cannot be marked as failed");
+    if (message === "INSUFFICIENT_ROLE") {
+      return {
+        success: false,
+        error: "Only owners and admins can update invoice status",
+      };
     }
+    return { success: false, error: "Access denied" };
+  }
 
-    // 2️⃣ Update invoice status
-    const updatedInvoice = await prisma.invoice.update({
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { subscription: true },
+  });
+
+  if (!invoice || invoice.orgId !== orgId) {
+    return { success: false, error: "Invoice not found" };
+  }
+
+  if (invoice.status !== InvoiceStatus.PENDING) {
+    return {
+      success: false,
+      error: "Only pending invoices can be marked as failed",
+    };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.invoice.update({
         where: { id: invoiceId },
         data: { status: InvoiceStatus.FAILED },
-    });
+      });
 
-    // 3️⃣ Suspend subscription (ONLY if active)
-    if (invoice.subscription.status === SubscriptionStatus.ACTIVE) {
-        await prisma.subscription.update({
-            where: { id: invoice.subscriptionId },
-            data: { status: SubscriptionStatus.PAUSED },
+      if (invoice.subscription.status === SubscriptionStatus.ACTIVE) {
+        await tx.subscription.update({
+          where: { id: invoice.subscriptionId },
+          data: { status: SubscriptionStatus.PAUSED },
         });
-    }
-
-    // 4️⃣ Audit logs
-    await writeAuditLog({
-        orgId,
-        action: "SUBSCRIPTION_SUSPENDED",
-        entity: "Subscription",
-        entityId: invoice.subscriptionId,
-        metadata: {
-            invoiceId,
-            reason,
-        },
+      }
     });
 
-    await writeAuditLog({
+    await Promise.all([
+      writeAuditLog({
         orgId,
+        userId,
         action: "INVOICE_FAILED",
         entity: "Invoice",
         entityId: invoiceId,
-        metadata: {
-            amount: invoice.amount,
-            reason,
-        },
-    });
-
-    // 5️⃣ Webhooks
-    await createWebhookEvent(orgId, "invoice.failed", {
+        metadata: { amount: invoice.amount, reason },
+      }),
+      writeAuditLog({
+        orgId,
+        userId,
+        action: "SUBSCRIPTION_SUSPENDED",
+        entity: "Subscription",
+        entityId: invoice.subscriptionId,
+        metadata: { invoiceId, reason },
+      }),
+      createWebhookEvent(orgId, "invoice.failed", {
         invoiceId,
         amount: invoice.amount,
         reason,
-    });
-
-    await createWebhookEvent(orgId, "subscription.suspended", {
+      }),
+      createWebhookEvent(orgId, "subscription.suspended", {
         subscriptionId: invoice.subscriptionId,
         invoiceId,
         reason,
-    });
+      }),
+    ]);
 
-    return updatedInvoice;
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to mark invoice as failed:", err);
+    return {
+      success: false,
+      error: "Failed to update invoice. Please try again.",
+    };
+  }
 }

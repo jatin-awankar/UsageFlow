@@ -1,12 +1,15 @@
 import { getCostBreakdown } from "@/actions/analytics/getCostBreakdown";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getMembership } from "@/lib/authz/getMembership";
 import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
-import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { CreditCard } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
-import prisma from "@/lib/prisma";
+import { GenerateInvoiceButton } from "./GenerateInvoiceButton";
 
 export default async function BillingPage({
   params,
@@ -16,8 +19,13 @@ export default async function BillingPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { orgId } = await params;
-  const subscription = await getActiveSubscription(orgId);
+  const { orgId } = await Promise.resolve(params);
+  const [subscription, membership] = await Promise.all([
+    getActiveSubscription(orgId),
+    getMembership(user.id, orgId),
+  ]);
+
+  if (!membership) redirect("/app");
 
   const latestInvoice = await prisma.invoice.findFirst({
     where: { orgId },
@@ -28,11 +36,23 @@ export default async function BillingPage({
     ? await getCostBreakdown(user.id, orgId, subscription.id)
     : null;
 
+  const canManageBilling =
+    membership.role === Role.OWNER || membership.role === Role.ADMIN;
+
   return (
     <>
       <PageHeader
         title="Billing"
         description="Usage-based cost breakdown for the current billing period."
+        actions={
+          canManageBilling && subscription ? (
+            <GenerateInvoiceButton
+              userId={user.id}
+              orgId={orgId}
+              subscriptionId={subscription.id}
+            />
+          ) : undefined
+        }
       />
 
       {!subscription ? (
