@@ -1,27 +1,80 @@
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 2,
+});
+const numberFormatter = new Intl.NumberFormat("en-IN");
+
+type BreakdownItem = {
+  metric: string;
+  cost: number;
+  used?: number;
+  included?: number;
+  overage?: number;
+};
+
 export default function CostBreakdownCard({
   breakdown,
 }: {
-  breakdown: {
-    metric: string;
-    cost: number;
-  }[];
+  breakdown: BreakdownItem[];
 }) {
-  return (
-    <div className="rounded-lg border bg-white p-4">
-      <h3 className="mb-3 text-sm font-medium text-gray-700">
-        Metric breakdown
-      </h3>
+  const rows = [...breakdown].sort((a, b) => b.cost - a.cost);
+  const maxCost = Math.max(...rows.map((row) => row.cost), 1);
+  const total = rows.reduce((sum, row) => sum + row.cost, 0);
 
-      {breakdown.length === 0 ? (
-        <p className="text-sm text-gray-500">No billable usage yet.</p>
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:220ms]">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-slate-900">Cost breakdown</h3>
+          <p className="text-sm text-slate-500">Where overage spend is concentrated</p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+          {currencyFormatter.format(total)} total
+        </span>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="flex min-h-36 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 text-center text-sm text-slate-500">
+          No billable usage yet.
+        </div>
       ) : (
-        <ul className="space-y-2 text-sm">
-          {breakdown.map((b) => (
-            <li key={b.metric} className="flex items-center justify-between">
-              <span className="text-gray-700">{b.metric}</span>
-              <span className="font-medium text-gray-900">₹{b.cost}</span>
-            </li>
-          ))}
+        <ul className="space-y-3">
+          {rows.map((item, index) => {
+            const width = Math.max(8, Math.round((item.cost / maxCost) * 100));
+
+            return (
+              <li
+                key={item.metric}
+                className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3 animate-in fade-in slide-in-from-left-2"
+                style={{
+                  animationDuration: "650ms",
+                  animationDelay: `${index * 80}ms`,
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-slate-800">{item.metric}</span>
+                  <span className="text-sm font-semibold text-slate-900">
+                    {currencyFormatter.format(item.cost)}
+                  </span>
+                </div>
+
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                    style={{ width: `${width}%` }}
+                  />
+                </div>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  {numberFormatter.format(item.used ?? 0)} used
+                  {typeof item.included === "number"
+                    ? ` / ${numberFormatter.format(item.included)} included`
+                    : ""}
+                </p>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

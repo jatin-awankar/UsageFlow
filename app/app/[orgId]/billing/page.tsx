@@ -4,11 +4,15 @@ import { getMembership } from "@/lib/authz/getMembership";
 import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { CreditCard } from "lucide-react";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import PageHeader from "@/components/layout/PageHeader";
-import EmptyState from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
+import BillingEmptyState from "@/components/billing/BillingEmptyState";
+import BillingSummaryCards from "@/components/billing/BillingSummaryCards";
+import LatestInvoiceCard from "@/components/billing/LatestInvoiceCard";
+import BillingBreakdown from "@/components/billing/BillingBreakdown";
 import { GenerateInvoiceButton } from "./GenerateInvoiceButton";
 
 export default async function BillingPage({
@@ -27,184 +31,89 @@ export default async function BillingPage({
 
   if (!membership) redirect("/app");
 
-  const latestInvoice = await prisma.invoice.findFirst({
-    where: { orgId },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const data = subscription
-    ? await getCostBreakdown(user.id, orgId, subscription.id)
-    : null;
+  const [latestInvoice, data] = await Promise.all([
+    prisma.invoice.findFirst({
+      where: { orgId },
+      orderBy: { createdAt: "desc" },
+    }),
+    subscription ? getCostBreakdown(user.id, orgId, subscription.id) : null,
+  ]);
 
   const canManageBilling =
     membership.role === Role.OWNER || membership.role === Role.ADMIN;
+
+  const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const cycleRange =
+    subscription === null
+      ? null
+      : `${dateFormatter.format(subscription.periodStart)} to ${
+          subscription.periodEnd
+            ? dateFormatter.format(subscription.periodEnd)
+            : "Current"
+        }`;
 
   return (
     <>
       <PageHeader
         title="Billing"
-        description="Usage-based cost breakdown for the current billing period."
+        description="Track projected invoice totals, overages, and metric-level cost contributors."
         actions={
-          canManageBilling && subscription ? (
-            <GenerateInvoiceButton
-              userId={user.id}
-              orgId={orgId}
-              subscriptionId={subscription.id}
-            />
-          ) : undefined
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/billing/invoices`}>View invoices</Link>
+            </Button>
+            {canManageBilling && subscription ? (
+              <GenerateInvoiceButton
+                userId={user.id}
+                orgId={orgId}
+                subscriptionId={subscription.id}
+              />
+            ) : null}
+          </div>
         }
       />
 
       {!subscription ? (
-        <EmptyState
-          title="No active subscription"
-          description="Select a plan to start tracking usage and billing."
-          action={"Get Subscription"}
-          icon={<CreditCard />}
-          navigate={`/app/${orgId}/plans`}
-        />
+        <BillingEmptyState orgId={orgId} />
       ) : (
         <section className="space-y-6">
-          {/* Summary cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <SummaryCard
-              title="Base price"
-              value={`₹${data?.basePrice}`}
-              description="Fixed cost for the plan"
-            />
-            <SummaryCard
-              title="Usage cost"
-              value={`₹${data?.usageCost}`}
-              description="Charges beyond included limits"
-            />
-            <SummaryCard
-              title="Estimated total"
-              value={`₹${data?.total}`}
-              description="Projected invoice amount"
-              highlight
-            />
-          </div>
+          <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-sky-50/40 to-cyan-50/25 p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
+            <div className="pointer-events-none absolute -top-16 right-0 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
 
-          {latestInvoice && (
-            <div className="rounded-lg border bg-white p-4 flex items-center justify-between">
+            <div className="relative flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-sm text-gray-500">Latest invoice</p>
-                <p className="font-medium text-gray-900">
-                  ₹{latestInvoice.amount} · {latestInvoice.status}
+                <p className="mb-2 inline-flex items-center rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600">
+                  Current billing cycle
                 </p>
-                <p className="text-xs text-gray-500">
-                  {latestInvoice.periodStart.toDateString()} –{" "}
-                  {latestInvoice.periodEnd.toDateString()}
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                  {cycleRange}
+                </h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Review your spend trajectory before invoices are finalized.
                 </p>
               </div>
-
-              <a
-                href={`/app/${orgId}/billing/invoices/${latestInvoice.id}`}
-                className="text-sm font-medium text-black hover:underline"
-              >
-                View invoice →
-              </a>
             </div>
-          )}
+          </section>
 
-          {/* Cost breakdown table */}
-          <div className="overflow-hidden rounded-lg border bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">
-                    Metric
-                  </th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-600">
-                    Used
-                  </th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-600">
-                    Included
-                  </th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-600">
-                    Overage
-                  </th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-600">
-                    Price / unit
-                  </th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-600">
-                    Cost
-                  </th>
-                </tr>
-              </thead>
+          <BillingSummaryCards
+            basePrice={data?.basePrice ?? 0}
+            usageCost={data?.usageCost ?? 0}
+            total={data?.total ?? 0}
+          />
 
-              <tbody>
-                {!data?.breakdown || data.breakdown.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-6 text-center text-gray-500"
-                    >
-                      No usage recorded for this billing period
-                    </td>
-                  </tr>
-                ) : (
-                  data.breakdown.map((row) => (
-                    <tr
-                      key={`${row.metric}-${row.used}`}
-                      className="border-b last:border-0"
-                    >
-                      <td className="px-4 py-2 font-medium text-gray-900">
-                        {row.metric}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-700">
-                        {row.used}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-700">
-                        {row.included}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-700">
-                        {row.overage}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-700">
-                        ₹{row.pricePerUnit}
-                      </td>
-                      <td className="px-4 py-2 text-right font-medium text-gray-900">
-                        ₹{row.cost}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          {latestInvoice ? (
+            <LatestInvoiceCard invoice={latestInvoice} orgId={orgId} />
+          ) : null}
 
-          {/* Notes */}
-          <div className="text-sm text-gray-500 space-y-1">
-            <p>• Overage is charged only when usage exceeds included units.</p>
-            <p>• Final invoice may differ due to adjustments or discounts.</p>
-          </div>
+          <BillingBreakdown rows={data?.breakdown ?? []} />
         </section>
       )}
     </>
-  );
-}
-
-function SummaryCard({
-  title,
-  value,
-  description,
-  highlight = false,
-}: {
-  title: string;
-  value: string;
-  description: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-lg border p-4 ${
-        highlight ? "bg-gray-50 border-gray-900" : "bg-white"
-      }`}
-    >
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
-      <p className="mt-1 text-xs text-gray-500">{description}</p>
-    </div>
   );
 }

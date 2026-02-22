@@ -2,6 +2,8 @@
 
 import { markInvoiceFailed } from "@/actions/invoices/markInvoiceFailed";
 import { markInvoicePaid } from "@/actions/invoices/markInvoicePaid";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Loader2, ShieldX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
@@ -48,22 +50,45 @@ export function InvoiceActions({
   }
 
   return (
-    <div className="flex gap-3">
-      <button
+    <div className="flex flex-wrap gap-3">
+      <Button
+        type="button"
         onClick={handlePaid}
         disabled={isPending}
-        className="bg-black text-white rounded-md py-2 px-4 hover:bg-gray-800 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        className="min-w-36 hover:cursor-pointer"
       >
-        Mark as paid
-      </button>
+        {isPending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Updating...
+          </>
+        ) : (
+          <>
+            <CheckCircle2 className="size-4" />
+            Mark as paid
+          </>
+        )}
+      </Button>
 
-      <button
+      <Button
+        type="button"
         onClick={handleFailed}
         disabled={isPending}
-        className="border px-4 py-2 rounded hover:bg-gray-200 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="outline"
+        className="min-w-36 hover:cursor-pointer"
       >
-        Mark as failed
-      </button>
+        {isPending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Updating...
+          </>
+        ) : (
+          <>
+            <ShieldX className="size-4" />
+            Mark as failed
+          </>
+        )}
+      </Button>
     </div>
   );
 }

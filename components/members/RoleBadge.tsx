@@ -1,18 +1,22 @@
 import { Role } from "@prisma/client";
 
-export function RoleBadge({ role }: { role: Role }) {
-  const styles: Record<Role, string> = {
-    OWNER: "bg-purple-100 text-purple-700",
-    ADMIN: "bg-blue-100 text-blue-700",
-    DEVELOPER: "bg-gray-100 text-gray-700",
-    VIEWER: "bg-yellow-100 text-yellow-700",
-  };
+const roleStyles: Record<Role, string> = {
+  OWNER: "border-violet-200 bg-violet-50 text-violet-700",
+  ADMIN: "border-sky-200 bg-sky-50 text-sky-700",
+  DEVELOPER: "border-slate-200 bg-slate-100 text-slate-700",
+  VIEWER: "border-amber-200 bg-amber-50 text-amber-700",
+};
 
+function toTitleCase(role: Role) {
+  return role.charAt(0) + role.slice(1).toLowerCase();
+}
+
+export function RoleBadge({ role }: { role: Role }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${styles[role]}`}
+      className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${roleStyles[role]}`}
     >
-      {role}
+      {toTitleCase(role)}
     </span>
   );
 }

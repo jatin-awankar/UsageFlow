@@ -1,48 +1,49 @@
 import Image from "next/image";
+import { CheckCircle2 } from "lucide-react";
+
+const points = [
+  "Durable event storage for critical workflows",
+  "Background workers with controlled retries",
+  "Delivery logs and audit trails for visibility",
+];
 
 export default function Architecture() {
   return (
-    <section className="mx-auto max-w-5xl px-6 space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
-        Architecture & Reliability
-      </h2>
-
-      <div className="flex flex-col md:flex-row gap-6 md:gap-12 items-center">
-        {/* Text */}
-        <div className="max-w-xl space-y-5">
-          <p className="text-base leading-relaxed">
-            UsageFlow is built using an event-driven architecture designed for
-            correctness and reliability. Business events such as usage
-            aggregation, invoice generation, and webhook delivery are persisted
-            and processed asynchronously using background workers.
+    <section className="mx-auto max-w-6xl">
+      <div className="grid gap-8 rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm md:grid-cols-[1.15fr_0.85fr] md:items-center">
+        <div className="space-y-4">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+            Architecture and reliability
+          </p>
+          <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+            Event-driven by design, built for operational safety
+          </h2>
+          <p className="text-base leading-relaxed text-slate-600">
+            UsageFlow separates event creation from downstream side effects so
+            billing-critical jobs can be retried and observed independently.
+          </p>
+          <p className="text-sm leading-relaxed text-slate-500">
+            The system design mirrors practical SaaS patterns where correctness,
+            durability, and external integrations matter as much as UI.
           </p>
 
-          <p className="text-muted-foreground leading-relaxed">
-            Instead of coupling user actions directly to side effects, UsageFlow
-            separates event creation from event processing, ensuring durability,
-            observability, and safe retries.
-          </p>
-
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            This approach mirrors patterns used in production SaaS platforms
-            handling billing and external integrations.
-          </p>
-
-          <ul className="pt-4 space-y-2 text-sm list-disc list-inside text-muted-foreground">
-            <li>Durable event storage</li>
-            <li>Background workers with retries</li>
-            <li>Delivery logs & audit trails</li>
+          <ul className="space-y-2 pt-1">
+            {points.map((point) => (
+              <li key={point} className="flex items-start gap-2 text-sm text-slate-600">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-cyan-600" />
+                {point}
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Diagram */}
-        <div className="shrink-0">
+        <div className="animate-in fade-in zoom-in-95 duration-700 [animation-delay:120ms]">
           <Image
             src="/architecture.png"
             alt="UsageFlow system architecture"
-            width={320}
-            height={300}
-            className="mt-6 md:mt-0 rounded-lg border bg-background p-4 opacity-90"
+            width={420}
+            height={340}
+            className="mx-auto rounded-xl border border-slate-200 bg-slate-50 p-4"
           />
         </div>
       </div>

@@ -1,7 +1,10 @@
-// app/app/page.tsx
+import { redirect } from "next/navigation";
+
+import AppHomeEmptyState from "@/components/appHome/AppHomeEmptyState";
+import AppHomeHero from "@/components/appHome/AppHomeHero";
+import OrganizationGrid from "@/components/appHome/OrganizationGrid";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getUserOrganizations } from "@/lib/org/getUserOrganizations";
-import { redirect } from "next/navigation";
 
 export default async function AppHome() {
   const user = await getCurrentUser();
@@ -10,19 +13,22 @@ export default async function AppHome() {
     redirect("/login");
   }
 
-  const orgs = await getUserOrganizations(user.id);
-
-  if (orgs.length === 0) {
-    redirect("/onboarding/create-org");
-  }
-
-  const firstOrg = orgs[0];
-  redirect(`/app/${firstOrg.id}/dashboard`);
+  const organizations = await getUserOrganizations(user.id);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold">Welcome to UsageFlow</h1>
-      <p>You are authenticated.</p>
-    </div>
+    <main className="min-h-screen bg-linear-to-b from-slate-100 via-slate-50 to-white px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <AppHomeHero
+          email={user.email || "user@workspace"}
+          organizationCount={organizations.length}
+        />
+
+        {organizations.length === 0 ? (
+          <AppHomeEmptyState />
+        ) : (
+          <OrganizationGrid organizations={organizations} />
+        )}
+      </div>
+    </main>
   );
 }

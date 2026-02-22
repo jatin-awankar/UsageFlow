@@ -41,8 +41,8 @@ model Membership {
   userId    String
   orgId     String
   createdAt DateTime     @default(now())
-  org       Organization @relation(fields: [orgId], references: [id])
-  user      User         @relation(fields: [userId], references: [id])
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, orgId])
 }
@@ -55,7 +55,7 @@ model ApiKey {
   lastUsedAt  DateTime?
   orgId       String
   createdAt   DateTime     @default(now())
-  org         Organization @relation(fields: [orgId], references: [id])
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   usageEvents UsageEvent[]
 }
 
@@ -67,7 +67,7 @@ model Metric {
   description String?
   orgId       String
   createdAt   DateTime     @default(now())
-  org         Organization @relation(fields: [orgId], references: [id])
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   planMetrics PlanMetric[]
   usageEvents UsageEvent[]
 
@@ -81,7 +81,7 @@ model Plan {
   billingPeriod BillingPeriod
   orgId         String
   createdAt     DateTime       @default(now())
-  org           Organization   @relation(fields: [orgId], references: [id])
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   planMetrics   PlanMetric[]
   subscriptions Subscription[]
 }
@@ -93,8 +93,8 @@ model PlanMetric {
   planId        String
   metricId      String
   createdAt     DateTime @default(now())
-  metric        Metric   @relation(fields: [metricId], references: [id])
-  plan          Plan     @relation(fields: [planId], references: [id])
+  metric        Metric   @relation(fields: [metricId], references: [id], onDelete: Cascade)
+  plan          Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@unique([planId, metricId])
 }
@@ -109,8 +109,8 @@ model Subscription {
   externalCustomerId String?
   aggregatedUsages   AggregatedUsage[]
   invoices           Invoice[]
-  org                Organization       @relation(fields: [orgId], references: [id])
-  plan               Plan               @relation(fields: [planId], references: [id])
+  org                Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan               Plan               @relation(fields: [planId], references: [id], onDelete: Cascade)
   usageEvents        UsageEvent[]
 }
 
@@ -127,11 +127,11 @@ model UsageEvent {
   idempotencyKey String?  @unique
   metricId       String?
   createdAt      DateTime @default(now())
-  metric         Metric?  @relation(fields: [metricId], references: [id])
+  metric         Metric?  @relation(fields: [metricId], references: [id], onDelete: SetNull)
 
-  apiKey       ApiKey       @relation(fields: [apiKeyId], references: [id])
-  org          Organization @relation(fields: [orgId], references: [id])
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  apiKey       ApiKey       @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
@@ -146,8 +146,8 @@ model AggregatedUsage {
   orgId          String
   subscriptionId String
   createdAt      DateTime     @default(now())
-  org            Organization @relation(fields: [orgId], references: [id])
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  org            Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, subscriptionId, metricKey, periodStart])
   @@index([orgId, subscriptionId])
@@ -163,8 +163,8 @@ model Invoice {
   orgId          String
   subscriptionId String
   createdAt      DateTime      @default(now())
-  org            Organization  @relation(fields: [orgId], references: [id])
-  subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
+  org            Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   lineItems      Json?
 
   @@index([orgId, createdAt])
@@ -179,7 +179,7 @@ model WebhookEndpoint {
   events    String[]
   orgId     String
   createdAt DateTime     @default(now())
-  org       Organization @relation(fields: [orgId], references: [id])
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   webhookDeliveries WebhookDelivery[]
 }
@@ -193,8 +193,8 @@ model AuditLog {
   orgId     String
   userId    String?
   createdAt DateTime     @default(now())
-  org       Organization @relation(fields: [orgId], references: [id])
-  user      User?        @relation(fields: [userId], references: [id])
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([orgId, createdAt])
 }
@@ -207,7 +207,7 @@ model WebhookEvent {
   orgId        String
   createdAt    DateTime           @default(now())
   deliveries   WebhookDelivery[]
-  organization Organization       @relation(fields: [orgId], references: [id])
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId, createdAt])
 }
@@ -223,8 +223,8 @@ model WebhookDelivery {
   durationMs     Int?
   createdAt      DateTime              @default(now())
 
-  webhookEvent WebhookEvent    @relation(fields: [webhookEventId], references: [id])
-  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id])
+  webhookEvent WebhookEvent    @relation(fields: [webhookEventId], references: [id], onDelete: Cascade)
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
 
   @@unique([webhookEventId, endpointId, attempt])
 }
@@ -239,7 +239,7 @@ model OrganizationInvite {
   accepted  Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  org Organization @relation(fields: [orgId], references: [id])
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([email])
