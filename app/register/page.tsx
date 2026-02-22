@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Eye, EyeOff, UserPlus2 } from "lucide-react";
-import { useActionState, useMemo, useState } from "react";
+import { Suspense, useActionState, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { registerUser } from "@/actions/register";
@@ -16,6 +16,14 @@ function sanitizeNextPath(value: string | null) {
 }
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<RegisterPageFallback />}>
+      <RegisterPageContent />
+    </Suspense>
+  );
+}
+
+function RegisterPageContent() {
   const [state, action, isPending] = useActionState(registerUser, {
     errors: {},
   });
@@ -104,6 +112,29 @@ export default function RegisterPage() {
           {isPending ? "Creating account..." : "Create account"}
         </Button>
       </form>
+    </AuthShell>
+  );
+}
+
+function RegisterPageFallback() {
+  return (
+    <AuthShell
+      title="Create your account"
+      description="Set up your UsageFlow access and start building your billing workspace."
+      footer={
+        <p className="text-sm text-slate-500">
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-slate-900 hover:underline">
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <div className="space-y-4">
+        <div className="h-10 animate-pulse rounded-md bg-slate-200/80" />
+        <div className="h-10 animate-pulse rounded-md bg-slate-200/80" />
+        <div className="h-10 animate-pulse rounded-md bg-slate-200/70" />
+      </div>
     </AuthShell>
   );
 }

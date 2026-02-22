@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { signIn } from "next-auth/react";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,14 @@ function sanitizeNextPath(value: string | null) {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -66,7 +74,10 @@ export default function LoginPage() {
       footer={
         <p className="text-sm text-slate-500">
           New here?{" "}
-          <Link href={registerHref} className="font-medium text-slate-900 hover:underline">
+          <Link
+            href={registerHref}
+            className="font-medium text-slate-900 hover:underline"
+          >
             Create an account
           </Link>
         </p>
@@ -115,11 +126,38 @@ export default function LoginPage() {
           </p>
         ) : null}
 
-        <Button type="submit" disabled={loading} className="w-full hover:cursor-pointer">
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full hover:cursor-pointer"
+        >
           <LogIn className="size-4" />
           {loading ? "Signing in..." : "Sign in"}
         </Button>
       </form>
+    </AuthShell>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <AuthShell
+      title="Sign in to your account"
+      description="Access your organizations and continue where you left off."
+      footer={
+        <p className="text-sm text-slate-500">
+          New here?{" "}
+          <Link href="/register" className="font-medium text-slate-900 hover:underline">
+            Create an account
+          </Link>
+        </p>
+      }
+    >
+      <div className="space-y-4">
+        <div className="h-10 animate-pulse rounded-md bg-slate-200/80" />
+        <div className="h-10 animate-pulse rounded-md bg-slate-200/80" />
+        <div className="h-10 animate-pulse rounded-md bg-slate-200/70" />
+      </div>
     </AuthShell>
   );
 }
