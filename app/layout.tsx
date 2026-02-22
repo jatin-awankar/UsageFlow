@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
+
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "UsageFlow - Usage-based billing & webhooks for SaaS",
+    default: "UsageFlow - Usage-based billing and webhooks for SaaS",
     template: "%s | UsageFlow",
   },
   description:
@@ -34,16 +36,15 @@ export const metadata: Metadata = {
   keywords: [
     "usage based billing",
     "saas billing system",
-    "stripe-like billing",
     "webhooks",
     "event driven architecture",
-    "nextjs saas project",
+    "nextjs saas",
     "prisma",
     "bullmq",
   ],
 
   openGraph: {
-    title: "UsageFlow - Usage-based billing & webhooks",
+    title: "UsageFlow - Usage-based billing and webhooks",
     description:
       "A production-grade SaaS platform demonstrating usage tracking, pricing, invoicing, and event-driven webhooks.",
     url: "https://usageflow.vercel.app",
@@ -62,7 +63,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "UsageFlow - Usage-based billing & webhooks",
+    title: "UsageFlow - Usage-based billing and webhooks",
     description:
       "A production-grade SaaS billing platform built with Next.js, Prisma, and BullMQ.",
     images: ["/og.png"],
@@ -82,10 +83,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased selection:bg-sky-200/70 selection:text-slate-900`}
       >
         {children}
-        <Toaster richColors />
+        <Toaster richColors position="top-right" />
+        <Analytics />
       </body>
     </html>
   );

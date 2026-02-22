@@ -23,11 +23,18 @@ export async function registerUser(
 
   const email = validated.data.email.toLowerCase().trim();
   const password = validated.data.password;
+  const requestedNext = formData.get("next");
+  const nextPath =
+    typeof requestedNext === "string" &&
+    requestedNext.startsWith("/") &&
+    !requestedNext.startsWith("//")
+      ? requestedNext
+      : "/app";
 
 
   try {
     const existingUser = await prisma.user.findUnique({
-      where: { email: validated.data.email },
+      where: { email },
     });
     if (existingUser) {
       return {
@@ -42,5 +49,5 @@ export async function registerUser(
     };
   }
 
-  redirect("/login");
+  redirect(`/login?next=${encodeURIComponent(nextPath)}`);
 }

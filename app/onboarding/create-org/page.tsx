@@ -1,4 +1,4 @@
-// app/onboarding/create-org/page.tsx
+import AuthShell from "@/components/auth/AuthShell";
 import CreateOrgForm from "@/components/forms/CreateOrgForm";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
@@ -9,7 +9,7 @@ export default async function CreateOrgPage({
   searchParams: Promise<{ error?: string }> | { error?: string };
 }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?next=/onboarding/create-org");
 
   const resolvedSearchParams = await Promise.resolve(searchParams);
 
@@ -17,32 +17,21 @@ export default async function CreateOrgPage({
     resolvedSearchParams.error === "duplicate"
       ? "An organization with this name already exists."
       : resolvedSearchParams.error === "failed"
-      ? "Failed to create organization. Please try again."
-      : null;
+        ? "Failed to create organization. Please try again."
+        : null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white border rounded-lg p-6 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-1">
-          <div className="text-xl font-semibold">UsageFlow</div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">
-            Step 1 of 1
-          </p>
-          <h1 className="text-lg font-medium">Create your organization</h1>
-          <p className="text-sm text-gray-500">
-            This will be your workspace. You can rename it anytime.
-          </p>
-        </div>
-
-        {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-
-        <CreateOrgForm userId={user.id} />
-
-        <p className="text-xs text-center text-gray-500">
-          You can invite teammates later
+    <AuthShell
+      eyebrow="Step 1 of 1"
+      title="Create your organization"
+      description="This workspace holds your metrics, plans, subscriptions, and team access."
+      footer={
+        <p className="text-xs text-slate-500">
+          You can invite teammates and configure access controls after setup.
         </p>
-      </div>
-    </div>
+      }
+    >
+      <CreateOrgForm userId={user.id} initialError={errorMessage} />
+    </AuthShell>
   );
 }

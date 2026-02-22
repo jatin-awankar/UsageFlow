@@ -12,28 +12,36 @@ export default function Home() {
     <>
       <Header />
 
-      <main className="flex flex-col">
-        <section className="py-24 md:py-32">
+      <main className="relative">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-136 bg-linear-to-b from-sky-100/70 via-cyan-50/50 to-transparent" />
+
+        <section
+          id="hero"
+          className="px-4 pb-24 pt-24 sm:px-6 md:pt-36 lg:px-8"
+        >
           <HeroSection />
         </section>
 
-        <section className="py-24 bg-muted">
+        <section id="about" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
           <WhatIsUF />
         </section>
 
-        <section className="py-24">
+        <section id="flow" className="bg-slate-50 px-4 py-20 sm:px-6 lg:px-8">
           <HowItWorks />
         </section>
 
-        <section className="py-24 bg-muted">
+        <section id="features" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
           <KeyFeatures />
         </section>
 
-        <section className="py-24">
+        <section
+          id="architecture"
+          className="bg-slate-50 px-4 py-20 sm:px-6 lg:px-8"
+        >
           <Architecture />
         </section>
 
-        <section className="py-24 bg-muted">
+        <section id="cta" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
           <CTA />
         </section>
 

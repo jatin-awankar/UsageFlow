@@ -3,13 +3,14 @@ import { getPlans } from "@/actions/plans/getPlans";
 import { redirect } from "next/navigation";
 import { getMetrics } from "@/actions/metrics/getMetrics";
 import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
+import Link from "next/link";
 
 import PageHeader from "@/components/layout/PageHeader";
-import EmptyState from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/button";
 import CreatePlanForm from "@/components/forms/CreatePlanForm";
-import AddMetricToPlanForm from "@/components/forms/AddMetricToPlanForm";
-import ActivatePlanButton from "@/components/forms/ActivatePlanButton";
-import { Layers } from "lucide-react";
+import PlansEmptyState from "@/components/plans/PlansEmptyState";
+import PlansOverview from "@/components/plans/PlansOverview";
+import PlanCard from "@/components/plans/PlanCard";
 
 export default async function PlansPage({
   params,
@@ -21,85 +22,50 @@ export default async function PlansPage({
 
   const { orgId } = await Promise.resolve(params);
 
-  const metrics = await getMetrics(user.id, orgId);
-  const plans = await getPlans(user.id, orgId);
-  const activeSub = await getActiveSubscription(orgId);
+  const [metrics, plans, activeSub] = await Promise.all([
+    getMetrics(user.id, orgId, 0, 200),
+    getPlans(user.id, orgId),
+    getActiveSubscription(orgId),
+  ]);
+
+  const activePlanName =
+    plans.find((plan) => plan.id === activeSub?.planId)?.name ?? null;
 
   return (
     <>
       <PageHeader
         title="Plans"
-        description="Define pricing plans and attach billable metrics."
-        actions={<CreatePlanForm userId={user.id} orgId={orgId} />}
+        description="Define monthly pricing plans and map billable metrics with included usage limits."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/metrics`}>Manage metrics</Link>
+            </Button>
+            <CreatePlanForm userId={user.id} orgId={orgId} />
+          </div>
+        }
       />
 
       {plans.length === 0 ? (
-        <EmptyState
-          title="No plans created"
-          description="Create a plan to define how usage is billed."
-          icon={<Layers />}
-        />
+        <PlansEmptyState orgId={orgId} />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan) => {
-            const isActive = activeSub?.planId === plan.id;
+        <section className="space-y-6">
+          <PlansOverview plans={plans} activePlanName={activePlanName} />
 
-            return (
-              <div
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {plans.map((plan, index) => (
+              <PlanCard
                 key={plan.id}
-                className="rounded-lg border bg-white p-5 flex flex-col"
-              >
-                {/* Header */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {plan.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-600">
-                    ₹{plan.basePrice} / month
-                  </p>
-                </div>
-
-                {/* Metrics */}
-                <div className="flex-1">
-                  {plan.planMetrics.length === 0 ? (
-                    <p className="text-sm text-gray-400">No metrics attached</p>
-                  ) : (
-                    <ul className="space-y-1 text-sm text-gray-700">
-                      {plan.planMetrics.map((pm) => (
-                        <li key={pm.id}>
-                          <span className="font-medium">{pm.metric.name}</span>:{" "}
-                          {pm.includedUnits} included, ₹{pm.pricePerUnit}/unit
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="mt-4 space-y-3">
-                  {isActive ? (
-                    <span className="inline-flex w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                      Active plan
-                    </span>
-                  ) : (
-                    <ActivatePlanButton
-                      userId={user.id}
-                      orgId={orgId}
-                      planId={plan.id}
-                    />
-                  )}
-
-                  <AddMetricToPlanForm
-                    userId={user.id}
-                    orgId={orgId}
-                    planId={plan.id}
-                    metrics={metrics}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                plan={plan}
+                userId={user.id}
+                orgId={orgId}
+                metrics={metrics}
+                isActive={activeSub?.planId === plan.id}
+                index={index}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </>
   );

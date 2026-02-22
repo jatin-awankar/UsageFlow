@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { createSubscription } from "@/actions/subscription/createSubscription";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function ActivatePlanButton({
   userId,
@@ -18,18 +21,42 @@ export default function ActivatePlanButton({
 
   async function activate() {
     setLoading(true);
-    await createSubscription(userId, orgId, planId);
-    router.refresh();
-    setLoading(false);
+
+    try {
+      const res = await createSubscription(userId, orgId, planId);
+      if (res?.success) {
+        toast.success("Plan activated successfully");
+        router.refresh();
+      } else {
+        const message =
+          res && "error" in res ? res.error : "Failed to activate plan";
+        toast.error(message);
+      }
+    } catch {
+      toast.error("Failed to activate plan");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <button
+    <Button
+      type="button"
       onClick={activate}
       disabled={loading}
-      className="w-full rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+      className="w-full justify-center hover:cursor-pointer"
     >
-      {loading ? "Activating…" : "Activate plan"}
-    </button>
+      {loading ? (
+        <>
+          <Loader2 className="size-4 animate-spin" />
+          Activating...
+        </>
+      ) : (
+        <>
+          <CheckCircle2 className="size-4" />
+          Activate plan
+        </>
+      )}
+    </Button>
   );
 }

@@ -1,12 +1,14 @@
-import { getCurrentUser } from "@/lib/auth/session";
-import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/authz/requireRole";
-import { getOrganization } from "@/actions/organization/getOrganization";
+import { redirect } from "next/navigation";
 
+import { getOrganization } from "@/actions/organization/getOrganization";
 import PageHeader from "@/components/layout/PageHeader";
-import OrganizationForm from "./OrganizationForm";
+import SettingsOverview from "@/components/settings/SettingsOverview";
+import { getCurrentUser } from "@/lib/auth/session";
+import { requireRole } from "@/lib/authz/requireRole";
+
 import DangerZone from "./DangerZone";
+import OrganizationForm from "./OrganizationForm";
 
 export default async function SettingsPage({
   params,
@@ -16,39 +18,38 @@ export default async function SettingsPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { orgId } = await params;
-
-  // 🔐 Get membership (and role)
-  const membership = await requireRole(user.id, orgId, [
-    Role.OWNER,
-    Role.ADMIN,
+  const { orgId } = await Promise.resolve(params);
+  const [membership, org] = await Promise.all([
+    requireRole(user.id, orgId, [Role.OWNER, Role.ADMIN]),
+    getOrganization(orgId),
   ]);
-  console.log(membership);
 
-  const org = await getOrganization(orgId);
   if (!org) redirect("/app");
 
   return (
     <>
       <PageHeader
         title="Organization Settings"
-        description="Manage organization details and configuration."
+        description="Manage organization profile, controls, and destructive access."
       />
 
-      <div className="space-y-8 max-w-2xl">
-        <OrganizationForm
+      <section className="space-y-6">
+        <SettingsOverview
           orgId={orgId}
-          initialName={org.name}
-          userId={user.id}
+          orgName={org.name}
+          role={membership.role}
         />
 
-        {/* Only OWNER sees Danger Zone */}
-        <DangerZone
-          orgId={orgId}
-          isOwner={membership.role === Role.OWNER}
-          userId={user.id}
-        />
-      </div>
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+          <OrganizationForm orgId={orgId} initialName={org.name} userId={user.id} />
+
+          <DangerZone
+            orgId={orgId}
+            isOwner={membership.role === Role.OWNER}
+            userId={user.id}
+          />
+        </div>
+      </section>
     </>
   );
 }

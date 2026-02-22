@@ -1,72 +1,75 @@
 import Link from "next/link";
+import { ArrowRight, CheckCircle2, Github, SendHorizontal } from "lucide-react";
+
 import { Button } from "../ui/button";
+
+const ingestionSnippet = `POST /api/track\nx-usageflow-api-key: uf_live_***\n\n{\n  \"metric\": \"API_CALL\",\n  \"amount\": 1000,\n  \"customerId\": \"user_123\"\n}`;
+
+const webhookSnippet = `{\n  \"type\": \"invoice.created\",\n  \"data\": {\n    \"invoiceId\": \"inv_123\",\n    \"amount\": 1200\n  }\n}`;
 
 export default function HeroSection() {
   return (
-    <div className="mx-auto max-w-5xl px-6">
-      <div className="flex flex-col md:flex-row justify-between gap-6">
-        <div className="space-y-6">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
-            Usage-based billing & webhooks, built for modern SaaS
+    <div className="mx-auto max-w-6xl">
+      <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="space-y-6 animate-in fade-in slide-in-from-left-3 duration-700">
+          <h1 className="text-balance text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+            Usage-based billing and webhooks for serious SaaS teams
           </h1>
-          <h2 className="text-base md:text-lg text-muted-foreground leading-relaxed">
-            Track usage, configure pricing, generate invoices, and deliver
-            billing events — using a production-grade, developer-first platform.
-          </h2>
-          <div className="flex items-center gap-6">
-            <Button asChild>
-              <Link href="/app">Open Dashboard</Link>
+
+          <p className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
+            Track events, meter usage, price accurately, generate invoices, and
+            stream reliable webhooks without stitching together five systems.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild size="lg">
+              <Link href="/app">
+                Open dashboard
+                <ArrowRight className="size-4" />
+              </Link>
             </Button>
 
-            <Link
-              href="https://github.com/jatin-awankar/UsageFlow"
-              target="_blank"
-              className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-            >
-              View on GitHub
-            </Link>
+            <Button asChild variant="outline" size="lg">
+              <Link
+                href="https://github.com/jatin-awankar/UsageFlow"
+                target="_blank"
+              >
+                <Github className="size-4" />
+                View source
+              </Link>
+            </Button>
           </div>
 
-          <p className="hidden md:block text-sm font-light text-muted-foreground leading-relaxed">
-            Designed with real-world SaaS architecture patterns.
-          </p>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <SendHorizontal className="size-3.5" />
+              Event-driven architecture
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="size-3.5" />
+              Multi-tenant isolation
+            </span>
+          </div>
         </div>
-        <div className="relative w-full max-w-md">
-          <div className="rounded-lg border bg-background shadow-primary shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-2 border-b text-xs text-muted-foreground">
+
+        <div className="relative animate-in fade-in slide-in-from-right-3 duration-700 [animation-delay:120ms]">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 text-xs text-slate-500">
               <span>Usage event ingestion</span>
               <span>POST</span>
             </div>
-
-            <pre className="bg-foreground text-background p-5 text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap wrap-break-word">
-              <code>
-                {`POST /api/track
-    x-usageflow-api-key: uf_live_***
-
-    {
-    "metric": "API_CALL",
-    "amount": 1000,
-    "customerId": "user_123"
-    }`}
-              </code>
+            <pre className="overflow-x-auto bg-slate-950 p-4 text-xs leading-relaxed text-slate-100 sm:text-sm">
+              <code>{ingestionSnippet}</code>
             </pre>
           </div>
-          <div className="absolute hidden md:block -bottom-10 -right-16 rounded-lg border bg-background shadow-2xl shadow-primary">
-            <div className="flex items-center justify-between px-4 py-2 border-b text-xs text-muted-foreground">
-              <span>Webhook Payload</span>
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white shadow-lg sm:absolute sm:-bottom-14 sm:-right-8 sm:mt-0 sm:w-[82%]">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 text-xs text-slate-500">
+              <span>Webhook payload</span>
               <span>POST</span>
             </div>
-
-            <pre className="bg-foreground/95 text-background/90 p-5 text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap wrap-break-word">
-              <code>
-                {`{
-    "type": "invoice.created",
-    "data": {
-        "invoiceId": "inv_123",
-        "amount": 1200
-    }
-}`}
-              </code>
+            <pre className="overflow-x-auto bg-slate-900 p-4 text-xs leading-relaxed text-slate-100 sm:text-sm">
+              <code>{webhookSnippet}</code>
             </pre>
           </div>
         </div>

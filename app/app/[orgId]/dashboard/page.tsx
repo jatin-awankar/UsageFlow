@@ -1,18 +1,25 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ReactNode } from "react";
 
 import PageHeader from "@/components/layout/PageHeader";
 import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
 import { getCostBreakdown } from "@/actions/analytics/getCostBreakdown";
 import { getActiveSubscription } from "@/lib/subscription/getActiveSubscription";
 import { getAuditLogs } from "@/actions/audit/getAuditLogs";
+import { Button } from "@/components/ui/button";
 
 import DashboardKPIs from "@/components/dashboard/DashboardKPIs";
 import UsageTrendChart from "@/components/dashboard/UsageTrendChart";
 import CostBreakdownCard from "@/components/dashboard/CostBreakdownCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
-import EmptyState from "@/components/ui/EmptyState";
-import { LayoutDashboard } from "lucide-react";
+import {
+  BarChart3,
+  CalendarRange,
+  LayoutDashboard,
+  Wallet,
+} from "lucide-react";
 
 export default async function DashboardPage({
   params,
@@ -33,13 +40,24 @@ export default async function DashboardPage({
           title="Dashboard"
           description="Overview of usage and billing activity."
         />
-        <EmptyState
-          title="No active subscription"
-          description="Select a plan to start tracking usage and costs."
-          action={"Get Subscription"}
-          icon={<LayoutDashboard />}
-          navigate={`/app/${orgId}/plans`}
-        />
+        <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-white to-slate-50 p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
+          <div className="pointer-events-none absolute -bottom-12 -right-10 h-48 w-48 rounded-full bg-sky-300/20 blur-3xl" />
+          <div className="relative">
+            <span className="inline-flex rounded-lg bg-slate-100 p-2 text-slate-600">
+              <LayoutDashboard className="size-5" />
+            </span>
+            <h2 className="mt-3 text-xl font-semibold text-slate-900">
+              No active subscription
+            </h2>
+            <p className="mt-1 max-w-xl text-sm text-slate-600">
+              Activate a plan to start tracking usage trends, spend projections,
+              and activity history in this dashboard.
+            </p>
+            <Button asChild className="mt-4">
+              <Link href={`/app/${orgId}/plans`}>Get subscription</Link>
+            </Button>
+          </div>
+        </section>
       </>
     );
   }
@@ -54,21 +72,75 @@ export default async function DashboardPage({
     }),
   ]);
 
+  const currencyFormatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  });
+  const numberFormatter = new Intl.NumberFormat("en-IN");
+  const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const totalUsage = usage.reduce((sum, item) => sum + item.total, 0);
+  const cycleStart = dateFormatter.format(subscription.periodStart);
+  const cycleEnd = subscription.periodEnd
+    ? dateFormatter.format(subscription.periodEnd)
+    : "Current";
+
   return (
     <>
       <PageHeader
         title="Dashboard"
-        description="High-level overview of usage, billing, and activity."
+        description="Operational snapshot of usage, spend, and team actions."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/app/${orgId}/billing`}>Open billing</Link>
+          </Button>
+        }
       />
 
-      <p className="text-sm text-gray-500 mb-2">
-        Current billing period: {subscription.periodStart.toDateString()} -{" "}
-        {subscription.periodEnd
-          ? subscription.periodEnd.toDateString()
-          : "Current"}
-      </p>
+      <section className="relative mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-sky-50/40 to-cyan-50/25 p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
+        <div className="pointer-events-none absolute -top-16 right-0 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
 
-      <div className="space-y-8">
+        <div className="relative grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end">
+          <div>
+            <p className="mb-2 inline-flex items-center rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600">
+              Live billing cycle
+            </p>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+              {cycleStart} to {cycleEnd}
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Watch spend velocity and usage concentration before this cycle
+              closes.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <SnapshotTile
+              title="Tracked metrics"
+              value={numberFormatter.format(usage.length)}
+              icon={<BarChart3 className="size-4" />}
+            />
+            <SnapshotTile
+              title="Total usage"
+              value={numberFormatter.format(totalUsage)}
+              icon={<CalendarRange className="size-4" />}
+            />
+            <SnapshotTile
+              title="Projected spend"
+              value={currencyFormatter.format(billing.total)}
+              icon={<Wallet className="size-4" />}
+            />
+          </div>
+        </div>
+      </section>
+
+      <div className="space-y-6">
         <DashboardKPIs
           usage={usage}
           billing={billing}
@@ -83,5 +155,27 @@ export default async function DashboardPage({
         </div>
       </div>
     </>
+  );
+}
+
+function SnapshotTile({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: string;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-white/85 p-3 shadow-sm backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5">
+      <div className="mb-2 inline-flex rounded-md bg-slate-100 p-2 text-slate-600">
+        {icon}
+      </div>
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        {title}
+      </p>
+      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+    </div>
   );
 }

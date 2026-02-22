@@ -1,10 +1,11 @@
 "use client";
 
 import { revokeApiKey } from "@/actions/apiKeys/revokeApiKey";
+import { Button } from "@/components/ui/button";
+import { Loader2, ShieldOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { Button } from "../ui/button";
 
 export default function RevokeApiKeyButton({
   userId,
@@ -21,26 +22,42 @@ export default function RevokeApiKeyButton({
   async function revoke() {
     setLoading(true);
 
-    const result = await revokeApiKey(userId, orgId, apiKeyId);
+    try {
+      const result = await revokeApiKey(userId, orgId, apiKeyId);
 
-    if (result.success) {
-      toast.success("API key revoked");
-      router.refresh();
-    } else {
-      toast.error(result.error || "Failed to revoke API key");
+      if (result.success) {
+        toast.success("API key revoked");
+        router.refresh();
+      } else {
+        toast.error(result.error || "Failed to revoke API key");
+      }
+    } catch {
+      toast.error("Failed to revoke API key");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
     <Button
+      type="button"
       variant="destructive"
+      size="sm"
       onClick={revoke}
       disabled={loading}
-      className="text-sm font-medium hover:cursor-pointer disabled:opacity-50"
+      className="hover:cursor-pointer"
     >
-      Revoke
+      {loading ? (
+        <>
+          <Loader2 className="size-4 animate-spin" />
+          Revoking...
+        </>
+      ) : (
+        <>
+          <ShieldOff className="size-4" />
+          Revoke
+        </>
+      )}
     </Button>
   );
 }

@@ -15,6 +15,7 @@ export async function getMembers(userId: string, orgId: string) {
         include: {
             user: {
                 select: {
+                    name: true,
                     email: true,
                 },
             },

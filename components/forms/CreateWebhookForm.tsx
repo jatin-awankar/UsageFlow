@@ -1,10 +1,14 @@
 "use client";
 
 import { createWebhookEndpoint } from "@/actions/webhooks/createWebhookEndpoint";
-import { Check, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, Copy, Eye, Loader2, Plus, Webhook, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
+
+const DEFAULT_EVENTS = ["invoice.created", "subscription.activated"];
 
 export default function CreateWebhookForm({
   userId,
@@ -13,89 +17,247 @@ export default function CreateWebhookForm({
   userId: string;
   orgId: string;
 }) {
-  const [secret, setSecret] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [createdUrl, setCreatedUrl] = useState<string>("");
+  const [isCopied, setIsCopied] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
-  const [isCopied, setIsCopied] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !loading) {
+        setOpen(false);
+        setSecret(null);
+        setCreatedUrl("");
+        setIsCopied(false);
+        formRef.current?.reset();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, loading]);
+
+  useEffect(() => {
+    if (!mounted || !open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, mounted]);
+
+  function resetState() {
+    setSecret(null);
+    setCreatedUrl("");
+    setIsCopied(false);
+    formRef.current?.reset();
+  }
+
+  function closeDialog() {
+    if (loading) return;
+    setOpen(false);
+    resetState();
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const url = formData.get("url") as string;
+    const formData = new FormData(e.currentTarget);
+    const url = String(formData.get("url") ?? "").trim();
 
-    const res = await createWebhookEndpoint(userId, orgId, {
-      url,
-      events: ["invoice.created", "subscription.activated"],
-    });
+    try {
+      const res = await createWebhookEndpoint(userId, orgId, {
+        url,
+        events: DEFAULT_EVENTS,
+      });
 
-    if (res.success && res.data) {
-      toast.success("Webhook created");
-      setSecret(res.data.secret);
-      form.reset();
-      router.refresh();
-    } else {
-      toast.error(res.error || "Failed to create webhook");
+      if (res && "success" in res && res.success && "data" in res && res.data) {
+        toast.success("Webhook created");
+        setSecret(res.data.secret);
+        setCreatedUrl(url);
+        router.refresh();
+      } else {
+        const error = res && "error" in res ? res.error : "Failed to create webhook";
+        toast.error(error || "Failed to create webhook");
+      }
+    } catch {
+      toast.error("Failed to create webhook");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
-  const handleCopy = async () => {
-    if (secret == null) return;
+  async function handleCopy() {
+    if (!secret) return;
+
     try {
       await navigator.clipboard.writeText(secret);
       setIsCopied(true);
-      // Reset the "Copied!" message after 2 seconds
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy text: ", err);
+      setTimeout(() => setIsCopied(false), 1800);
+    } catch {
+      toast.error("Failed to copy secret");
     }
-  };
+  }
 
   return (
-    <div className="space-y-3">
-      <form
-        onSubmit={handleSubmit}
-        ref={formRef}
-        className="flex items-center gap-2"
+    <>
+      <Button
+        type="button"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="hover:cursor-pointer"
       >
-        <input
-          name="url"
-          required
-          disabled={loading}
-          placeholder="https://example.com/webhook"
-          className="w-72 rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Create
-        </button>
-      </form>
+        <Plus className="size-4" />
+        New endpoint
+      </Button>
 
-      {secret && (
-        <div className="rounded-md border bg-gray-50 p-3 text-sm">
-          <p className="font-medium text-gray-900">Webhook secret</p>
-          <p className="mt-1 text-xs text-gray-500">
-            This secret will only be shown once. Save it securely.
-          </p>
-          <code className="relative mt-2 block break-all rounded bg-white p-2 font-mono text-xs">
-            <p>{secret}</p>
-            <button
-              onClick={handleCopy}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 bg-gray-300 border rounded-md hover:cursor-pointer"
+      {open && mounted
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={closeDialog}
             >
-              {isCopied ? <Check size={16} /> : <Copy size={16} />}
-            </button>
-          </code>
-        </div>
-      )}
-    </div>
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Create webhook endpoint"
+                className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-200"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">Create webhook endpoint</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Register a destination URL and copy the signing secret once.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={closeDialog}
+                    disabled={loading}
+                    className="hover:cursor-pointer"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+
+                {secret ? (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+                      <p className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                        <Webhook className="size-4" />
+                        Endpoint ready for {createdUrl || "new destination"}
+                      </p>
+                      <p className="mt-1 text-xs text-emerald-700">
+                        This secret is shown once. Save it securely for signature verification.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Webhook secret
+                      </p>
+                      <div className="flex items-start gap-2">
+                        <code className="flex-1 break-all rounded-md border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800">
+                          {secret}
+                        </code>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCopy}
+                          className="shrink-0 hover:cursor-pointer"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="size-4" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="size-4" />
+                              Copy
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        onClick={closeDialog}
+                        className="hover:cursor-pointer"
+                      >
+                        Done
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} ref={formRef} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700">
+                        Endpoint URL
+                      </label>
+                      <input
+                        name="url"
+                        required
+                        disabled={loading}
+                        placeholder="https://example.com/webhook"
+                        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200 disabled:opacity-50"
+                      />
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200/80 bg-slate-50/70 p-3 text-xs text-slate-600">
+                      <p className="flex items-center gap-2 font-medium text-slate-700">
+                        <Eye className="size-3.5" />
+                        Subscribed events
+                      </p>
+                      <p className="mt-1">invoice.created, subscription.activated</p>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={closeDialog}
+                        disabled={loading}
+                        className="hover:cursor-pointer"
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={loading} className="hover:cursor-pointer">
+                        {loading ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          "Create endpoint"
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+    </>
   );
 }

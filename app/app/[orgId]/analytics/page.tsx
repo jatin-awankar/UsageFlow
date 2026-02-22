@@ -1,10 +1,15 @@
 import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import PageHeader from "@/components/layout/PageHeader";
-import EmptyState from "@/components/ui/EmptyState";
-import { BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import AnalyticsHero from "@/components/analytics/AnalyticsHero";
+import UsageDistributionChart from "@/components/analytics/UsageDistributionChart";
+import UsageMetricsTable from "@/components/analytics/UsageMetricsTable";
+import AnalyticsEmptyState from "@/components/analytics/AnalyticsEmptyState";
+import { Activity } from "lucide-react";
 
 export default async function UsageAnalyticsPage({
   params,
@@ -17,69 +22,99 @@ export default async function UsageAnalyticsPage({
   const { orgId } = await params;
 
   const usage = await getUsageSummary(user.id, orgId);
+  const totalUsage = usage.reduce((sum, row) => sum + row.total, 0);
+
+  const sortedByUsage = [...usage].sort((a, b) => b.total - a.total);
+  const peakMetric = sortedByUsage[0]
+    ? {
+        name: sortedByUsage[0].metric,
+        value: sortedByUsage[0].total,
+      }
+    : null;
+
+  const periodStart =
+    usage.length > 0
+      ? usage.reduce(
+          (earliest, row) =>
+            row.periodStart < earliest ? row.periodStart : earliest,
+          usage[0].periodStart,
+        )
+      : null;
+
+  const periodEnd =
+    usage.length > 0
+      ? usage.reduce<Date | null>((latest, row) => {
+          if (!row.periodEnd) return latest;
+          if (!latest) return row.periodEnd;
+          return row.periodEnd > latest ? row.periodEnd : latest;
+        }, null)
+      : null;
 
   return (
     <>
       <PageHeader
         title="Usage Analytics"
-        description="Track how your metrics are being consumed in the current billing period."
+        description="Explore where usage is concentrated and how fast each metric is growing in this cycle."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/app/${orgId}/metrics`}>Manage metrics</Link>
+          </Button>
+        }
       />
 
       {usage.length === 0 ? (
-        <EmptyState
-          title="No usage data yet"
-          description="Usage analytics will appear once your application starts sending usage events."
-          icon={<BarChart3 />}
-        />
+        <AnalyticsEmptyState orgId={orgId} />
       ) : (
-        <section className="space-y-4">
-          {/* Context note */}
-          <p className="text-sm text-gray-500">
-            This table shows aggregated usage for the current billing period.
-            Usage is updated automatically as events are ingested.
-          </p>
+        <section className="space-y-6">
+          <AnalyticsHero
+            totalUsage={totalUsage}
+            metricCount={usage.length}
+            peakMetric={peakMetric}
+            periodStart={periodStart}
+            periodEnd={periodEnd}
+          />
 
-          <div className="overflow-hidden rounded-lg border bg-white">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">
-                    Metric
-                  </th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">
-                    Total usage
-                  </th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">
-                    Period
-                  </th>
-                </tr>
-              </thead>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_1fr]">
+            <UsageDistributionChart usage={usage} />
 
-              <tbody>
-                {usage.map((row) => (
-                  <tr key={row.metric} className="border-b last:border-0">
-                    <td className="px-4 py-2 font-medium text-gray-900">
-                      {row.metric}
-                    </td>
-
-                    <td className="px-4 py-2 text-gray-700">
-                      {row.total.toLocaleString()}
-                    </td>
-
-                    <td className="px-4 py-2 text-gray-700">
-                      {new Date(row.periodStart).toLocaleDateString()}
-                      {row.periodEnd && (
-                        <span className="text-gray-400">
-                          {" "}
-                          - {new Date(row.periodEnd).toLocaleDateString()}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <article className="rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-cyan-50/35 to-slate-50 p-5 shadow-sm animate-in fade-in slide-in-from-right-2 duration-700 [animation-delay:220ms]">
+              <h3 className="text-base font-semibold text-slate-900">
+                Consumption notes
+              </h3>
+              <ul className="mt-3 space-y-3 text-sm text-slate-600">
+                <li className="rounded-lg border border-slate-200/70 bg-white/80 p-3">
+                  <p className="flex items-center gap-2 font-medium text-slate-800">
+                    <Activity className="size-4 text-sky-600" />
+                    Usage is aggregated continuously
+                  </p>
+                  <p className="mt-1 text-slate-600">
+                    Incoming events update totals in near real-time for this
+                    billing cycle.
+                  </p>
+                </li>
+                <li className="rounded-lg border border-slate-200/70 bg-white/80 p-3">
+                  <p className="font-medium text-slate-800">
+                    Focus on high-share metrics
+                  </p>
+                  <p className="mt-1 text-slate-600">
+                    Large concentration in one metric can create faster overage
+                    risk and less predictable invoices.
+                  </p>
+                </li>
+                <li className="rounded-lg border border-slate-200/70 bg-white/80 p-3">
+                  <p className="font-medium text-slate-800">
+                    Keep metric definitions clean
+                  </p>
+                  <p className="mt-1 text-slate-600">
+                    Naming consistency improves trend readability and helps your
+                    team debug cost spikes faster.
+                  </p>
+                </li>
+              </ul>
+            </article>
           </div>
+
+          <UsageMetricsTable usage={usage} />
         </section>
       )}
     </>
