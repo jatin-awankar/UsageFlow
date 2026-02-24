@@ -1,20 +1,16 @@
 "use client";
 
 import { Loader2, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createOrganization } from "@/actions/organization/createOrganization";
 import { Button } from "@/components/ui/button";
 
 export default function CreateOrgForm({
-  userId,
   initialError,
 }: {
-  userId: string;
   initialError?: string | null;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
 
@@ -33,21 +29,21 @@ export default function CreateOrgForm({
       return;
     }
 
-    const result = await createOrganization({ name }, userId);
+    try {
+      const result = await createOrganization({ name });
 
-    if (result.success && result.data?.id) {
-      router.push(`/app/${result.data.id}/dashboard`);
-      router.refresh();
-      return;
+      if (result.success && "data" in result && result.data?.id) {
+        const target = `/app/${result.data.id}/dashboard`;
+        window.location.assign(target);
+        return;
+      }
+
+      setError(result.error || "Failed to create organization");
+    } catch {
+      setError("Failed to create organization");
+    } finally {
+      setLoading(false);
     }
-
-    const message =
-      result.error ||
-      ("error" in result ? result.error : null) ||
-      "Failed to create organization";
-
-    setError(message);
-    setLoading(false);
   }
 
   return (

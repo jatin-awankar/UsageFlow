@@ -31,7 +31,7 @@ export default async function CreateOrgPage({
         </p>
       }
     >
-      <CreateOrgForm userId={user.id} initialError={errorMessage} />
+      <CreateOrgForm initialError={errorMessage} />
     </AuthShell>
   );
 }
