@@ -95,7 +95,7 @@ export default function Sidebar({ orgId, role }: SidebarProps) {
         </p>
       </div>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <nav className="flex-1 space-y-4 overflow-y-auto pr-0.5">
         {navSections
           .filter((section) => !section.roles || section.roles.includes(role))
           .map((section) => (

@@ -1,9 +1,10 @@
+import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-slate-200/80 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8 md:flex-row md:items-end md:justify-between">
+    <footer className="border-t border-slate-200/80 bg-white px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 py-10 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <h3 className="text-base font-semibold tracking-tight text-slate-900">
             UsageFlow
@@ -11,14 +12,19 @@ export default function Footer() {
           <p className="text-sm text-slate-600">Usage-based billing platform</p>
           <p className="text-sm text-slate-500">
             Built by{" "}
-            <span className="font-medium text-slate-900">Jatin Awankar</span>
+            <span className="inline-flex flex-row gap-1 items-center font-medium text-slate-900 hover:underline">
+              <a href="https://jatinawankar.dev" target="_blank">
+                Jatin Awankar
+              </a>
+              <ExternalLink size={12} />
+            </span>
           </p>
           <p className="pt-3 text-xs text-slate-400">
             © {new Date().getFullYear()} UsageFlow
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-sm">
+        <div className="flex flex-col items-end gap-2 text-sm">
           <Link
             href="https://github.com/jatin-awankar/UsageFlow"
             target="_blank"

@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ExternalLink } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -28,7 +27,7 @@ export default function Header() {
     <header className="fixed inset-x-0 top-0 z-50 px-3 py-3 sm:px-6">
       <nav
         className={cn(
-          "mx-auto flex h-14 w-full max-w-6xl items-center justify-between rounded-2xl border px-3 transition-all duration-300 sm:px-4",
+          "mx-auto flex h-14 w-full max-w-7xl items-center justify-between rounded-2xl border px-3 transition-all duration-300 sm:px-4",
           isScrolled
             ? "border-white/45 bg-white/55 shadow-lg shadow-slate-900/10 backdrop-blur-xl supports-backdrop-filter:backdrop-saturate-150"
             : "border-white/60 bg-white/35 shadow-sm shadow-slate-900/5 backdrop-blur-lg supports-backdrop-filter:backdrop-saturate-150",
@@ -59,20 +58,9 @@ export default function Header() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="hidden sm:inline-flex"
-          >
-            <Link
-              href="https://github.com/jatin-awankar/UsageFlow/blob/main/README.md"
-              target="_blank"
-            >
-              Docs
-              <ExternalLink className="size-3.5" />
-            </Link>
+        <div className="flex items-center gap-2 md:gap-4">
+          <Button asChild variant="ghost" size="sm" className="border">
+            <Link href="/docs">Docs</Link>
           </Button>
           <Button asChild size="sm">
             <Link href="/app">Open App</Link>

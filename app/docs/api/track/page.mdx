@@ -1,0 +1,249 @@
+import Callout from "@/components/docs/Callout.tsx";
+
+# Track Usage API
+
+---
+
+The **Track Usage API** allows your application to record usage events in UsageFlow.
+
+Every time a billable action occurs in your product (for example an API call or storage usage), your backend should send a request to this endpoint.
+
+UsageFlow stores the event and uses it later to calculate invoices.
+
+---
+
+## Endpoint
+
+```http
+POST /api/track
+```
+
+This endpoint records a single usage event.
+
+---
+
+## Authentication
+
+Requests must include a valid API key.
+
+You can generate API keys from:
+
+```
+Dashboard → API Keys → Generate Key
+```
+
+Example key:
+
+```
+uf_live_abc123xyz
+```
+
+Include the key in the request header.
+
+---
+
+### Headers
+
+| Header                | Required    | Description                              |
+| :-------------------- | :---------- | :--------------------------------------- |
+| `x-usageflow-api-key` | Yes         | API key used to authenticate the request |
+| `Idempotency-Key`     | Recommended | Prevents duplicate usage events          |
+| `Content-Type`        | Yes         | Must be `application/json`               |
+
+Example:
+
+```
+x-usageflow-api-key: YOUR_API_KEY
+Idempotency-Key: unique-event-id
+Content-Type: application/json
+```
+
+---
+
+### Request Body
+
+| Field        | Type   | Required | Description                                     |
+| :----------- | :----- | :------- | :---------------------------------------------- |
+| `metric`     | string | Yes      | Metric key that defines the type of usage       |
+| `amount`     | number | Yes      | Amount of usage                                 |
+| `customerId` | string | Optional | Identifier of the customer triggering the event |
+| `metadata`   | object | Optional | Additional event data                           |
+
+---
+
+### Example Request:
+
+```http
+POST /api/track
+```
+
+```json
+{
+  "metric": "API_CALL",
+  "amount": 1,
+  "customerId": "user_123",
+  "metadata": {
+    "endpoint": "/v1/chat",
+    "region": "us-east-1"
+  }
+}
+```
+
+This example records a single API call made by `user_123`.
+
+### Example Using Node.js
+
+```js
+await fetch("https://your-domain.com/api/track", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-usageflow-api-key": process.env.USAGEFLOW_API_KEY,
+    "Idempotency-Key": crypto.randomUUID(),
+  },
+  body: JSON.stringify({
+    metric: "API_CALL",
+    amount: 1,
+    customerId: "user_123",
+  }),
+});
+```
+
+This request records usage whenever an API request is made in your application.
+
+---
+
+### Successful Response
+
+```
+{
+  "success": true
+}
+```
+
+Status code:
+
+```
+200 OK
+```
+
+---
+
+### Error Responses
+
+- Missing API Key
+  `401 Unauthorized`
+
+  ```json
+  {
+    "error": "Missing API key"
+  }
+  ```
+
+- Invalid API Key
+  `401 Unauthorized`
+  ```json
+  {
+    "error": "Invalid API key"
+  }
+  ```
+
+---
+
+### Duplicate Usage Event
+
+If the same `Idempotency-Key` is reused, the event will not be recorded again.
+
+This prevents accidental double billing.
+
+---
+
+## Best Practices
+
+### Use Idempotency Keys
+
+<Callout>
+  Always include an Idempotency-Key to avoid duplicate usage events.
+</Callout>
+
+Example:
+
+```
+Idempotency-Key: event_12345
+```
+
+### Send Usage from Backend Only
+
+<Callout>
+  Usage events should only be sent from your server, not from the client.
+</Callout>
+
+This prevents users from manipulating billing data.
+
+### Keep Events Lightweight
+
+<Callout>Usage events should contain only essential data.</Callout>
+
+Example:
+
+```
+metric
+amount
+customerId
+```
+
+Avoid sending large payloads in `metadata`.
+
+---
+
+## How UsageFlow Processes Events
+
+After receiving a usage event, UsageFlow processes it through the following pipeline:
+
+```
+Usage Event Received
+↓
+Event Stored in Database
+↓
+Aggregation Worker
+↓
+Aggregated Usage Records
+↓
+Invoice Calculation
+```
+
+Usage events are the source of truth for billing.
+
+---
+
+## Example Billing Scenario
+
+Imagine your plan includes:
+
+```
+Metric: API_CALL
+Included Units: 10,000
+Overage Price: $0.01
+```
+
+If your application sends 12,000 usage events:
+
+```
+Included: 10,000
+Overage: 2,000 × $0.01
+Total Overage: $20
+```
+
+This amount is added to the invoice.
+
+## Next Steps
+
+Continue exploring the documentation:
+
+- [Getting Started](/docs/getting-started)
+- [Core Concepts](/docs/concepts)
+- [Quick start](/docs/quick-start)
+- [Webhooks](/docs/webhooks)
+- [System Architecture](/docs/architecture)
+
+---

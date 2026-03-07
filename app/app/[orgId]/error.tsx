@@ -25,7 +25,7 @@ export default function Error({
         title="Unable to load this workspace"
         description={description}
         retry={reset}
-        retryLabel="Reload workspace"
+        retryLabel="Reload workspace or try signing in again"
       />
     </div>
   );
