@@ -82,6 +82,21 @@ const navSections: NavSection[] = [
 
 export default function Sidebar({ orgId, role }: SidebarProps) {
   const pathname = usePathname();
+  const visibleSections = navSections.filter(
+    (section) => !section.roles || section.roles.includes(role),
+  );
+  const navItemsWithHref = visibleSections.flatMap((section) =>
+    section.items.map((item) => ({
+      href: `/app/${orgId}/${item.path}`,
+    })),
+  );
+  const activeHref =
+    navItemsWithHref
+      .filter(
+        (item) =>
+          pathname === item.href || pathname.startsWith(`${item.href}/`),
+      )
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col bg-white/85 px-4 py-5">
@@ -95,9 +110,7 @@ export default function Sidebar({ orgId, role }: SidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto pr-0.5">
-        {navSections
-          .filter((section) => !section.roles || section.roles.includes(role))
-          .map((section) => (
+        {visibleSections.map((section) => (
             <section
               key={section.label}
               className="space-y-1.5 pt-2 first:pt-0"
@@ -109,8 +122,7 @@ export default function Sidebar({ orgId, role }: SidebarProps) {
               <div className="space-y-1 pl-1 pb-1">
                 {section.items.map((item) => {
                   const href = `/app/${orgId}/${item.path}`;
-                  const active =
-                    pathname === href || pathname.startsWith(`${href}/`);
+                  const active = href === activeHref;
                   const Icon = item.icon;
 
                   return (
