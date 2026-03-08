@@ -12,10 +12,8 @@ export default function Home() {
     <>
       <Header />
 
-      <main className="relative overflow-x-clip bg-slate-50">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[720px] bg-linear-to-b from-cyan-100/85 via-sky-50/70 to-transparent" />
-        <div className="pointer-events-none absolute -left-48 top-20 -z-10 h-96 w-96 rounded-full bg-cyan-300/35 blur-3xl" />
-        <div className="pointer-events-none absolute right-[-120px] top-40 -z-10 h-[420px] w-[420px] rounded-full bg-indigo-300/25 blur-3xl" />
+      <main className="relative overflow-x-clip">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-136 bg-linear-to-b from-sky-100/70 via-cyan-50/50 to-transparent" />
         <div className="pointer-events-none absolute bottom-40 left-1/2 -z-10 h-64 w-[760px] -translate-x-1/2 rounded-full bg-sky-200/30 blur-3xl" />
 
         <section

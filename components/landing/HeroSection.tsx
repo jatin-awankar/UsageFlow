@@ -18,7 +18,7 @@ export default function HeroSection() {
     <div className="mx-auto max-w-6xl">
       <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <div className="space-y-6 animate-in fade-in slide-in-from-left-3 duration-700">
-          <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-slate-600">
+          <p className="inline-flex items-center gap-2 rounded-full border border-primary/15 px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-primary/80">
             Billing infrastructure for modern SaaS
           </p>
 
