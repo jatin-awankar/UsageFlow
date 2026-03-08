@@ -29,7 +29,7 @@ export default function InvoiceBreakdown({
   const maxCost = Math.max(...sortedRows.map((row) => row.cost), 1);
 
   return (
-    <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:160ms]">
+    <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:160ms]">
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-slate-900">
@@ -58,11 +58,12 @@ export default function InvoiceBreakdown({
         ) : (
           sortedRows.map((row, index) => {
             const width = Math.max(8, Math.round((row.cost / maxCost) * 100));
+            const rowKey = `${row.metric}-${row.used}-${row.cost}-${index}`;
 
             return (
               <article
-                key={`${row.metric}-${row.used}`}
-                className="rounded-xl border border-slate-200/70 bg-slate-50/75 p-3 animate-in fade-in slide-in-from-left-2"
+                key={rowKey}
+                className="rounded-xl border border-slate-200/70 bg-slate-50/85 p-3 animate-in fade-in slide-in-from-left-2"
                 style={{
                   animationDuration: "650ms",
                   animationDelay: `${index * 70}ms`,

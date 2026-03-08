@@ -9,7 +9,13 @@ import AnalyticsHero from "@/components/analytics/AnalyticsHero";
 import UsageDistributionChart from "@/components/analytics/UsageDistributionChart";
 import UsageMetricsTable from "@/components/analytics/UsageMetricsTable";
 import AnalyticsEmptyState from "@/components/analytics/AnalyticsEmptyState";
-import { Activity } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 
 export default async function UsageAnalyticsPage({
   params,
@@ -56,9 +62,17 @@ export default async function UsageAnalyticsPage({
         title="Usage Analytics"
         description="Explore where usage is concentrated and how fast each metric is growing in this cycle."
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/app/${orgId}/metrics`}>Manage metrics</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/metrics`}>Manage metrics</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/billing`}>
+                Open billing
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -77,11 +91,11 @@ export default async function UsageAnalyticsPage({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_1fr]">
             <UsageDistributionChart usage={usage} />
 
-            <article className="rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-cyan-50/35 to-slate-50 p-5 shadow-sm animate-in fade-in slide-in-from-right-2 duration-700 [animation-delay:220ms]">
-              <h3 className="text-base font-semibold text-slate-900">
+            <article className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-cyan-50/35 to-slate-50 p-5 shadow-lg shadow-slate-900/15 animate-in fade-in slide-in-from-right-2 duration-700 [animation-delay:220ms]">
+              <h3 className="relative text-base font-semibold text-slate-900">
                 Consumption notes
               </h3>
-              <ul className="mt-3 space-y-3 text-sm text-slate-600">
+              <ul className="relative mt-3 space-y-3 text-sm text-slate-600">
                 <li className="rounded-lg border border-slate-200/70 bg-white/80 p-3">
                   <p className="flex items-center gap-2 font-medium text-slate-800">
                     <Activity className="size-4 text-sky-600" />
@@ -93,7 +107,8 @@ export default async function UsageAnalyticsPage({
                   </p>
                 </li>
                 <li className="rounded-lg border border-slate-200/70 bg-white/80 p-3">
-                  <p className="font-medium text-slate-800">
+                  <p className="flex items-center gap-2 font-medium text-slate-800">
+                    <TrendingUp className="size-4 text-sky-600" />
                     Focus on high-share metrics
                   </p>
                   <p className="mt-1 text-slate-600">
@@ -102,12 +117,23 @@ export default async function UsageAnalyticsPage({
                   </p>
                 </li>
                 <li className="rounded-lg border border-slate-200/70 bg-white/80 p-3">
-                  <p className="font-medium text-slate-800">
+                  <p className="flex items-center gap-2 font-medium text-slate-800">
+                    <ShieldCheck className="size-4 text-sky-600" />
                     Keep metric definitions clean
                   </p>
                   <p className="mt-1 text-slate-600">
                     Naming consistency improves trend readability and helps your
                     team debug cost spikes faster.
+                  </p>
+                </li>
+                <li className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
+                  <p className="flex items-center gap-2 font-medium">
+                    <Sparkles className="size-4 text-sky-600" />
+                    Analytics tip
+                  </p>
+                  <p className="mt-1">
+                    Monitor top-metric share every cycle to keep invoice
+                    predictability high.
                   </p>
                 </li>
               </ul>

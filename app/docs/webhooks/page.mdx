@@ -1,0 +1,269 @@
+import Callout from "@/components/docs/Callout.tsx";
+
+# Webhooks
+
+---
+
+Webhooks allow UsageFlow to **notify your application when important billing events occur**.
+
+Instead of continuously polling the UsageFlow API, your system can receive **real-time HTTP notifications** whenever billing events happen.
+
+This allows you to automatically:
+
+- update internal dashboards
+- trigger payment workflows
+- suspend customer access
+- send billing notifications
+
+---
+
+## How Webhooks Work
+
+When an event occurs in UsageFlow, the system sends an HTTP request to a webhook endpoint configured by your organization.
+
+Example workflow:
+
+```
+Invoice Generated
+↓
+Webhook Event Created
+↓
+Webhook Worker Processes Event
+↓
+HTTP POST Request Sent to Your Endpoint
+↓
+Your Application Handles Event
+```
+
+This allows your application to react immediately to billing events.
+
+---
+
+## Supported Webhook Events
+
+UsageFlow currently emits the following events:
+
+```
+invoice.created
+invoice.paid
+invoice.failed
+subscription.suspended
+```
+
+Each event represents a change in billing state.
+
+---
+
+## Registering a Webhook Endpoint
+
+You can configure webhook endpoints from the dashboard.
+
+Navigate to:
+
+```
+Dashboard → Webhooks → Add Endpoint
+```
+
+Example configuration:
+
+```
+Webhook URL: `https://api.yourapp.com/usageflow/webhook`
+```
+
+Events:
+
+- invoice.created
+- invoice.failed
+
+Once configured, UsageFlow will begin sending webhook notifications to this endpoint.
+
+---
+
+## Example Webhook Request
+
+When an event occurs, UsageFlow sends an HTTP POST request.
+
+Example request:
+
+```http
+POST https://api.yourapp.com/usageflow/webhook
+Content-Type: application/json
+```
+
+Example payload:
+
+```json
+{
+  "type": "invoice.created",
+  "data": {
+    "invoiceId": "inv_123",
+    "amount": 120,
+    "periodStart": "2025-03-01T00:00:00.000Z",
+    "periodEnd": "2025-03-31T00:00:00.000Z"
+  }
+}
+```
+
+Your backend should parse this payload and perform appropriate actions.
+
+---
+
+## Handling Webhooks
+
+Your backend should expose an endpoint that processes webhook requests.
+
+### Example using Node.js:
+
+```js
+import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.post("/usageflow/webhook", (req, res) => {
+  const event = req.body;
+
+  switch (event.type) {
+    case "invoice.created":
+      console.log("New invoice generated:", event.data.invoiceId);
+      break;
+
+    case "invoice.paid":
+      console.log("Invoice paid:", event.data.invoiceId);
+      break;
+
+    case "invoice.failed":
+      console.log("Payment failed:", event.data.invoiceId);
+      break;
+
+    case "subscription.suspended":
+      console.log("Subscription suspended:", event.data.subscriptionId);
+      break;
+  }
+
+  res.status(200).send({ received: true });
+});
+
+app.listen(3000);
+```
+
+This allows your application to automatically respond to billing changes.
+
+---
+
+## Webhook Delivery
+
+Webhook delivery is handled asynchronously by a background worker.
+
+Delivery pipeline:
+
+```
+Billing Event Occurs
+↓
+Webhook Event Stored
+↓
+Worker Picks Up Event
+↓
+HTTP Request Sent to Endpoint
+↓
+Response Logged
+```
+
+Each webhook attempt is recorded in the Webhook Logs section of the dashboard.
+
+---
+
+## Retry Mechanism
+
+Webhook delivery includes a retry system.
+
+If your endpoint does not respond successfully, UsageFlow will retry the request using exponential backoff.
+
+Example retry schedule:
+
+- Attempt 1 → immediately
+- Attempt 2 → after 1 minute
+- Attempt 3 → after 5 minutes
+- Attempt 4 → after 30 minutes
+
+If all attempts fail, the webhook event is marked as failed.
+
+You can inspect failures in:
+
+```
+Dashboard → Webhooks → Logs
+```
+
+---
+
+## Best Practices
+
+<Callout>Respond Quickly</Callout>
+
+Your webhook endpoint should respond within a few seconds.
+
+Long processing tasks should be handled asynchronously.
+
+<Callout>Make Handlers Idempotent</Callout>
+
+Webhook events may be retried, so your system should handle duplicate events safely.
+
+Example strategy:
+
+```
+Check if event already processed
+↓
+If yes → ignore
+If no → process event
+```
+
+<Callout>Log Webhook Events</Callout>
+
+Logging webhook requests can help debug integration issues.
+
+Example logged data:
+
+```
+event type
+invoice id
+delivery timestamp
+response status
+```
+
+---
+
+## Example Workflow
+
+Here is a typical billing workflow using webhooks:
+
+```
+Customer uses API
+↓
+UsageFlow records usage events
+↓
+Invoice generated
+↓
+invoice.created webhook sent
+↓
+Your system notifies customer
+↓
+Customer pays invoice
+↓
+invoice.paid webhook sent
+```
+
+This allows you to automate billing operations.
+
+---
+
+## Next Steps
+
+Continue exploring the documentation:
+
+- [Getting Started](/docs/getting-started)
+- [Core Concepts](/docs/concepts)
+- [Track Usage API](/docs/api/track)
+- [Invoices API](/docs/api/invoices)
+- [System Architecture](/docs/architecture)
+
+---

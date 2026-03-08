@@ -11,13 +11,13 @@ export default function Step({
 }) {
   return (
     <article
-      className="rounded-xl border border-slate-200/80 bg-white/90 p-5 shadow-sm transition-transform duration-300 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2"
+      className="rounded-2xl border border-slate-200/90 bg-white/90 p-5 shadow-md shadow-slate-900/5 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 animate-in fade-in slide-in-from-bottom-2"
       style={{
         animationDuration: "620ms",
         animationDelay: `${delay}ms`,
       }}
     >
-      <span className="inline-flex rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600">
+      <span className="inline-flex rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-mono text-sky-700">
         {number}
       </span>
 

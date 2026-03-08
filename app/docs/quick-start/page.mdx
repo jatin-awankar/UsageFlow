@@ -1,0 +1,263 @@
+# Quick Start
+
+---
+
+This guide shows how to integrate UsageFlow into your application in just a few steps.
+
+In this example, we will simulate a SaaS company that charges customers based on **API calls**.
+
+---
+
+## Step 1 — Create an Organization
+
+After signing up for UsageFlow, create an organization.
+
+An organization represents your company or product.
+
+Example:
+
+Organization Name: CloudAI
+
+All billing data, usage events, and subscriptions are scoped to this organization.
+
+---
+
+## Step 2 — Define a Metric
+
+Metrics define **what kind of usage your product tracks**.
+
+Navigate to:
+
+Dashboard → Metrics → Create Metric
+
+Example metric:
+
+- Name: API Calls
+- Key: API_CALL
+- Unit: calls
+
+This metric will track every API request made by your users.
+
+---
+
+## Step 3 — Create a Pricing Plan
+
+Plans define the pricing structure for your product.
+
+Navigate to:
+
+Dashboard → Plans → Create Plan
+
+Example plan:
+
+- Plan Name: Pro
+- Base Price: $100 / month
+
+This base price is charged regardless of usage.
+
+---
+
+## Step 4 — Attach a Metric to the Plan
+
+Now configure how usage affects pricing.
+
+Attach the metric to your plan with pricing rules.
+
+Example:
+
+- Metric: API_CALL
+- Included Units: 10,000
+- Overage Price: $0.01 per call
+
+This means:
+
+- First **10,000 API calls are included**
+- Additional calls cost **$0.01 each**
+
+---
+
+## Step 5 — Activate a Subscription
+
+Create a subscription to activate billing.
+
+Navigate to:
+
+Dashboard → Subscriptions → Create Subscription
+
+Example subscription:
+
+- Organization: CloudAI
+- Plan: Pro
+- Billing Cycle: Monthly
+- Status: ACTIVE
+
+Once activated, UsageFlow begins tracking usage.
+
+---
+
+## Step 6 — Generate an API Key
+
+Your application will use an API key to send usage events.
+
+Navigate to:
+
+Dashboard → API Keys → Generate Key
+
+Example key:
+
+`uf_live_abc123xyz`
+
+Store this key securely in your backend environment variables.
+
+Example:
+
+```
+USAGEFLOW_API_KEY=uf_live_abc123xyz
+```
+
+---
+
+## Step 7 — Send Usage Events
+
+Your backend records product usage by calling the UsageFlow ingestion API.
+
+Example request:
+
+```http
+POST /api/track
+```
+
+Headers:
+
+- `x-usageflow-api-key`: `YOUR_API_KEY`
+- `Idempotency-Key`: `unique-event-id`
+
+Request body:
+
+```json
+{
+  "metric": "API_CALL",
+  "amount": 1,
+  "customerId": "user_123",
+  "metadata": {
+    "endpoint": "/v1/chat"
+  }
+}
+```
+
+Each request records a usage event.
+
+Example scenarios:
+
+- API request made
+- AI tokens consumed
+- Storage uploaded
+
+---
+
+## Step 8 — Verify Usage in the Dashboard
+
+Navigate to:
+
+Dashboard → Usage
+
+You should see usage events appear in real time.
+
+Example:
+
+```
+Metric: API_CALL
+Total Usage: 1
+Customer: user_123
+```
+
+UsageFlow stores raw events and aggregates them for billing.
+
+---
+
+## Step 9 — Generate an Invoice
+
+At the end of the billing cycle, invoices are generated based on usage.
+
+Example calculation:
+
+```
+Base Price: $100
+Usage: 12,000 API calls
+Included: 10,000
+Overage: 2,000 × $0.01
+Total: $120
+```
+
+An invoice will appear in:
+
+Dashboard → Invoices
+
+---
+
+## Step 10 — Handle Billing Events with Webhooks
+
+UsageFlow can notify your system when billing events occur.
+
+Example events:
+
+```
+invoice.created
+invoice.paid
+invoice.failed
+subscription.suspended
+```
+
+Example webhook payload:
+
+```json
+{
+  "type": "invoice.created",
+  "data": {
+    "invoiceId": "inv_123",
+    "amount": 120
+  }
+}
+```
+
+Your backend can use these events to:
+
+- send payment emails
+- update user dashboards
+- suspend customer access
+
+## Integration Example (Node.js)
+
+Example backend integration:
+
+```js
+await fetch("https://your-domain.com/api/track", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-usageflow-api-key": process.env.USAGEFLOW_API_KEY,
+    "Idempotency-Key": crypto.randomUUID(),
+  },
+  body: JSON.stringify({
+    metric: "API_CALL",
+    amount: 1,
+    customerId: "user_123",
+  }),
+});
+```
+
+This records usage whenever an API request is made.
+
+---
+
+## Next Steps
+
+Now that you've integrated UsageFlow, explore more advanced features:
+
+- [Core Concepts](/docs/concepts)
+- [Track Usage API](/docs/api/track)
+- [Webhooks](/docs/webhooks)
+- [System Architecture](/docs/architecture)
+- [Integration Examples](/docs/integration-examples)
+
+---

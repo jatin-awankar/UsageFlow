@@ -39,7 +39,7 @@ export default function LatestInvoiceCard({
   orgId: string;
 }) {
   return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:120ms]">
+    <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:120ms]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">

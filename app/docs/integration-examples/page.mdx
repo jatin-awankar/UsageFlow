@@ -1,0 +1,296 @@
+import Callout from "@/components/docs/Callout.tsx";
+
+# Integration Examples
+
+---
+
+This page provides examples of how to integrate UsageFlow into your backend application.
+
+Most integrations involve sending **usage events** whenever a billable action occurs in your product.
+
+Typical examples include:
+
+- API requests
+- AI token consumption
+- storage usage
+- background processing jobs
+
+UsageFlow records these events and converts them into billing data.
+
+---
+
+## Example: Tracking API Requests
+
+Imagine your SaaS product charges customers based on API usage.
+
+Every time a customer calls your API, your backend records the usage event.
+
+Example event:
+
+```json
+{
+  "metric": "API_CALL",
+  "amount": 1,
+  "customerId": "user_123"
+}
+```
+
+This event represents one API request.
+
+---
+
+## Node.js Example
+
+Below is a simple Node.js example that records usage when an API request occurs.
+
+```js
+import fetch from "node-fetch";
+import crypto from "crypto";
+
+async function recordUsage(customerId) {
+  await fetch("https://your-domain.com/api/track", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-usageflow-api-key": process.env.USAGEFLOW_API_KEY,
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    body: JSON.stringify({
+      metric: "API_CALL",
+      amount: 1,
+      customerId: customerId,
+    }),
+  });
+}
+```
+
+Example usage inside an API route:
+
+```js
+app.post("/api/chat", async (req, res) => {
+  await recordUsage(req.user.id);
+
+  res.send({ message: "Response generated" });
+});
+```
+
+---
+
+## Express.js Middleware Example
+
+You can also track usage automatically using middleware.
+
+```js
+async function usageMiddleware(req, res, next) {
+  await fetch("https://your-domain.com/api/track", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-usageflow-api-key": process.env.USAGEFLOW_API_KEY,
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    body: JSON.stringify({
+      metric: "API_CALL",
+      amount: 1,
+      customerId: req.user.id,
+    }),
+  });
+
+  next();
+}
+```
+
+Attach middleware to protected routes.
+
+---
+
+## Python Example
+
+Example integration using Python.
+
+```Python
+import requests
+import uuid
+
+def record_usage(customer_id):
+url = "https://your-domain.com/api/track"
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-usageflow-api-key": "YOUR_API_KEY",
+        "Idempotency-Key": str(uuid.uuid4())
+    }
+
+    payload = {
+        "metric": "API_CALL",
+        "amount": 1,
+        "customerId": customer_id
+    }
+
+    requests.post(url, json=payload, headers=headers)
+```
+
+Example usage inside an API handler.
+
+---
+
+## Next.js Example
+
+Example integration inside a Next.js API route.
+
+```next
+import crypto from "crypto";
+
+export async function POST(req) {
+  await fetch("https://your-domain.com/api/track", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-usageflow-api-key": process.env.USAGEFLOW_API_KEY,
+      "Idempotency-Key": crypto.randomUUID()
+    },
+    body: JSON.stringify({
+      metric: "API_CALL",
+      amount: 1,
+      customerId: "user_123"
+    })
+  });
+
+return Response.json({ success: true });
+}
+```
+
+---
+
+## Tracking AI Token Usage
+
+UsageFlow can also track AI token consumption.
+
+Example:
+
+```json
+{
+  "metric": "AI_TOKEN",
+  "amount": 1500,
+  "customerId": "user_123",
+  "metadata": {
+    "model": "gpt-4"
+  }
+}
+```
+
+This records 1500 tokens used by a customer.
+
+---
+
+## Tracking Storage Usage
+
+UsageFlow can track storage consumption.
+
+Example:
+
+```json
+{
+  "metric": "STORAGE_GB",
+  "amount": 2,
+  "customerId": "user_456"
+}
+```
+
+This records 2GB of storage used.
+
+---
+
+## Tracking Background Jobs
+
+You may want to track usage when a background job runs.
+
+Example:
+
+```json
+{
+  "metric": "JOB_RUN",
+  "amount": 1,
+  "customerId": "user_789"
+}
+```
+
+This records a single background job execution.
+
+---
+
+## Best Practices
+
+**Send Events From Your Backend**
+
+Usage events should only be sent from trusted backend systems.
+
+<Callout>Never expose your UsageFlow API key to the client.</Callout>
+
+---
+
+**Use Idempotency Keys**
+
+<Callout>
+  Always include an idempotency key to prevent duplicate billing.
+</Callout>
+
+Example:
+
+```
+Idempotency-Key: unique-event-id
+```
+
+---
+
+**Keep Metadata Lightweight**
+
+<Callout>
+  Metadata is optional and should contain only useful debugging information.
+</Callout>
+
+Example:
+
+```
+{
+"endpoint": "/v1/chat",
+"region": "us-east-1"
+}
+```
+
+---
+
+## Example Billing Flow
+
+Here is a typical billing pipeline when using UsageFlow.
+
+```
+Customer Makes API Request
+        ↓
+Backend Sends Usage Event
+        ↓
+UsageFlow Stores Event
+        ↓
+Aggregation Worker Processes Events
+        ↓
+Invoice Generated
+        ↓
+Webhook Sent to Application
+```
+
+This pipeline enables automated usage-based billing.
+
+---
+
+## Next Steps
+
+Continue exploring the documentation:
+
+- [Getting Started](/docs/getting-started)
+- [Core Concepts](/docs/concepts)
+- [Quick Start Guide](/docs/quick-start)
+- [Track Usage API](/docs/api/track)
+- [Webhooks](/docs/webhooks)
+- [System Architecture](/docs/architecture)
+
+---

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+@import "highlight.js/styles/github.css";
+@import "highlight.js/styles/github-dark.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -57,6 +60,10 @@
 }
 
 :root {
+  --font-geist-sans: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-geist-mono:
+    "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
+    monospace;
   --radius: 0.625rem;
 
   /* Base */
@@ -167,5 +174,34 @@
   code,
   pre {
     font-family: var(--font-mono), monospace;
+  }
+
+  pre {
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  code {
+    font-size: 0.9rem;
+  }
+}
+
+@layer components {
+  .docs-prose {
+    @apply prose prose-slate max-w-none dark:prose-invert;
+    @apply prose-headings:scroll-mt-24 prose-headings:font-semibold prose-headings:text-slate-900;
+    @apply prose-h1:mb-5 prose-h1:text-4xl prose-h1:tracking-tight sm:prose-h1:text-5xl;
+    @apply prose-h2:mt-12 prose-h2:text-2xl prose-h2:tracking-tight;
+    @apply prose-h3:text-xl;
+    @apply prose-p:text-[15px] prose-p:leading-7;
+    @apply prose-li:text-[15px] prose-li:leading-7;
+    @apply prose-a:font-medium prose-a:text-sky-700 prose-a:no-underline hover:prose-a:text-sky-600;
+    @apply prose-hr:my-8 prose-hr:border-border/60;
+    @apply prose-table:text-sm;
+    @apply prose-th:border prose-th:border-border/70 prose-th:bg-muted/40 prose-th:px-3 prose-th:py-2 prose-th:text-left;
+    @apply prose-td:border prose-td:border-border/70 prose-td:px-3 prose-td:py-2;
+    @apply prose-code:before:content-none prose-code:after:content-none;
+    @apply prose-pre:border prose-pre:border-slate-700 prose-pre:bg-slate-950 prose-pre:text-slate-100;
   }
 }

@@ -13,14 +13,14 @@ export default function Feature({
 }) {
   return (
     <article
-      className="rounded-xl border border-slate-200/80 bg-white/90 p-5 shadow-sm transition-transform duration-300 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2"
+      className="rounded-2xl border border-slate-200/90 bg-white/90 p-5 shadow-md shadow-slate-900/5 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 animate-in fade-in slide-in-from-bottom-2"
       style={{
         animationDuration: "620ms",
         animationDelay: `${delay}ms`,
       }}
     >
       <div className="flex items-start gap-3">
-        <span className="inline-flex rounded-md bg-slate-100 p-2 text-slate-600">
+        <span className="inline-flex rounded-lg bg-sky-50 p-2 text-sky-700 ring-1 ring-sky-200">
           {icon}
         </span>
         <div>

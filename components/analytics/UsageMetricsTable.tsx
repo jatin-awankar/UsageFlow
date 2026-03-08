@@ -24,7 +24,7 @@ export default function UsageMetricsTable({ usage }: { usage: UsageRow[] }) {
   const peak = rows[0]?.total ?? 1;
 
   return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:280ms]">
+    <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:280ms]">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h3 className="text-base font-semibold text-slate-900">
@@ -43,11 +43,12 @@ export default function UsageMetricsTable({ usage }: { usage: UsageRow[] }) {
         {rows.map((row, index) => {
           const share = totalUsage > 0 ? (row.total / totalUsage) * 100 : 0;
           const width = Math.max(8, Math.round((row.total / peak) * 100));
+          const rowKey = `${row.metric}-${row.total}-${row.periodStart.toISOString()}-${index}`;
 
           return (
             <div
-              key={row.metric}
-              className="rounded-xl border border-slate-200/70 bg-slate-50/75 p-3 animate-in fade-in slide-in-from-left-2"
+              key={rowKey}
+              className="rounded-xl border border-slate-200/70 bg-slate-50/85 p-3 animate-in fade-in slide-in-from-left-2"
               style={{
                 animationDuration: "650ms",
                 animationDelay: `${index * 70}ms`,

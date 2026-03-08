@@ -53,7 +53,7 @@ function actionTone(action: string) {
 
 export default function AuditLogsList({ logs }: { logs: AuditLogItem[] }) {
   return (
-    <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:120ms]">
+    <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:120ms]">
       <div className="mb-4 flex items-end justify-between gap-2">
         <div>
           <h3 className="text-base font-semibold text-slate-900">Entries</h3>
@@ -70,7 +70,7 @@ export default function AuditLogsList({ logs }: { logs: AuditLogItem[] }) {
           return (
             <article
               key={log.id}
-              className="rounded-xl border border-slate-200/70 bg-slate-50/75 p-3 animate-in fade-in slide-in-from-left-2"
+              className="rounded-xl border border-slate-200/70 bg-slate-50/85 p-3 animate-in fade-in slide-in-from-left-2"
               style={{
                 animationDuration: "650ms",
                 animationDelay: `${index * 55}ms`,

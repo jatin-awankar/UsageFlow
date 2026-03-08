@@ -11,6 +11,7 @@ import CreatePlanForm from "@/components/forms/CreatePlanForm";
 import PlansEmptyState from "@/components/plans/PlansEmptyState";
 import PlansOverview from "@/components/plans/PlansOverview";
 import PlanCard from "@/components/plans/PlanCard";
+import { ArrowRight } from "lucide-react";
 
 export default async function PlansPage({
   params,
@@ -40,6 +41,12 @@ export default async function PlansPage({
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href={`/app/${orgId}/metrics`}>Manage metrics</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/billing`}>
+                Billing
+                <ArrowRight className="size-4" />
+              </Link>
             </Button>
             <CreatePlanForm userId={user.id} orgId={orgId} />
           </div>

@@ -1,0 +1,242 @@
+import Callout from "@/components/docs/Callout.tsx";
+
+# Subscriptions API
+
+---
+
+The **Subscriptions API** allows your application to retrieve subscription details for an organization.
+
+Subscriptions represent the **active billing relationship between an organization and a pricing plan**. They determine which pricing rules apply when calculating invoices.
+
+This endpoint is useful for:
+
+- checking subscription status
+- displaying plan details in your dashboard
+- verifying billing state before allowing usage
+
+---
+
+## Endpoint
+
+```http
+GET /api/subscriptions
+```
+
+This endpoint returns the active subscription associated with the authenticated organization.
+
+---
+
+## Authentication
+
+Requests must include a valid API key.
+
+You can generate API keys from:
+
+```
+Dashboard → API Keys → Generate Key
+```
+
+Example key:
+
+```
+uf_live_abc123xyz
+```
+
+Include the key in the request header.
+
+---
+
+## Headers
+
+| Header                | Required | Description                              |
+| :-------------------- | :------- | :--------------------------------------- |
+| `x-usageflow-api-key` | Yes      | API key used to authenticate the request |
+| `Content-Type`        | Yes      | Must be `application/json`               |
+
+Example:
+
+```
+x-usageflow-api-key: YOUR_API_KEY
+Content-Type: application/json
+```
+
+---
+
+## Example Request:
+
+```http
+GET /api/subscriptions
+```
+
+### Using curl:
+
+```bash
+curl https://your-domain.com/api/subscriptions \
+ -H "x-usageflow-api-key: YOUR_API_KEY"
+```
+
+### Using JavaScript:
+
+```js
+const res = await fetch("https://your-domain.com/api/subscriptions", {
+  headers: {
+    "x-usageflow-api-key": process.env.USAGEFLOW_API_KEY,
+  },
+});
+
+const subscription = await res.json();
+```
+
+---
+
+## Example Response:
+
+```
+{
+"subscription": {
+"id": "sub_123",
+"planName": "Pro",
+"status": "ACTIVE",
+"periodStart": "2025-03-01T00:00:00.000Z",
+"periodEnd": "2025-03-31T00:00:00.000Z",
+"createdAt": "2025-03-01T00:00:00.000Z"
+}
+}
+```
+
+---
+
+## Response Fields
+
+| Field         | Type   | Description                                 |
+| :------------ | :----- | :------------------------------------------ |
+| `id`          | string | Unique identifier for the subscription      |
+| `planName`    | string | Name of the pricing plan                    |
+| `status`      | string | Current subscription status                 |
+| `periodStart` | string | Start of the billing cycle                  |
+| `periodEnd`   | string | End of the billing cycle                    |
+| `createdAt`   | string | Timestamp when the subscription was created |
+
+---
+
+## Subscription Status
+
+Subscriptions can have one of the following statuses:
+
+```
+ACTIVE
+SUSPENDED
+CANCELLED
+```
+
+### ACTIVE
+
+The subscription is active and usage events will be recorded normally.
+
+### SUSPENDED
+
+The subscription has been suspended, usually due to failed invoices or billing issues.
+
+When suspended:
+
+- new usage events may be rejected
+- billing operations are paused
+
+### CANCELLED
+
+The subscription has been terminated and billing will stop.
+
+---
+
+## Subscription Lifecycle
+
+The lifecycle of a subscription typically follows this flow:
+
+```
+Subscription Created
+↓
+Usage Events Recorded
+↓
+Usage Aggregation
+↓
+Invoice Generated
+↓
+Invoice Paid or Failed
+```
+
+If invoices fail repeatedly, the subscription may be suspended.
+
+---
+
+## Example Billing Scenario
+
+Imagine the following configuration:
+
+```
+Plan: Pro
+Base Price: $100
+Metric: API_CALL
+Included Units: 10,000
+Overage Price: $0.01
+```
+
+When a subscription is active:
+
+```
+CloudAI Organization
+↓
+Plan: Pro
+↓
+Usage Recorded
+↓
+Invoice Generated
+```
+
+The subscription determines which pricing rules apply to usage events.
+
+---
+
+## Best Practices
+
+<Callout>Check Subscription Status</Callout>
+
+Before sending usage events, ensure the subscription is still active.
+
+Example workflow:
+
+```
+Check Subscription Status
+↓
+If ACTIVE → Send Usage Event
+If SUSPENDED → Restrict Access
+```
+
+This prevents recording usage when billing is disabled.
+
+<Callout>Combine with Webhooks</Callout>
+
+Use webhooks to react to subscription changes in real time.
+
+Example webhook events:
+
+```
+subscription.suspended
+invoice.failed
+invoice.paid
+```
+
+This allows your system to automatically handle billing changes.
+
+---
+
+## Next Steps
+
+Continue exploring the documentation:
+
+- [Getting Started](/docs/getting-started)
+- [Core Concepts](/docs/concepts)
+- [Track Usage API](/docs/api/track)
+- [Invoices API](/docs/api/invoices)
+- [Webhooks](/docs/webhooks)
+
+---

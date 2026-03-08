@@ -53,7 +53,7 @@ export default function UsageTrendChart({
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:140ms]">
+    <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:140ms]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-slate-900">Usage trend</h3>
@@ -61,9 +61,14 @@ export default function UsageTrendChart({
             {numberFormatter.format(total)} total units across {data.length} metrics
           </p>
         </div>
-        <span className="rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-          Live aggregation
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-sky-200/80 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+            Real-time
+          </span>
+          <span className="rounded-full border border-emerald-300/60 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            Live aggregation
+          </span>
+        </div>
       </div>
 
       {data.length === 0 ? (
@@ -71,7 +76,7 @@ export default function UsageTrendChart({
           No usage yet for this billing cycle.
         </div>
       ) : (
-        <div className="h-72 rounded-xl border border-slate-100 bg-gradient-to-b from-sky-50/40 to-white p-2">
+        <div className="h-72 rounded-xl border border-slate-200/70 bg-gradient-to-b from-sky-50/65 via-cyan-50/30 to-white p-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
               <defs>

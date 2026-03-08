@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Github } from "lucide-react";
+import { ArrowRight, File } from "lucide-react";
 
 import { Button } from "../ui/button";
 
@@ -36,12 +36,9 @@ export default function CTA() {
               variant="outline"
               className="border-slate-400/70 bg-transparent text-slate-100 hover:bg-slate-400"
             >
-              <Link
-                href="https://github.com/jatin-awankar/UsageFlow"
-                target="_blank"
-              >
-                <Github className="size-4" />
-                View on GitHub
+              <Link href="/docs">
+                <File />
+                View Docs
               </Link>
             </Button>
           </div>

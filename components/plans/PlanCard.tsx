@@ -50,13 +50,15 @@ export default function PlanCard({
   index: number;
 }) {
   const attachedMetricIds = plan.planMetrics.map((pm) => pm.metric.id);
-  const availableMetrics = metrics.filter((metric) => !attachedMetricIds.includes(metric.id));
+  const availableMetrics = metrics.filter(
+    (metric) => !attachedMetricIds.includes(metric.id),
+  );
 
   return (
     <article
       className={cn(
-        "group rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md animate-in fade-in slide-in-from-bottom-2",
-        isActive ? "border-emerald-200/80 bg-emerald-50/40" : ""
+        "group rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg animate-in fade-in slide-in-from-bottom-2",
+        isActive ? "border-emerald-200/80 bg-emerald-50/40" : "",
       )}
       style={{
         animationDuration: "700ms",
@@ -86,13 +88,16 @@ export default function PlanCard({
 
       <div className="min-h-28">
         {plan.planMetrics.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/70 p-3 text-sm text-slate-500">
+          <div className="rounded-lg border border-dashed p-3 text-sm border-slate-300 bg-slate-50/70 text-slate-500">
             No metrics attached yet.
           </div>
         ) : (
           <ul className="space-y-2">
             {plan.planMetrics.map((pm) => (
-              <li key={pm.id} className="rounded-lg border border-slate-200/70 bg-slate-50/75 p-3">
+              <li
+                key={pm.id}
+                className="rounded-lg border border-slate-200/70 bg-slate-50/75 p-3"
+              >
                 <p className="text-sm font-medium text-slate-800">
                   {pm.metric.name}
                   <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
@@ -100,8 +105,9 @@ export default function PlanCard({
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {numberFormatter.format(pm.includedUnits)} included {pm.metric.unit} - {" "}
-                  {currencyFormatter.format(pm.pricePerUnit)} / {pm.metric.unit}
+                  {numberFormatter.format(pm.includedUnits)} included{" "}
+                  {pm.metric.unit} - {currencyFormatter.format(pm.pricePerUnit)}{" "}
+                  / {pm.metric.unit}
                 </p>
               </li>
             ))}
@@ -128,4 +134,3 @@ export default function PlanCard({
     </article>
   );
 }
-

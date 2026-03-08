@@ -14,7 +14,11 @@ export async function createApiKey(
   orgId: string
 ) {
   if (!name || name.length < 2) {
-    return { success: false, error: "API key name too short or invalid", atatusCode: 400 };
+    return {
+      success: false,
+      error: "API key name too short or invalid",
+      statusCode: 400,
+    };
   }
 
   await requireRole(userId, orgId, permissions.createApiKey);
@@ -23,7 +27,7 @@ export async function createApiKey(
   const hashedKey = hashApiKey(rawKey);
 
   const existing = await prisma.apiKey.findFirst({
-    where: { name }
+    where: { name, orgId }
   })
 
   if (existing) {
@@ -39,23 +43,32 @@ export async function createApiKey(
       },
     });
 
-    await writeAuditLog({
-      orgId,
-      userId,
-      action: "API_KEY_CREATED",
-      entity: "ApiKey",
-      entityId: apiKey.id,
-      metadata: { name },
-    });
+    const sideEffects = await Promise.allSettled([
+      writeAuditLog({
+        orgId,
+        userId,
+        action: "API_KEY_CREATED",
+        entity: "ApiKey",
+        entityId: apiKey.id,
+        metadata: { name },
+      }),
+      createWebhookEvent(orgId, "api_key.created", {
+        apiKeyId: apiKey.id,
+        name,
+      }),
+    ]);
 
-    await createWebhookEvent(orgId, "api_key.created", {
-      apiKeyId: apiKey.id,
-      name,
-    });
+    const sideEffectErrors = sideEffects.filter(
+      (item): item is PromiseRejectedResult => item.status === "rejected"
+    );
+
+    if (sideEffectErrors.length > 0) {
+      console.error("API key created, but side effects failed", sideEffectErrors);
+    }
 
     return { success: true, data: { id: apiKey.id, rawKey } };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: "Error creating ApiKey", statusCode: 400 }
+    console.error("Error creating ApiKey", err);
+    return { success: false, error: "Error creating ApiKey", statusCode: 400 };
   }
 }

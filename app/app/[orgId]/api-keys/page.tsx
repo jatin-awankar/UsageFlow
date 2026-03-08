@@ -9,6 +9,7 @@ import CreateApiKeyForm from "@/components/forms/CreateApiKeyForm";
 import ApiKeysEmptyState from "@/components/apiKeys/ApiKeysEmptyState";
 import ApiKeysOverview from "@/components/apiKeys/ApiKeysOverview";
 import ApiKeysList from "@/components/apiKeys/ApiKeysList";
+import { ArrowRight } from "lucide-react";
 
 export default async function ApiKeysPage({
   params,
@@ -30,6 +31,12 @@ export default async function ApiKeysPage({
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href={`/app/${orgId}/metrics`}>Metrics</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/webhooks`}>
+                Webhooks
+                <ArrowRight className="size-4" />
+              </Link>
             </Button>
             <CreateApiKeyForm userId={user.id} orgId={orgId} />
           </div>

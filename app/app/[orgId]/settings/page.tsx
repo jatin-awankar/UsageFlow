@@ -1,8 +1,11 @@
 import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 import { getOrganization } from "@/actions/organization/getOrganization";
 import PageHeader from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
 import SettingsOverview from "@/components/settings/SettingsOverview";
 import { getCurrentUser } from "@/lib/auth/session";
 import { requireRole } from "@/lib/authz/requireRole";
@@ -31,6 +34,19 @@ export default async function SettingsPage({
       <PageHeader
         title="Organization Settings"
         description="Manage organization profile, controls, and destructive access."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/members`}>Members</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/audit-logs`}>
+                Audit logs
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        }
       />
 
       <section className="space-y-6">

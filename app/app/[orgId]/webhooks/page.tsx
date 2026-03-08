@@ -9,6 +9,7 @@ import CreateWebhookForm from "@/components/forms/CreateWebhookForm";
 import WebhooksEmptyState from "@/components/webhooks/WebhooksEmptyState";
 import WebhooksOverview from "@/components/webhooks/WebhooksOverview";
 import WebhooksList from "@/components/webhooks/WebhooksList";
+import { ArrowRight } from "lucide-react";
 
 export default async function WebhooksPage({
   params,
@@ -30,6 +31,12 @@ export default async function WebhooksPage({
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href={`/app/${orgId}/webhooks/logs`}>Delivery logs</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/billing/invoices`}>
+                Invoices
+                <ArrowRight className="size-4" />
+              </Link>
             </Button>
             <CreateWebhookForm userId={user.id} orgId={orgId} />
           </div>

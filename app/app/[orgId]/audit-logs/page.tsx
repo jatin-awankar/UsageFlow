@@ -7,6 +7,9 @@ import AuditLogsOverview from "@/components/audit/AuditLogsOverview";
 import AuditLogsPagination from "@/components/audit/AuditLogsPagination";
 import PageHeader from "@/components/layout/PageHeader";
 import { getCurrentUser } from "@/lib/auth/session";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default async function AuditPage({
   params,
@@ -42,6 +45,19 @@ export default async function AuditPage({
       <PageHeader
         title="Audit Logs"
         description="Review a chronological record of security-sensitive actions in this organization."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/members`}>Members</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/settings`}>
+                Organization settings
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        }
       />
 
       {logs.length === 0 ? (
