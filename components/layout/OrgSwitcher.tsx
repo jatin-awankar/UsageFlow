@@ -27,12 +27,12 @@ export default function OrgSwitcher({
 
   return (
     <Menu as="div" className="relative">
-      <MenuButton className="inline-flex max-w-[11rem] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:cursor-pointer">
+      <MenuButton className="inline-flex max-w-[11rem] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:cursor-pointer">
         <span className="truncate">{currentOrg?.name || "Select org"}</span>
         <ChevronDown className="size-4 text-slate-400" />
       </MenuButton>
 
-      <MenuItems className="absolute right-0 z-30 mt-2 w-64 origin-top-right rounded-xl border border-slate-200 bg-white p-2 shadow-lg outline-none animate-in fade-in zoom-in-95 duration-150">
+      <MenuItems className="absolute right-0 z-30 mt-2 w-64 origin-top-right rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 outline-none animate-in fade-in zoom-in-95 duration-150">
         <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
           {organizations.map((org) => {
             const active = org.id === currentOrgId;

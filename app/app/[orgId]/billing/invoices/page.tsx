@@ -5,6 +5,9 @@ import PageHeader from "@/components/layout/PageHeader";
 import InvoicesEmptyState from "@/components/invoices/InvoicesEmptyState";
 import InvoicesOverview from "@/components/invoices/InvoicesOverview";
 import InvoicesList from "@/components/invoices/InvoicesList";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default async function InvoicesPage({
   params,
@@ -26,6 +29,14 @@ export default async function InvoicesPage({
       <PageHeader
         title="Invoices"
         description="Review invoice history, statuses, and finalized totals for each billing cycle."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/app/${orgId}/billing`}>
+              <ArrowLeft className="size-4" />
+              Back to billing
+            </Link>
+          </Button>
+        }
       />
 
       {invoices.length === 0 ? (

@@ -57,7 +57,7 @@ export default function OrganizationForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:100ms]"
+      className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:100ms]"
     >
       <div className="mb-4 flex items-start gap-3">
         <span className="inline-flex rounded-lg bg-slate-100 p-2 text-slate-600">

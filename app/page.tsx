@@ -12,36 +12,39 @@ export default function Home() {
     <>
       <Header />
 
-      <main className="relative">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-136 bg-linear-to-b from-sky-100/70 via-cyan-50/50 to-transparent" />
+      <main className="relative overflow-x-clip bg-slate-50">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[720px] bg-linear-to-b from-cyan-100/85 via-sky-50/70 to-transparent" />
+        <div className="pointer-events-none absolute -left-48 top-20 -z-10 h-96 w-96 rounded-full bg-cyan-300/35 blur-3xl" />
+        <div className="pointer-events-none absolute right-[-120px] top-40 -z-10 h-[420px] w-[420px] rounded-full bg-indigo-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-40 left-1/2 -z-10 h-64 w-[760px] -translate-x-1/2 rounded-full bg-sky-200/30 blur-3xl" />
 
         <section
           id="hero"
-          className="px-4 pb-24 pt-24 sm:px-6 md:pt-36 lg:px-8"
+          className="px-4 pb-28 pt-24 sm:px-6 md:pb-36 md:pt-36 lg:px-8"
         >
           <HeroSection />
         </section>
 
-        <section id="about" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
+        <section id="about" className="px-4 py-20 sm:px-6 lg:px-8">
           <WhatIsUF />
         </section>
 
-        <section id="flow" className="bg-slate-50 px-4 py-20 sm:px-6 lg:px-8">
+        <section id="flow" className="px-4 py-20 sm:px-6 lg:px-8">
           <HowItWorks />
         </section>
 
-        <section id="features" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
+        <section
+          id="features"
+          className="border-y border-slate-200/70 bg-white/70 px-4 py-20 backdrop-blur-sm sm:px-6 lg:px-8"
+        >
           <KeyFeatures />
         </section>
 
-        <section
-          id="architecture"
-          className="bg-slate-50 px-4 py-20 sm:px-6 lg:px-8"
-        >
+        <section id="architecture" className="px-4 py-20 sm:px-6 lg:px-8">
           <Architecture />
         </section>
 
-        <section id="cta" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
+        <section id="cta" className="px-4 py-24 sm:px-6 lg:px-8">
           <CTA />
         </section>
 

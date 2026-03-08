@@ -60,7 +60,7 @@ export default function UsageDistributionChart({
     }));
 
   return (
-    <article className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:140ms]">
+    <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:140ms]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-slate-900">
@@ -80,7 +80,7 @@ export default function UsageDistributionChart({
           No usage yet for this billing cycle.
         </div>
       ) : (
-        <div className="h-72 rounded-xl border border-slate-100 bg-linear-to-b from-sky-50/35 to-white p-2">
+        <div className="h-72 rounded-xl border border-slate-200/70 bg-linear-to-b from-sky-50/60 via-cyan-50/30 to-white p-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               layout="vertical"

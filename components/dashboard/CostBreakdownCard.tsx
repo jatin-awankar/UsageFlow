@@ -23,13 +23,13 @@ export default function CostBreakdownCard({
   const total = rows.reduce((sum, row) => sum + row.cost, 0);
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:220ms]">
+    <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:220ms]">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold text-slate-900">Cost breakdown</h3>
           <p className="text-sm text-slate-500">Where overage spend is concentrated</p>
         </div>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
           {currencyFormatter.format(total)} total
         </span>
       </div>
@@ -42,11 +42,12 @@ export default function CostBreakdownCard({
         <ul className="space-y-3">
           {rows.map((item, index) => {
             const width = Math.max(8, Math.round((item.cost / maxCost) * 100));
+            const rowKey = `${item.metric}-${item.used ?? 0}-${item.cost}-${index}`;
 
             return (
               <li
-                key={item.metric}
-                className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3 animate-in fade-in slide-in-from-left-2"
+                key={rowKey}
+                className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 animate-in fade-in slide-in-from-left-2"
                 style={{
                   animationDuration: "650ms",
                   animationDelay: `${index * 80}ms`,

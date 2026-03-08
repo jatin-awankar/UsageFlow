@@ -9,6 +9,9 @@ import MembersEmptyState from "@/components/members/MembersEmptyState";
 import MembersList from "@/components/members/MembersList";
 import MembersOverview from "@/components/members/MembersOverview";
 import PendingInvitesList from "@/components/members/PendingInvitesList";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 export default async function MembersPage({
   params,
@@ -30,7 +33,20 @@ export default async function MembersPage({
       <PageHeader
         title="Members"
         description="Manage organization access, invitations, and teammate permissions."
-        actions={<InviteMemberForm orgId={orgId} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/audit-logs`}>Audit logs</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/settings`}>
+                Org settings
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <InviteMemberForm orgId={orgId} />
+          </div>
+        }
       />
 
       {members.length === 0 ? (

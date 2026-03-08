@@ -63,8 +63,10 @@ export default function DashboardKPIs({ usage, billing, subscription }: Props) {
           <article
             key={card.title}
             className={cn(
-              "group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-md animate-in fade-in slide-in-from-bottom-2",
-              card.highlight ? "border-slate-900/15 bg-slate-50/90" : ""
+              "group relative overflow-hidden rounded-2xl border p-5 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-lg animate-in fade-in slide-in-from-bottom-2",
+              card.highlight
+                ? "border-slate-900/20 bg-linear-to-br from-slate-900 to-slate-800 text-white shadow-slate-900/20"
+                : "border-slate-200/80 bg-white/90",
             )}
             style={{
               animationDuration: "700ms",
@@ -73,24 +75,48 @@ export default function DashboardKPIs({ usage, billing, subscription }: Props) {
           >
             <div
               className={cn(
-                "pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r",
-                card.gradient
+                "pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r",
+                card.gradient,
               )}
             />
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <p
+                  className={cn(
+                    "text-xs font-medium uppercase tracking-wide",
+                    card.highlight ? "text-slate-300" : "text-slate-500",
+                  )}
+                >
                   {card.title}
                 </p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+                <p
+                  className={cn(
+                    "mt-2 text-2xl font-semibold tracking-tight",
+                    card.highlight ? "text-white" : "text-slate-900",
+                  )}
+                >
                   {card.value}
                 </p>
               </div>
-              <span className="inline-flex rounded-lg bg-slate-100 p-2 text-slate-600 transition-colors duration-300 group-hover:bg-slate-900 group-hover:text-white">
+              <span
+                className={cn(
+                  "inline-flex rounded-lg p-2 transition-colors duration-300",
+                  card.highlight
+                    ? "bg-white/15 text-white"
+                    : "bg-slate-100 text-slate-600 group-hover:bg-slate-900 group-hover:text-white",
+                )}
+              >
                 <Icon className="size-4" />
               </span>
             </div>
-            <p className="text-xs text-slate-500">{card.helper}</p>
+            <p
+              className={cn(
+                "text-xs",
+                card.highlight ? "text-slate-300" : "text-slate-500",
+              )}
+            >
+              {card.helper}
+            </p>
           </article>
         );
       })}

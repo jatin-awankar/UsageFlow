@@ -14,6 +14,7 @@ import BillingSummaryCards from "@/components/billing/BillingSummaryCards";
 import LatestInvoiceCard from "@/components/billing/LatestInvoiceCard";
 import BillingBreakdown from "@/components/billing/BillingBreakdown";
 import { GenerateInvoiceButton } from "./GenerateInvoiceButton";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 export default async function BillingPage({
   params,
@@ -67,6 +68,12 @@ export default async function BillingPage({
             <Button asChild variant="outline" size="sm">
               <Link href={`/app/${orgId}/billing/invoices`}>View invoices</Link>
             </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/analytics`}>
+                Usage analytics
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
             {canManageBilling && subscription ? (
               <GenerateInvoiceButton
                 userId={user.id}
@@ -82,19 +89,20 @@ export default async function BillingPage({
         <BillingEmptyState orgId={orgId} />
       ) : (
         <section className="space-y-6">
-          <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-sky-50/40 to-cyan-50/25 p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
+          <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-slate-900 via-slate-800 to-sky-900 p-6 text-white shadow-lg shadow-slate-900/15 animate-in fade-in slide-in-from-top-2 duration-700">
             <div className="pointer-events-none absolute -top-16 right-0 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
 
             <div className="relative flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="mb-2 inline-flex items-center rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600">
+                <p className="mb-2 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100">
+                  <Sparkles className="mr-1.5 size-3.5" />
                   Current billing cycle
                 </p>
-                <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                   {cycleRange}
                 </h2>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-2 text-sm text-slate-200">
                   Review your spend trajectory before invoices are finalized.
                 </p>
               </div>

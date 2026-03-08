@@ -15,9 +15,11 @@ import UsageTrendChart from "@/components/dashboard/UsageTrendChart";
 import CostBreakdownCard from "@/components/dashboard/CostBreakdownCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import {
-  BarChart3,
+  ArrowRight,
   CalendarRange,
+  Layers3,
   LayoutDashboard,
+  Sparkles,
   Wallet,
 } from "lucide-react";
 
@@ -85,6 +87,7 @@ export default async function DashboardPage({
   });
 
   const totalUsage = usage.reduce((sum, item) => sum + item.total, 0);
+  const topMetric = [...usage].sort((a, b) => b.total - a.total)[0] ?? null;
   const cycleStart = dateFormatter.format(subscription.periodStart);
   const cycleEnd = subscription.periodEnd
     ? dateFormatter.format(subscription.periodEnd)
@@ -96,35 +99,63 @@ export default async function DashboardPage({
         title="Dashboard"
         description="Operational snapshot of usage, spend, and team actions."
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/app/${orgId}/billing`}>Open billing</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/analytics`}>Usage analytics</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/billing`}>
+                Open billing
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
         }
       />
 
-      <section className="relative mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-sky-50/40 to-cyan-50/25 p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
-        <div className="pointer-events-none absolute -top-16 right-0 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
+      <section className="relative mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-slate-900 via-slate-800 to-sky-900 p-6 text-white shadow-lg shadow-slate-900/15 animate-in fade-in slide-in-from-top-2 duration-700">
+        <div className="pointer-events-none absolute -top-20 right-0 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-10 h-64 w-64 rounded-full bg-sky-300/15 blur-3xl" />
 
-        <div className="relative grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end">
+        <div className="relative grid gap-6 xl:grid-cols-[1.3fr_1fr] xl:items-end">
           <div>
-            <p className="mb-2 inline-flex items-center rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600">
+            <p className="mb-2 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100">
+              <Sparkles className="mr-1.5 size-3.5" />
               Live billing cycle
             </p>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               {cycleStart} to {cycleEnd}
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Watch spend velocity and usage concentration before this cycle
-              closes.
+            <p className="mt-2 max-w-xl text-sm text-slate-200">
+              Watch spend velocity, usage concentration, and team activity
+              before this billing cycle closes.
             </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                asChild
+                size="sm"
+                className="bg-white text-slate-900 hover:bg-slate-100"
+              >
+                <Link href={`/app/${orgId}/billing/invoices`}>
+                  View invoices
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="border-white/35 bg-transparent text-white hover:bg-white/10"
+              >
+                <Link href={`/app/${orgId}/plans`}>Manage plans</Link>
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <SnapshotTile
               title="Tracked metrics"
               value={numberFormatter.format(usage.length)}
-              icon={<BarChart3 className="size-4" />}
+              icon={<Layers3 className="size-4" />}
             />
             <SnapshotTile
               title="Total usage"
@@ -135,6 +166,11 @@ export default async function DashboardPage({
               title="Projected spend"
               value={currencyFormatter.format(billing.total)}
               icon={<Wallet className="size-4" />}
+              helper={
+                topMetric
+                  ? `Top metric: ${topMetric.metric}`
+                  : "Top metric: N/A"
+              }
             />
           </div>
         </div>
@@ -162,20 +198,23 @@ function SnapshotTile({
   title,
   value,
   icon,
+  helper,
 }: {
   title: string;
   value: string;
   icon: ReactNode;
+  helper?: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-white/85 p-3 shadow-sm backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5">
-      <div className="mb-2 inline-flex rounded-md bg-slate-100 p-2 text-slate-600">
+    <div className="rounded-xl border border-white/15 bg-white/10 p-3 shadow-sm backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5">
+      <div className="mb-2 inline-flex rounded-md bg-white/15 p-2 text-white">
         {icon}
       </div>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-200">
         {title}
       </p>
-      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      {helper ? <p className="mt-1 text-xs text-slate-300">{helper}</p> : null}
     </div>
   );
 }

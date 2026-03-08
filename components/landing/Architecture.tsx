@@ -10,7 +10,7 @@ const points = [
 export default function Architecture() {
   return (
     <section className="mx-auto max-w-6xl">
-      <div className="grid gap-8 rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm md:grid-cols-[1.15fr_0.85fr] md:items-center">
+      <div className="grid gap-8 rounded-3xl border border-slate-200/90 bg-white/90 p-6 shadow-xl shadow-slate-900/5 md:grid-cols-[1.15fr_0.85fr] md:items-center md:p-8">
         <div className="space-y-4">
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
             Architecture and reliability
@@ -43,7 +43,7 @@ export default function Architecture() {
             alt="UsageFlow system architecture"
             width={420}
             height={340}
-            className="mx-auto rounded-xl border border-slate-200 bg-slate-50 p-4"
+            className="mx-auto rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-lg shadow-slate-900/5"
           />
         </div>
       </div>

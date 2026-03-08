@@ -57,7 +57,7 @@ export default function DangerZone({
 
   if (!isOwner) {
     return (
-      <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:160ms]">
+      <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:160ms]">
         <div className="mb-3 flex items-start gap-3">
           <span className="inline-flex rounded-lg bg-slate-100 p-2 text-slate-600">
             <Lock className="size-4" />
@@ -81,7 +81,7 @@ export default function DangerZone({
   }
 
   return (
-    <section className="rounded-2xl border border-rose-200/80 bg-linear-to-b from-rose-50/70 to-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:160ms]">
+    <section className="rounded-2xl border border-rose-300/80 bg-linear-to-b from-rose-100/75 via-rose-50/80 to-white p-5 shadow-md shadow-rose-900/10 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:160ms]">
       <div className="mb-4 flex items-start gap-3">
         <span className="inline-flex rounded-lg bg-rose-100 p-2 text-rose-700">
           <ShieldAlert className="size-4" />

@@ -47,10 +47,10 @@ export default function DocsLayout({
 
           <div className="flex items-center gap-2">
             <Link
-              href="/login"
+              href="/register"
               className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
             >
-              Login
+              Get Started
             </Link>
             <Link
               href="/app"

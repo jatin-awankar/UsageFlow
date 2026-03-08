@@ -5,7 +5,14 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ReactNode } from "react";
-import { ArrowLeft, CalendarRange, ReceiptText, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarRange,
+  ReceiptText,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/layout/PageHeader";
 import InvoiceStatusBadge from "@/components/invoices/InvoiceStatusBadge";
@@ -110,30 +117,39 @@ export default async function InvoiceDetailPage({
         title="Invoice Details"
         description="Detailed cost composition and status for this finalized billing document."
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/app/${orgId}/billing/invoices`}>
-              <ArrowLeft className="size-4" />
-              All invoices
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/billing/invoices`}>
+                <ArrowLeft className="size-4" />
+                All invoices
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/billing`}>
+                Billing overview
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
         }
       />
 
       <section className="space-y-6">
-        <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-white via-sky-50/40 to-cyan-50/25 p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-700">
+        <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-linear-to-br from-slate-900 via-slate-800 to-sky-900 p-6 text-white shadow-lg shadow-slate-900/15 animate-in fade-in slide-in-from-top-2 duration-700">
           <div className="pointer-events-none absolute -top-16 right-0 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
 
           <div className="relative grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end">
             <div>
-              <p className="mb-2 inline-flex items-center rounded-full border border-slate-300/80 bg-white/80 px-3 py-1 text-xs font-medium text-slate-600">
+              <p className="mb-2 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100">
+                <Sparkles className="mr-1.5 size-3.5" />
                 <ReceiptText className="mr-1.5 size-3.5" />
                 Invoice #{invoice.id.slice(0, 8)}
               </p>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+              <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 {currencyFormatter.format(invoice.amount)}
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-slate-200">
                 {dateFormatter.format(invoice.periodStart)} to{" "}
                 {dateFormatter.format(invoice.periodEnd)}
               </p>
@@ -148,7 +164,7 @@ export default async function InvoiceDetailPage({
               <SummaryTile
                 title="Plan"
                 value={
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-white">
                     {plan.name}
                   </span>
                 }
@@ -157,7 +173,7 @@ export default async function InvoiceDetailPage({
               <SummaryTile
                 title="Usage Units"
                 value={
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-white">
                     {numberFormatter.format(totalUsage)}
                   </span>
                 }
@@ -207,11 +223,11 @@ function SummaryTile({
   icon: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-white/85 p-3 shadow-sm backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5">
-      <div className="mb-2 inline-flex rounded-md bg-slate-100 p-2 text-slate-600">
+    <div className="rounded-xl border border-white/15 bg-white/10 p-3 shadow-sm backdrop-blur-sm transition-transform duration-300 hover:-translate-y-0.5">
+      <div className="mb-2 inline-flex rounded-md bg-white/15 p-2 text-white">
         {icon}
       </div>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-200">
         {title}
       </p>
       <div className="mt-1">{value}</div>

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import MetricsEmptyState from "@/components/metrics/MetricsEmptyState";
 import MetricsOverview from "@/components/metrics/MetricsOverview";
 import MetricsList from "@/components/metrics/MetricsList";
+import { ArrowRight } from "lucide-react";
 
 const PAGE_SIZE = 5;
 
@@ -36,6 +37,12 @@ export default async function MetricsPage({
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href={`/app/${orgId}/analytics`}>Usage analytics</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/billing`}>
+                Billing
+                <ArrowRight className="size-4" />
+              </Link>
             </Button>
             <CreateMetricForm userId={user.id} orgId={orgId} />
           </div>

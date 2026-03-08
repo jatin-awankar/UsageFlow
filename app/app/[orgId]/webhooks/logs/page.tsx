@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import WebhookLogsEmptyState from "@/components/webhooks/WebhookLogsEmptyState";
 import WebhookLogsOverview from "@/components/webhooks/WebhookLogsOverview";
 import WebhookLogsList from "@/components/webhooks/WebhookLogsList";
+import { ArrowRight } from "lucide-react";
 
 export default async function WebhookLogsPage({
   params,
@@ -26,9 +27,17 @@ export default async function WebhookLogsPage({
         title="Webhook Logs"
         description="Inspect delivery attempts, response codes, and endpoint reliability."
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/app/${orgId}/webhooks`}>Back to webhooks</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/webhooks`}>Back to webhooks</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/app/${orgId}/billing`}>
+                Billing
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
         }
       />
 

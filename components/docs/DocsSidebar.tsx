@@ -13,7 +13,7 @@ export default function DocsSidebar() {
         href="/docs"
         className="mb-7 inline-flex items-center rounded-md px-2 py-1 text-sm font-semibold text-slate-900"
       >
-        UsageFlow Docs
+        OVERVIEW
       </Link>
 
       {docsNav.map((section) => (
