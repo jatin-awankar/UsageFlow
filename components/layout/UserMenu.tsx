@@ -8,9 +8,11 @@ import { signOut } from "next-auth/react";
 export default function UserMenu({
   email,
   orgId,
+  role,
 }: {
   email: string;
   orgId: string;
+  role: string;
 }) {
   const initial = email?.charAt(0).toUpperCase() || "U";
 
@@ -33,17 +35,19 @@ export default function UserMenu({
         </div>
 
         <div className="my-1 border-t border-slate-200" />
-
-        <MenuItem>
-          <Link
-            href={`/app/${orgId}/settings`}
-            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-slate-700 transition data-focus:bg-slate-50"
-          >
-            <Settings2 className="size-4" />
-            Settings
-          </Link>
-        </MenuItem>
-
+        {role === "OWNER" || role === "ADMIN" ? (
+          <MenuItem>
+            <Link
+              href={`/app/${orgId}/settings`}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-slate-700 transition data-focus:bg-slate-50"
+            >
+              <Settings2 className="size-4" />
+              Settings
+            </Link>
+          </MenuItem>
+        ) : (
+          <></>
+        )}
         <MenuItem>
           <button
             type="button"

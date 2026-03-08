@@ -38,10 +38,12 @@ type NavSection = {
 const navSections: NavSection[] = [
   {
     label: "Overview",
+    roles: ["OWNER", "ADMIN", "DEVELOPER", "VIEWER"],
     items: [{ name: "Dashboard", path: "dashboard", icon: LayoutDashboard }],
   },
   {
     label: "Analytics",
+    roles: ["OWNER", "ADMIN", "DEVELOPER", "VIEWER"],
     items: [{ name: "Usage Analytics", path: "analytics", icon: BarChart3 }],
   },
   {
@@ -111,45 +113,42 @@ export default function Sidebar({ orgId, role }: SidebarProps) {
 
       <nav className="flex-1 space-y-4 overflow-y-auto pr-0.5">
         {visibleSections.map((section) => (
-            <section
-              key={section.label}
-              className="space-y-1.5 pt-2 first:pt-0"
-            >
-              <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                {section.label}
-              </p>
+          <section key={section.label} className="space-y-1.5 pt-2 first:pt-0">
+            <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              {section.label}
+            </p>
 
-              <div className="space-y-1 pl-1 pb-1">
-                {section.items.map((item) => {
-                  const href = `/app/${orgId}/${item.path}`;
-                  const active = href === activeHref;
-                  const Icon = item.icon;
+            <div className="space-y-1 pl-1 pb-1">
+              {section.items.map((item) => {
+                const href = `/app/${orgId}/${item.path}`;
+                const active = href === activeHref;
+                const Icon = item.icon;
 
-                  return (
-                    <Link
-                      key={item.path}
-                      href={href}
-                      title={item.name}
-                      className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition duration-200 ${
+                return (
+                  <Link
+                    key={item.path}
+                    href={href}
+                    title={item.name}
+                    className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition duration-200 ${
+                      active
+                        ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
+                        : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                    }`}
+                  >
+                    <Icon
+                      className={`size-4 shrink-0 ${
                         active
-                          ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
-                          : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                          ? "text-sky-600"
+                          : "text-slate-400 group-hover:text-slate-600"
                       }`}
-                    >
-                      <Icon
-                        className={`size-4 shrink-0 ${
-                          active
-                            ? "text-sky-600"
-                            : "text-slate-400 group-hover:text-slate-600"
-                        }`}
-                      />
-                      <span className="truncate font-medium">{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                    />
+                    <span className="truncate font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </nav>
 
       <div className="mt-4 space-y-2 border-t border-slate-200 pt-3">
@@ -160,13 +159,17 @@ export default function Sidebar({ orgId, role }: SidebarProps) {
           <ScrollText className="size-4 text-slate-400" />
           Documentation
         </Link>
-        <Link
-          href={`/app/${orgId}/settings`}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-        >
-          <Settings className="size-4 text-slate-400" />
-          Workspace Settings
-        </Link>
+        {role === "OWNER" || role === "ADMIN" ? (
+          <Link
+            href={`/app/${orgId}/settings`}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            <Settings className="size-4 text-slate-400" />
+            Workspace Settings
+          </Link>
+        ) : (
+          <></>
+        )}
       </div>
     </aside>
   );

@@ -2,6 +2,8 @@ import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import prisma from "@/lib/prisma";
+import { Role } from "@prisma/client";
 
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,24 @@ export default async function UsageAnalyticsPage({
   if (!user) redirect("/login");
 
   const { orgId } = await params;
+  const membership = await prisma.membership.findUnique({
+    where: {
+      userId_orgId: {
+        userId: user.id,
+        orgId,
+      },
+    },
+    select: {
+      role: true,
+    },
+  });
+
+  if (!membership) {
+    redirect("/app");
+  }
+
+  const isOrgAdmin =
+    membership.role === Role.OWNER || membership.role === Role.ADMIN;
 
   const usage = await getUsageSummary(user.id, orgId);
   const totalUsage = usage.reduce((sum, row) => sum + row.total, 0);
@@ -63,15 +83,19 @@ export default async function UsageAnalyticsPage({
         description="Explore where usage is concentrated and how fast each metric is growing in this cycle."
         actions={
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/app/${orgId}/metrics`}>Manage metrics</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href={`/app/${orgId}/billing`}>
-                Open billing
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            {isOrgAdmin ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/app/${orgId}/metrics`}>Manage metrics</Link>
+              </Button>
+            ) : null}
+            {isOrgAdmin ? (
+              <Button asChild size="sm">
+                <Link href={`/app/${orgId}/billing`}>
+                  Open billing
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            ) : null}
           </div>
         }
       />
