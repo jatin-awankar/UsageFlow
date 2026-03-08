@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ReactNode } from "react";
+import { Role } from "@prisma/client";
 
 import PageHeader from "@/components/layout/PageHeader";
 import { getUsageSummary } from "@/actions/analytics/getUsageSummary";
@@ -21,6 +22,7 @@ import {
   LayoutDashboard,
   Wallet,
 } from "lucide-react";
+import { getMembership } from "@/lib/authz/getMembership";
 
 export default async function DashboardPage({
   params,
@@ -31,6 +33,13 @@ export default async function DashboardPage({
   if (!user) redirect("/login");
 
   const { orgId } = await params;
+  const membership = await getMembership(user.id, orgId);
+
+  if (!membership) {
+    redirect("/app");
+  }
+  const isOrgAdmin =
+    membership.role === Role.OWNER || membership.role === Role.ADMIN;
 
   const subscription = await getActiveSubscription(orgId);
 
@@ -54,24 +63,29 @@ export default async function DashboardPage({
               Activate a plan to start tracking usage trends, spend projections,
               and activity history in this dashboard.
             </p>
-            <Button asChild className="mt-4">
-              <Link href={`/app/${orgId}/plans`}>Get subscription</Link>
-            </Button>
+            {isOrgAdmin ? (
+              <Button asChild className="mt-4">
+                <Link href={`/app/${orgId}/plans`}>Get subscription</Link>
+              </Button>
+            ) : null}
           </div>
         </section>
       </>
     );
   }
 
-  const [usage, billing, auditLogs] = await Promise.all([
+  const [usage, billing] = await Promise.all([
     getUsageSummary(user.id, orgId),
     getCostBreakdown(user.id, orgId, subscription.id),
-    getAuditLogs({
-      userId: user.id,
-      orgId,
-      pageSize: 5,
-    }),
   ]);
+
+  const auditLogs = isOrgAdmin
+    ? await getAuditLogs({
+        userId: user.id,
+        orgId,
+        pageSize: 5,
+      })
+    : { data: [] };
 
   const currencyFormatter = new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -102,12 +116,14 @@ export default async function DashboardPage({
             <Button asChild variant="outline" size="sm">
               <Link href={`/app/${orgId}/analytics`}>Usage analytics</Link>
             </Button>
-            <Button asChild size="sm">
-              <Link href={`/app/${orgId}/billing`}>
-                Open billing
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            {isOrgAdmin ? (
+              <Button asChild size="sm">
+                <Link href={`/app/${orgId}/billing`}>
+                  Open billing
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -128,25 +144,27 @@ export default async function DashboardPage({
               Watch spend velocity, usage concentration, and team activity
               before this billing cycle closes.
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Button
-                asChild
-                size="sm"
-                className="bg-white text-slate-900 hover:bg-slate-100"
-              >
-                <Link href={`/app/${orgId}/billing/invoices`}>
-                  View invoices
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="border-white/35 bg-transparent text-white hover:bg-white/10"
-              >
-                <Link href={`/app/${orgId}/plans`}>Manage plans</Link>
-              </Button>
-            </div>
+            {isOrgAdmin ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-white text-slate-900 hover:bg-slate-100"
+                >
+                  <Link href={`/app/${orgId}/billing/invoices`}>
+                    View invoices
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="border-white/35 bg-transparent text-white hover:bg-white/10"
+                >
+                  <Link href={`/app/${orgId}/plans`}>Manage plans</Link>
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

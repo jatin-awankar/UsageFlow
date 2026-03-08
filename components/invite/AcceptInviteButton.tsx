@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button";
 
 export default function AcceptInviteButton({ token }: { token: string }) {
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   async function handleAccept() {
     setLoading(true);
@@ -29,8 +27,8 @@ export default function AcceptInviteButton({ token }: { token: string }) {
           : "Invitation accepted"
       );
 
-      router.push(`/app/${result.orgId}/dashboard`);
-      router.refresh();
+      const destination = `/app/${result.orgId}/dashboard`;
+      window.location.assign(destination);
     } catch {
       toast.error("Unable to accept invitation");
     } finally {

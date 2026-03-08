@@ -31,7 +31,7 @@ export default function Topbar({
     OWNER: "border-violet-200 bg-violet-50 text-violet-700",
     ADMIN: "border-sky-200 bg-sky-50 text-sky-700",
     DEVELOPER: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    VIEWER: "border-slate-200 bg-slate-50 text-slate-600",
+    VIEWER: "border-amber-200 bg-amber-50 text-amber-700",
   };
 
   return (
@@ -87,7 +87,7 @@ export default function Topbar({
             {roleLabel(role)}
           </span>
           <OrgSwitcher currentOrgId={orgId} organizations={organizations} />
-          <UserMenu email={userEmail} orgId={orgId} />
+          <UserMenu email={userEmail} orgId={orgId} role={role} />
         </div>
       </div>
     </header>

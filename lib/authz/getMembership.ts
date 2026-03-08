@@ -13,5 +13,8 @@ export async function getMembership(userId: string, orgId: string) {
         orgId,
       },
     },
+    select: {
+      role: true,
+    },
   });
 }
