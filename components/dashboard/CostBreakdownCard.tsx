@@ -26,8 +26,12 @@ export default function CostBreakdownCard({
     <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:220ms]">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">Cost breakdown</h3>
-          <p className="text-sm text-slate-500">Where overage spend is concentrated</p>
+          <h3 className="text-base font-semibold text-slate-900">
+            Cost breakdown
+          </h3>
+          <p className="text-sm text-slate-500">
+            Where overage spend is concentrated
+          </p>
         </div>
         <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
           {currencyFormatter.format(total)} total
@@ -54,7 +58,9 @@ export default function CostBreakdownCard({
                 }}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-slate-800">{item.metric}</span>
+                  <span className="text-sm font-medium text-slate-800">
+                    {item.metric}
+                  </span>
                   <span className="text-sm font-semibold text-slate-900">
                     {currencyFormatter.format(item.cost)}
                   </span>
@@ -62,7 +68,7 @@ export default function CostBreakdownCard({
 
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                    className="h-full rounded-full bg-linear-to-r from-sky-500 to-cyan-400"
                     style={{ width: `${width}%` }}
                   />
                 </div>

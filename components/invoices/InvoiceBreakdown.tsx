@@ -43,7 +43,9 @@ export default function InvoiceBreakdown({
 
       <div className="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-slate-800">Base plan ({planName})</p>
+          <p className="text-sm font-medium text-slate-800">
+            Base plan ({planName})
+          </p>
           <p className="text-sm font-semibold text-slate-900">
             {currencyFormatter.format(basePrice)}
           </p>
@@ -70,14 +72,16 @@ export default function InvoiceBreakdown({
                 }}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-800">{row.metric}</p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {row.metric}
+                  </p>
                   <p className="text-sm font-semibold text-slate-900">
                     {currencyFormatter.format(row.cost)}
                   </p>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                    className="h-full rounded-full bg-linear-to-r from-sky-500 to-cyan-400"
                     style={{ width: `${width}%` }}
                   />
                 </div>

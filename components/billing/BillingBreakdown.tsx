@@ -58,22 +58,28 @@ export default function BillingBreakdown({ rows }: { rows: BreakdownRow[] }) {
                   }}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-slate-800">{row.metric}</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {row.metric}
+                    </p>
                     <p className="text-sm font-semibold text-slate-900">
                       {currencyFormatter.format(row.cost)}
                     </p>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                      className="h-full rounded-full bg-linear-to-r from-sky-500 to-cyan-400"
                       style={{ width: `${width}%` }}
                     />
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500">
                     <span>Used: {numberFormatter.format(row.used)}</span>
-                    <span>Included: {numberFormatter.format(row.included)}</span>
+                    <span>
+                      Included: {numberFormatter.format(row.included)}
+                    </span>
                     <span>Overage: {numberFormatter.format(row.overage)}</span>
-                    <span>Rate: {currencyFormatter.format(row.pricePerUnit)}</span>
+                    <span>
+                      Rate: {currencyFormatter.format(row.pricePerUnit)}
+                    </span>
                   </div>
                 </div>
               );
@@ -146,8 +152,12 @@ export default function BillingBreakdown({ rows }: { rows: BreakdownRow[] }) {
           <Info className="size-3.5" />
           Billing notes
         </p>
-        <p className="mt-1">Overage is charged only after included units are exceeded.</p>
-        <p className="mt-1">Final invoices may include adjustments or discounts.</p>
+        <p className="mt-1">
+          Overage is charged only after included units are exceeded.
+        </p>
+        <p className="mt-1">
+          Final invoices may include adjustments or discounts.
+        </p>
       </div>
     </article>
   );

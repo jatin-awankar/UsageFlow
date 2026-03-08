@@ -10,7 +10,6 @@ import {
   ArrowRight,
   CalendarRange,
   ReceiptText,
-  Sparkles,
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -142,7 +141,6 @@ export default async function InvoiceDetailPage({
           <div className="relative grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end">
             <div>
               <p className="mb-2 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100">
-                <Sparkles className="mr-1.5 size-3.5" />
                 <ReceiptText className="mr-1.5 size-3.5" />
                 Invoice #{invoice.id.slice(0, 8)}
               </p>

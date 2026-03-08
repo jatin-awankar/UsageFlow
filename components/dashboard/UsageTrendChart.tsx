@@ -56,9 +56,12 @@ export default function UsageTrendChart({
     <div className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-md shadow-slate-900/5 animate-in fade-in slide-in-from-bottom-2 duration-700 [animation-delay:140ms]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">Usage trend</h3>
+          <h3 className="text-base font-semibold text-slate-900">
+            Usage trend
+          </h3>
           <p className="text-sm text-slate-500">
-            {numberFormatter.format(total)} total units across {data.length} metrics
+            {numberFormatter.format(total)} total units across {data.length}{" "}
+            metrics
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -76,9 +79,12 @@ export default function UsageTrendChart({
           No usage yet for this billing cycle.
         </div>
       ) : (
-        <div className="h-72 rounded-xl border border-slate-200/70 bg-gradient-to-b from-sky-50/65 via-cyan-50/30 to-white p-2">
+        <div className="h-72 rounded-xl border border-slate-200/70 bg-linear-to-b from-sky-50/65 via-cyan-50/30 to-white p-2">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+            <LineChart
+              data={data}
+              margin={{ top: 12, right: 12, left: 0, bottom: 0 }}
+            >
               <defs>
                 <linearGradient id="usage-area" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#0284c7" stopOpacity={0.26} />
