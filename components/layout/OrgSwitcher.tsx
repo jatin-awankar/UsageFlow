@@ -27,7 +27,7 @@ export default function OrgSwitcher({
 
   return (
     <Menu as="div" className="relative">
-      <MenuButton className="inline-flex max-w-[11rem] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:cursor-pointer">
+      <MenuButton className="inline-flex max-w-44 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:cursor-pointer">
         <span className="truncate">{currentOrg?.name || "Select org"}</span>
         <ChevronDown className="size-4 text-slate-400" />
       </MenuButton>

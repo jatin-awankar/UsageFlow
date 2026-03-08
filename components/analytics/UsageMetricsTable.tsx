@@ -68,7 +68,7 @@ export default function UsageMetricsTable({ usage }: { usage: UsageRow[] }) {
 
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                  className="h-full rounded-full bg-linear-to-r from-sky-500 to-cyan-400"
                   style={{ width: `${width}%` }}
                 />
               </div>
@@ -77,7 +77,9 @@ export default function UsageMetricsTable({ usage }: { usage: UsageRow[] }) {
                 <span>{share.toFixed(1)}% of total</span>
                 <span>
                   {dateFormatter.format(row.periodStart)} -{" "}
-                  {row.periodEnd ? dateFormatter.format(row.periodEnd) : "Current"}
+                  {row.periodEnd
+                    ? dateFormatter.format(row.periodEnd)
+                    : "Current"}
                 </span>
               </div>
             </div>

@@ -19,7 +19,6 @@ import {
   CalendarRange,
   Layers3,
   LayoutDashboard,
-  Sparkles,
   Wallet,
 } from "lucide-react";
 
@@ -120,7 +119,6 @@ export default async function DashboardPage({
         <div className="relative grid gap-6 xl:grid-cols-[1.3fr_1fr] xl:items-end">
           <div>
             <p className="mb-2 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100">
-              <Sparkles className="mr-1.5 size-3.5" />
               Live billing cycle
             </p>
             <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">

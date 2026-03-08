@@ -5,7 +5,6 @@ import {
   Github,
   SendHorizontal,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -19,8 +18,7 @@ export default function HeroSection() {
     <div className="mx-auto max-w-6xl">
       <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <div className="space-y-6 animate-in fade-in slide-in-from-left-3 duration-700">
-          <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-slate-600">
-            <Sparkles className="size-3.5 text-cyan-600" />
+          <p className="inline-flex items-center gap-2 rounded-full border border-primary/15 px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-primary/80">
             Billing infrastructure for modern SaaS
           </p>
 
@@ -34,7 +32,7 @@ export default function HeroSection() {
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button asChild size="lg" className="bg-slate-900 hover:bg-slate-700">
+            <Button asChild size="lg">
               <Link href="/app">
                 Open dashboard
                 <ArrowRight className="size-4" />
@@ -57,13 +55,17 @@ export default function HeroSection() {
               <p className="text-xs uppercase tracking-[0.08em] text-slate-500">
                 Event latency
               </p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">&lt; 200ms</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">
+                &lt; 200ms
+              </p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white/80 p-3">
               <p className="text-xs uppercase tracking-[0.08em] text-slate-500">
                 Multi-tenant ready
               </p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">Org scoped</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">
+                Org scoped
+              </p>
             </div>
           </div>
 
@@ -86,7 +88,7 @@ export default function HeroSection() {
         <div className="relative animate-in fade-in slide-in-from-right-3 duration-700 [animation-delay:120ms]">
           <div className="absolute -inset-5 -z-10 rounded-3xl bg-linear-to-br from-cyan-200/35 via-sky-200/20 to-indigo-200/35 blur-2xl" />
 
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-600">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 text-xs text-slate-500">
               <span>Usage event ingestion</span>
               <span>POST</span>

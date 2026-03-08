@@ -14,7 +14,7 @@ import BillingSummaryCards from "@/components/billing/BillingSummaryCards";
 import LatestInvoiceCard from "@/components/billing/LatestInvoiceCard";
 import BillingBreakdown from "@/components/billing/BillingBreakdown";
 import { GenerateInvoiceButton } from "./GenerateInvoiceButton";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export default async function BillingPage({
   params,
@@ -96,7 +96,6 @@ export default async function BillingPage({
             <div className="relative flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="mb-2 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-slate-100">
-                  <Sparkles className="mr-1.5 size-3.5" />
                   Current billing cycle
                 </p>
                 <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">

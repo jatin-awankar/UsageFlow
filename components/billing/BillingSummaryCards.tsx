@@ -53,7 +53,7 @@ export default function BillingSummaryCards({
               "group relative overflow-hidden rounded-2xl border p-5 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-lg animate-in fade-in slide-in-from-bottom-2",
               card.highlight
                 ? "border-slate-900/20 bg-linear-to-br from-slate-900 to-slate-800 text-white shadow-slate-900/20"
-                : "border-slate-200/80 bg-white/95"
+                : "border-slate-200/80 bg-white/95",
             )}
             style={{
               animationDuration: "700ms",
@@ -62,8 +62,8 @@ export default function BillingSummaryCards({
           >
             <div
               className={cn(
-                "pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r",
-                card.gradient
+                "pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r",
+                card.gradient,
               )}
             />
             <div className="mb-4 flex items-start justify-between gap-3">
@@ -96,7 +96,12 @@ export default function BillingSummaryCards({
                 <Icon className="size-4" />
               </span>
             </div>
-            <p className={cn("text-xs", card.highlight ? "text-slate-300" : "text-slate-500")}>
+            <p
+              className={cn(
+                "text-xs",
+                card.highlight ? "text-slate-300" : "text-slate-500",
+              )}
+            >
               {card.description}
             </p>
           </article>
