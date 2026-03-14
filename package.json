@@ -9,7 +9,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "worker": "tsx worker/index.ts"
+    "worker": "tsx worker/index.ts",
+    "qstash:sync-schedule": "tsx scripts/qstash-sync-schedule.ts",
+    "qstash:delete-schedule": "tsx scripts/qstash-delete-schedule.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -21,6 +23,7 @@
     "@prisma/client": "^7.2.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/mdx": "^2.0.13",
+    "@upstash/qstash": "^2.9.0",
     "@upstash/redis": "^1.36.1",
     "@vercel/analytics": "^1.6.1",
     "axios": "^1.13.2",
