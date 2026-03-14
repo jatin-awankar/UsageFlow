@@ -1,3 +1,4 @@
+import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { Worker } from "bullmq";
 import { bullmqConnection } from "@/lib/bullmq";
 import {
@@ -22,19 +23,12 @@ function getBatchSize() {
   return raw;
 }
 
-export async function GET(req: Request) {
+async function processQueuedJobs() {
   try {
-    const cronSecret = process.env.CRON_SECRET;
-    const authHeader = req.headers.get("authorization");
-
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
     const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
       "usageflow",
       async (job) => {
-        console.log(`Cron processing job: ${job.name}`, job.data);
+        console.log(`QStash processing job: ${job.name}`, job.data);
         return processQueueJob(job);
       },
       {
@@ -75,7 +69,7 @@ export async function GET(req: Request) {
         await worker.processJob(job, token);
       }
 
-      console.log("Cron job finished", { attempted, completed, failed });
+      console.log("Job drain finished", { attempted, completed, failed });
 
       return Response.json({
         success: true,
@@ -87,7 +81,7 @@ export async function GET(req: Request) {
       await worker.close();
     }
   } catch (error) {
-    console.error("Cron job failed", error);
+    console.error("QStash job drain failed", error);
 
     return Response.json(
       { success: false, error: "Failed to process queued jobs" },
@@ -95,3 +89,7 @@ export async function GET(req: Request) {
     );
   }
 }
+
+export const POST = verifySignatureAppRouter(processQueuedJobs, {
+  clockTolerance: 5,
+});
