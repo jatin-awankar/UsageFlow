@@ -3,31 +3,18 @@ import "dotenv/config";
 
 import { Worker } from "bullmq";
 import { bullmqConnection } from "@/lib/bullmq";
-import { processAggregation } from "./processors/aggregateUsage";
-import { processInvoice } from "./processors/generateInvoice";
-import { processWebhook } from "./processors/deliverWebhook";
+import {
+  processQueueJob,
+  type UsageFlowJobData,
+  type UsageFlowJobName,
+} from "@/lib/jobs/processQueueJob";
 
 console.log("UsageFlow worker started");
-const worker = new Worker(
+const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
   "usageflow",
   async (job) => {
-    try {
-      console.log(`Processing job: ${job.name}`, job.data);
-
-      switch (job.name) {
-        case "AGGREGATE_USAGE":
-          return processAggregation(job.data);
-        case "GENERATE_INVOICE":
-          return processInvoice(job.data);
-        case "DELIVER_WEBHOOK":
-          return processWebhook(job.data.webhookEventId);
-        default:
-          console.warn("Unknown job:", job.name);
-      }
-    } catch (err) {
-      console.error("Job failed:", job.name, err);
-      return { success: false, error: err }; // IMPORTANT: let BullMQ handle retries
-    }
+    console.log(`Processing job: ${job.name}`, job.data);
+    return processQueueJob(job);
   },
   {
     connection: bullmqConnection,
