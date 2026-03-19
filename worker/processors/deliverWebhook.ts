@@ -1,88 +1,220 @@
 import axios from "axios";
 import crypto from "crypto";
+import { WebhookDeliveryStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { getBackoffDelay } from "@/lib/webhooks/backoff";
+import {
+  enqueueWebhookDeliveriesForEvent,
+  enqueueWebhookRetryJob,
+  refreshWebhookEventStatus,
+} from "@/lib/webhooks/events";
 import { MAX_WEBHOOK_ATTEMPTS } from "@/lib/webhooks/retryConfig";
 
-export async function processWebhook(eventId: string) {
-  const event = await prisma.webhookEvent.findUnique({
-    where: { id: eventId },
-  });
+function getErrorStatusCode(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as Record<string, unknown>).response === "object" &&
+    (error as { response?: { status?: number } }).response?.status
+  ) {
+    return (error as { response?: { status?: number } }).response!.status!;
+  }
 
-  if (!event) return;
+  return 500;
+}
 
-  const endpoints = await prisma.webhookEndpoint.findMany({
+function getErrorBody(error: unknown) {
+  return error instanceof Error ? error.message : JSON.stringify(error);
+}
+
+async function upsertWebhookDelivery(args: {
+  webhookEventId: string;
+  endpointId: string;
+  attempt: number;
+  status: WebhookDeliveryStatus;
+  responseCode?: number;
+  responseBody?: string;
+  durationMs?: number;
+}) {
+  const {
+    webhookEventId,
+    endpointId,
+    attempt,
+    status,
+    responseCode,
+    responseBody,
+    durationMs,
+  } = args;
+
+  await prisma.webhookDelivery.upsert({
     where: {
-      orgId: event.orgId,
-      active: true,
-      events: { has: event.type },
+      webhookEventId_endpointId_attempt: {
+        webhookEventId,
+        endpointId,
+        attempt,
+      },
+    },
+    update: {
+      status,
+      responseCode,
+      responseBody,
+      durationMs,
+    },
+    create: {
+      webhookEventId,
+      endpointId,
+      attempt,
+      status,
+      responseCode,
+      responseBody,
+      durationMs,
+    },
+  });
+}
+
+async function processWebhookEndpoint(
+  webhookEventId: string,
+  endpointId: string,
+  attempt: number
+) {
+  const event = await prisma.webhookEvent.findUnique({
+    where: { id: webhookEventId },
+    select: {
+      id: true,
+      orgId: true,
+      type: true,
+      payload: true,
+      targetEndpointIds: true,
     },
   });
 
-  for (const endpoint of endpoints) {
-    // 🔍 Get last attempt for this event + endpoint
-    const lastAttempt = await prisma.webhookDelivery.findFirst({
-      where: {
-        webhookEventId: event.id,
-        endpointId: endpoint.id,
+  if (!event) {
+    return;
+  }
+
+  if (
+    event.targetEndpointIds.length > 0 &&
+    !event.targetEndpointIds.includes(endpointId)
+  ) {
+    await refreshWebhookEventStatus(webhookEventId);
+    return;
+  }
+
+  const endpoint = await prisma.webhookEndpoint.findUnique({
+    where: {
+      id: endpointId,
+    },
+    select: {
+      id: true,
+      orgId: true,
+      url: true,
+      secret: true,
+      active: true,
+      events: true,
+    },
+  });
+
+  if (
+    !endpoint ||
+    !endpoint.active ||
+    endpoint.orgId !== event.orgId ||
+    !endpoint.events.includes(event.type)
+  ) {
+    await refreshWebhookEventStatus(webhookEventId);
+    return;
+  }
+
+  const lastAttempt = await prisma.webhookDelivery.findFirst({
+    where: {
+      webhookEventId,
+      endpointId,
+    },
+    orderBy: { attempt: "desc" },
+    select: {
+      attempt: true,
+      status: true,
+    },
+  });
+
+  if (lastAttempt?.status === WebhookDeliveryStatus.SUCCESS) {
+    await refreshWebhookEventStatus(webhookEventId);
+    return;
+  }
+
+  const latestAttemptNumber = lastAttempt?.attempt ?? 0;
+
+  if (latestAttemptNumber >= attempt) {
+    await refreshWebhookEventStatus(webhookEventId);
+    return;
+  }
+
+  if (latestAttemptNumber !== attempt - 1) {
+    await refreshWebhookEventStatus(webhookEventId);
+    return;
+  }
+
+  if (attempt > MAX_WEBHOOK_ATTEMPTS) {
+    await refreshWebhookEventStatus(webhookEventId);
+    return;
+  }
+
+  const payload = JSON.stringify(event.payload);
+  const start = Date.now();
+  const signature = crypto
+    .createHmac("sha256", endpoint.secret)
+    .update(payload)
+    .digest("hex");
+
+  try {
+    const response = await axios.post(endpoint.url, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-UsageFlow-Signature": signature,
       },
-      orderBy: { attempt: "desc" },
+      timeout: 5000,
     });
 
-    const nextAttempt = lastAttempt ? lastAttempt.attempt + 1 : 1;
+    await upsertWebhookDelivery({
+      webhookEventId,
+      endpointId,
+      attempt,
+      status: WebhookDeliveryStatus.SUCCESS,
+      responseCode: response.status,
+      responseBody: response.statusText,
+      durationMs: Date.now() - start,
+    });
+  } catch (error) {
+    await upsertWebhookDelivery({
+      webhookEventId,
+      endpointId,
+      attempt,
+      status: WebhookDeliveryStatus.FAILED,
+      responseCode: getErrorStatusCode(error),
+      responseBody: getErrorBody(error),
+      durationMs: Date.now() - start,
+    });
 
-    // ⛔ Stop retrying
-    if (nextAttempt > MAX_WEBHOOK_ATTEMPTS) continue;
-
-    // ⏱ Apply backoff
-    if (nextAttempt > 1) {
-      const delay = getBackoffDelay(nextAttempt);
-      await new Promise((res) => setTimeout(res, delay));
-    }
-
-    const payload = JSON.stringify(event.payload);
-    const start = Date.now();
-
-    const signature = crypto
-      .createHmac("sha256", endpoint.secret)
-      .update(payload)
-      .digest("hex");
-
-    try {
-      const res = await axios.post(endpoint.url, payload, {
-        headers: {
-          "Content-Type": "application/json",
-          "X-UsageFlow-Signature": signature,
-        },
-        timeout: 5000,
-      });
-
-      await prisma.webhookDelivery.create({
-        data: {
-          webhookEventId: event.id,
-          endpointId: endpoint.id,
-          attempt: nextAttempt,
-          status: "SUCCESS",
-          responseCode: res.status,
-          responseBody: res.statusText,
-          durationMs: Date.now() - start,
-        },
-      });
-    } catch (err) {
-      await prisma.webhookDelivery.create({
-        data: {
-          webhookEventId: event.id,
-          endpointId: endpoint.id,
-          attempt: nextAttempt,
-          status: "FAILED",
-          responseCode: (typeof err === 'object' && err !== null && 'response' in err && typeof (err as Record<string, unknown>).response === 'object' && (err as { response?: { status?: number } }).response?.status)
-            ? (err as { response?: { status?: number } }).response!.status!
-            : 500,
-          responseBody:
-            err instanceof Error ? err.message : JSON.stringify(err),
-          durationMs: Date.now() - start,
-        },
+    if (attempt < MAX_WEBHOOK_ATTEMPTS) {
+      await enqueueWebhookRetryJob({
+        webhookEventId,
+        endpointId,
+        attempt: attempt + 1,
       });
     }
   }
+
+  await refreshWebhookEventStatus(webhookEventId);
+}
+
+export async function processWebhook(
+  webhookEventId: string,
+  endpointId?: string,
+  attempt = 1
+) {
+  if (!endpointId) {
+    await enqueueWebhookDeliveriesForEvent(webhookEventId);
+    return;
+  }
+
+  await processWebhookEndpoint(webhookEventId, endpointId, attempt);
 }

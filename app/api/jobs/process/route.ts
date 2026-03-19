@@ -1,6 +1,6 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import { Worker } from "bullmq";
-import { bullmqConnection } from "@/lib/bullmq";
+import { bullmqConnection, usageFlowQueueName } from "@/lib/bullmq";
 import {
   processQueueJob,
   type UsageFlowJobData,
@@ -26,7 +26,7 @@ function getBatchSize() {
 async function processQueuedJobs() {
   try {
     const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
-      "usageflow",
+      usageFlowQueueName,
       async (job) => {
         console.log(`QStash processing job: ${job.name}`, job.data);
         return processQueueJob(job);
