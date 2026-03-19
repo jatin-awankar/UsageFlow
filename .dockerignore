@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+webhook-receiver/node_modules
+.env
+.env.local
+.env.development
+.env.production
+*.log

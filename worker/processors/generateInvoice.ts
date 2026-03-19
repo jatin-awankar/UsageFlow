@@ -1,7 +1,7 @@
 // worker/processors/generateInvoice.ts
 import { writeAuditLog } from "@/lib/audit";
-import { usageQueue } from "@/lib/queue";
 import prisma from "@/lib/prisma";
+import { createWebhookEventRecord } from "@/lib/webhooks/events";
 
 export async function processInvoice({
   subscriptionId,
@@ -92,30 +92,12 @@ export async function processInvoice({
     },
   });
 
-  const webhookEvent = await prisma.webhookEvent.create({
-    data: {
-      orgId,
-      type: "invoice.created",
-      payload: {
-        invoiceId: invoice.id,
-        amount: invoice.amount,
-        periodStart: invoice.periodStart,
-        periodEnd: invoice.periodEnd,
-      },
-    },
+  await createWebhookEventRecord(orgId, "invoice.created", {
+    invoiceId: invoice.id,
+    amount: invoice.amount,
+    periodStart: invoice.periodStart,
+    periodEnd: invoice.periodEnd,
   });
-
-  await usageQueue.add(
-    "DELIVER_WEBHOOK",
-    { webhookEventId: webhookEvent.id },
-    {
-      attempts: 5,
-      backoff: {
-        type: "exponential" as const,
-        delay: 5000,
-      },
-    }
-  );
 
   console.log("Invoice generated", {
     invoiceId: invoice.id,

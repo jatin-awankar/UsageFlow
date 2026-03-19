@@ -2,23 +2,34 @@
 import "dotenv/config";
 
 import { Worker } from "bullmq";
-import { bullmqConnection } from "@/lib/bullmq";
+import { bullmqConnection, usageFlowQueueName } from "@/lib/bullmq";
 import {
   processQueueJob,
   type UsageFlowJobData,
   type UsageFlowJobName,
 } from "@/lib/jobs/processQueueJob";
 
-console.log("UsageFlow worker started");
+const DEFAULT_CONCURRENCY = 5;
+
+function getWorkerConcurrency() {
+  const raw = Number.parseInt(process.env.WORKER_CONCURRENCY ?? "", 10);
+
+  if (Number.isNaN(raw) || raw < 1) {
+    return DEFAULT_CONCURRENCY;
+  }
+
+  return raw;
+}
+
 const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
-  "usageflow",
+  usageFlowQueueName,
   async (job) => {
     console.log(`Processing job: ${job.name}`, job.data);
     return processQueueJob(job);
   },
   {
     connection: bullmqConnection,
-    concurrency: 5,
+    concurrency: getWorkerConcurrency(),
   }
 );
 
@@ -32,4 +43,39 @@ worker.on("failed", (job, err) => {
 
 worker.on("error", (err) => {
   console.error("Worker error:", err);
+});
+
+let isShuttingDown = false;
+
+async function shutdown(signal: string) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log(`Received ${signal}, closing worker`);
+
+  try {
+    await worker.close();
+    console.log("Worker closed cleanly");
+    process.exit(0);
+  } catch (error) {
+    console.error("Failed to close worker cleanly", error);
+    process.exit(1);
+  }
+}
+
+process.on("SIGINT", () => {
+  void shutdown("SIGINT");
+});
+
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM");
+});
+
+await worker.waitUntilReady();
+
+console.log("UsageFlow worker started", {
+  queue: usageFlowQueueName,
+  concurrency: getWorkerConcurrency(),
 });

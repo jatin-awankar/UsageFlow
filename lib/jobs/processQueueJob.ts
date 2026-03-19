@@ -22,6 +22,8 @@ const generateInvoiceJobSchema = z.object({
 
 const deliverWebhookJobSchema = z.object({
   webhookEventId: z.string().min(1),
+  endpointId: z.string().min(1).optional(),
+  attempt: z.number().int().min(1).optional(),
 });
 
 export type UsageFlowJobData =
@@ -42,9 +44,10 @@ export async function processQueueJob(job: QueueJobInput) {
     case "GENERATE_INVOICE":
       return processInvoice(generateInvoiceJobSchema.parse(job.data));
     case "DELIVER_WEBHOOK":
-      return processWebhook(
-        deliverWebhookJobSchema.parse(job.data).webhookEventId
-      );
+      {
+        const data = deliverWebhookJobSchema.parse(job.data);
+        return processWebhook(data.webhookEventId, data.endpointId, data.attempt);
+      }
     default:
       throw new Error(
         `Unknown queue job: ${job.name}${job.id ? ` (${job.id})` : ""}`

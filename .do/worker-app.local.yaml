@@ -1,0 +1,38 @@
+# Change the region to match your database and Redis location.
+name: usageflow-workers
+region: blr
+
+workers:
+  - name: queue-worker
+    github:
+      repo: https://github.com/jatin-awankar/UsageFlow
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: ./Dockerfile.worker
+    source_dir: ./
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    termination:
+      drain_seconds: 30
+      grace_period_seconds: 90
+    envs:
+      - key: NODE_ENV
+        scope: RUN_TIME
+        type: GENERAL
+        value: production
+      - key: QUEUE_NAME
+        scope: RUN_TIME
+        type: GENERAL
+        value: usageflow
+      - key: WORKER_CONCURRENCY
+        scope: RUN_TIME
+        type: GENERAL
+        value: "5"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: postgres://582ec9ff5785b69a76953c6727857e31e501dfc9f0c25b06ca754385ed90867c:sk_FjPGgLsYTilZXv-y7Sfu9@db.prisma.io:5432/postgres?sslmode=require&pool=true
+      - key: REDIS_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: rediss://default:Ab-_AAIncDJkYzY1NTJmYTQ4ZTM0NmI2ODAzYWM4MGIyNGQ5ZTZhNXAyNDkwODc@subtle-hornet-49087.upstash.io:6379

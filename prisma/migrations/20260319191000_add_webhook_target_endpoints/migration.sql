@@ -1,0 +1,2 @@
+ALTER TABLE "WebhookEvent"
+ADD COLUMN "targetEndpointIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

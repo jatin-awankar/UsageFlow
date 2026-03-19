@@ -204,6 +204,7 @@ model WebhookEvent {
   type         String
   payload      Json
   status       WebhookEventStatus @default(PENDING)
+  targetEndpointIds String[]      @default([])
   orgId        String
   createdAt    DateTime           @default(now())
   deliveries   WebhookDelivery[]
