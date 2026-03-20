@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/webhook-receiver/node_modules/
 
 # testing
 /coverage
@@ -19,6 +20,7 @@
 
 # production
 /build
+/.turbo/
 
 # misc
 .DS_Store
@@ -32,21 +34,16 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-.do/*.local.yaml
+/.do/
+/.vscode/
 
 # vercel
-.vercel
+/.vercel/
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-/app/generated/prisma
-
-/lib/generated/prisma
-
-/lib/generated/prisma
-
-/generated/prisma
-
-/lib/generated/prisma
+/app/generated/prisma/
+/generated/prisma/
+/lib/generated/prisma/
