@@ -2,7 +2,7 @@
 
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
 import { createPlanSchema } from "@/lib/validators";
 
@@ -21,7 +21,9 @@ export async function createPlan(
     return { success: false, error: "Invalid Plan data", status: 400 };
   }
 
-  await requireRole(userId, orgId, permissions.createPlan);
+  void userId;
+
+  const { user } = await requireCurrentOrgRole(orgId, permissions.createPlan);
 
   try {
     const plan = await prisma.plan.create({
@@ -33,7 +35,7 @@ export async function createPlan(
 
     await writeAuditLog({
       orgId,
-      userId,
+      userId: user.id,
       action: "PLAN_CREATED",
       entity: "Plan",
       entityId: plan.id,

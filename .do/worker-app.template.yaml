@@ -1,5 +1,5 @@
-# Sanitized local worker spec.
-# Copy this file outside git or replace the placeholder secrets before deploying.
+# Copy this template before deployment and inject environment-specific secrets
+# through your deployment workflow or the DigitalOcean UI.
 name: usageflow-workers
 region: blr
 

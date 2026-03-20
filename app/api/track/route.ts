@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { hashApiKey } from "@/lib/apiKeys/generateKey";
 import { usageQueue } from "@/lib/queue";
+import { usageEventSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,25 +25,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
     }
 
-    // 2️⃣ Idempotency key
-    const idempotencyKey = req.headers.get("idempotency-key");
+    const idempotencyKey = req.headers.get("idempotency-key")?.trim() || null;
 
-    if (idempotencyKey) {
-      const existing = await prisma.usageEvent.findUnique({
-        where: { idempotencyKey },
-      });
+    const parsedBody = usageEventSchema.safeParse(await req.json());
 
-      if (existing) {
-        return NextResponse.json({ success: true });
-      }
-    }
-
-    // 3️⃣ Parse body
-    const { metric, amount, customerId, metadata } = await req.json();
-
-    if (!metric || typeof amount !== "number") {
+    if (!parsedBody.success) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
+
+    const metric = parsedBody.data.metric.trim().toUpperCase();
+    const amount = parsedBody.data.amount;
+    const customerId = parsedBody.data.customerId?.trim() || null;
+    const metadata = parsedBody.data.metadata ?? {};
+    const timestamp = parsedBody.data.timestamp
+      ? new Date(parsedBody.data.timestamp)
+      : undefined;
 
     // 4️⃣ Active subscription
     const subscription = await prisma.subscription.findFirst({
@@ -58,13 +56,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (subscription.status !== "ACTIVE") {
-      return NextResponse.json(
-        { error: "Subscription suspended" },
-        { status: 403 }
-      );
-    }
-
     // 5️⃣ Metric validation
     const metricRecord = await prisma.metric.findFirst({
       where: {
@@ -77,19 +68,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unknown metric" }, { status: 400 });
     }
 
-    // 6️⃣ Insert usage
-    await prisma.usageEvent.create({
-      data: {
-        orgId: keyRecord.orgId,
-        subscriptionId: subscription.id,
-        apiKeyId: keyRecord.id,
-        metricKey: metric,
-        amount,
-        customerId: customerId ?? null,
-        metadata: metadata ?? {},
-        idempotencyKey: idempotencyKey ?? null,
-      },
-    });
+    try {
+      await prisma.usageEvent.create({
+        data: {
+          orgId: keyRecord.orgId,
+          subscriptionId: subscription.id,
+          apiKeyId: keyRecord.id,
+          metricId: metricRecord.id,
+          metricKey: metric,
+          amount,
+          customerId,
+          metadata,
+          idempotencyKey,
+          ...(timestamp ? { timestamp } : {}),
+        },
+      });
+    } catch (error) {
+      if (
+        idempotencyKey &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        return NextResponse.json({ success: true });
+      }
+
+      throw error;
+    }
 
     // add aggregated_usage
     await usageQueue.add(

@@ -1,10 +1,12 @@
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
 export async function getMembers(userId: string, orgId: string) {
+    void userId;
+
     // Ensure user belongs to org
-    await requireRole(userId, orgId, [
+    await requireCurrentOrgRole(orgId, [
         Role.OWNER,
         Role.ADMIN,
         Role.DEVELOPER,

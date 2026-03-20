@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { writeAuditLog } from "@/lib/audit";
 import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
 import { Role, InvoiceStatus } from "@prisma/client";
@@ -11,7 +11,9 @@ export async function markInvoicePaid(
     orgId: string,
     invoiceId: string
 ) {
-    await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+    void userId;
+
+    const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
 
     const invoice = await prisma.invoice.findUnique({
         where: { id: invoiceId },
@@ -33,6 +35,7 @@ export async function markInvoicePaid(
     // Audit log
     await writeAuditLog({
         orgId,
+        userId: user.id,
         action: "INVOICE_PAID",
         entity: "Invoice",
         entityId: invoiceId,

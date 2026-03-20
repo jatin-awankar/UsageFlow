@@ -1,11 +1,13 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
 export async function getPlans(userId: string, orgId: string) {
-    await requireRole(userId, orgId, [
+    void userId;
+
+    await requireCurrentOrgRole(orgId, [
         Role.OWNER,
         Role.ADMIN,
         Role.DEVELOPER,

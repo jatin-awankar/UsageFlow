@@ -2,7 +2,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { writeAuditLog } from "@/lib/audit";
 import crypto from "crypto";
 import { createWebhookSchema } from "@/lib/validators";
@@ -24,8 +24,9 @@ export async function createWebhookEndpoint(
 
   const { url, events } = parsed.data;
 
-  // 2️⃣ Authorization
-  await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+  void userId;
+
+  const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
 
   const secret = crypto.randomBytes(32).toString("hex");
 
@@ -44,7 +45,7 @@ export async function createWebhookEndpoint(
     // 4️⃣ Audit log (THIS WAS MISSING)
     await writeAuditLog({
       orgId,
-      userId,
+      userId: user.id,
       action: "WEBHOOK_CREATED",
       entity: "WebhookEndpoint",
       entityId: webhook.id,
@@ -60,7 +61,7 @@ export async function createWebhookEndpoint(
   } catch (error) {
     console.error("Failed to create webhook endpoint", error);
     return {
-      sucess: false,
+      success: false,
       error: "Failed to create webhook endpoint",
       statusCode: 500,
     };

@@ -3,7 +3,7 @@
 import { generateApiKey, hashApiKey } from "@/lib/apiKeys/generateKey";
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
 import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
 
@@ -21,7 +21,9 @@ export async function createApiKey(
     };
   }
 
-  await requireRole(userId, orgId, permissions.createApiKey);
+  void userId;
+
+  const { user } = await requireCurrentOrgRole(orgId, permissions.createApiKey);
 
   const rawKey = generateApiKey();
   const hashedKey = hashApiKey(rawKey);
@@ -46,7 +48,7 @@ export async function createApiKey(
     const sideEffects = await Promise.allSettled([
       writeAuditLog({
         orgId,
-        userId,
+        userId: user.id,
         action: "API_KEY_CREATED",
         entity: "ApiKey",
         entityId: apiKey.id,

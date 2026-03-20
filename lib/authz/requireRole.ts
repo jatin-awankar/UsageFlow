@@ -1,3 +1,4 @@
+import { requireCurrentUser } from "@/lib/auth/session";
 import { getMembership } from "@/lib/authz/getMembership";
 import { Role } from "@prisma/client";
 
@@ -17,4 +18,17 @@ export async function requireRole(
   }
 
   return membership;
+}
+
+export async function requireCurrentOrgRole(
+  orgId: string,
+  allowedRoles: Role[]
+) {
+  const user = await requireCurrentUser();
+  const membership = await requireRole(user.id, orgId, allowedRoles);
+
+  return {
+    membership,
+    user,
+  };
 }

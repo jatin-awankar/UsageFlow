@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { writeAuditLog } from "@/lib/audit";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 import { updateOrganizationSchema } from "@/lib/validators";
 
@@ -11,8 +11,9 @@ export async function updateOrganization(
     input: unknown,
     userId: string
 ) {
-    // RBAC: OWNER or ADMIN
-    await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+    void userId;
+
+    const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
 
     const parsed = updateOrganizationSchema.safeParse(input);
     if (!parsed.success) {
@@ -47,7 +48,7 @@ export async function updateOrganization(
 
         await writeAuditLog({
             orgId,
-            userId,
+            userId: user.id,
             action: "ORG_UPDATED",
             entity: "Organization",
             entityId: orgId,

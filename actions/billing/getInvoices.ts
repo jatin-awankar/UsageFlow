@@ -1,11 +1,13 @@
 "use server";
 
 import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
 
 export async function getInvoices(userId: string, orgId: string) {
-  await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+  void userId;
+
+  await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
 
   const invoices = await prisma.invoice.findMany({
     where: {

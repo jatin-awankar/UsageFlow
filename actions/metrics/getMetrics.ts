@@ -1,11 +1,13 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
 export async function getMetrics(userId: string, orgId: string, page = 0, pageSize = 5) {
-  await requireRole(userId, orgId, [
+  void userId;
+
+  await requireCurrentOrgRole(orgId, [
     Role.OWNER,
     Role.ADMIN,
     Role.DEVELOPER,
