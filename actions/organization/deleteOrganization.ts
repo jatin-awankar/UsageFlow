@@ -1,26 +1,27 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { writeAuditLog } from "@/lib/audit";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
 export async function deleteOrganization(
     userId: string,
     orgId: string,
 ) {
-    // RBAC: OWNER only
-    await requireRole(userId, orgId, [Role.OWNER]);
+    void userId;
+
+    const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER]);
 
     try {
         await prisma.$transaction(async (tx) => {
-            // Write audit log FIRST
-            await writeAuditLog({
-                orgId,
-                userId,
-                action: "ORG_DELETED",
-                entity: "Organization",
-                entityId: orgId,
+            await tx.auditLog.create({
+                data: {
+                    orgId,
+                    userId: user.id,
+                    action: "ORG_DELETED",
+                    entity: "Organization",
+                    entityId: orgId,
+                },
             });
 
             // Delete organization

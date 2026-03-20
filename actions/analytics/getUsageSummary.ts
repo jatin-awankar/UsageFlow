@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
 /**
@@ -12,8 +12,10 @@ export async function getUsageSummary(
   userId: string,
   orgId: string
 ) {
+  void userId;
+
   // 🔐 Authorization: all org members can view usage
-  await requireRole(userId, orgId, [
+  await requireCurrentOrgRole(orgId, [
     Role.OWNER,
     Role.ADMIN,
     Role.DEVELOPER,

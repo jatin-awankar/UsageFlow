@@ -14,6 +14,14 @@ export const bullmqConnection = {
   url: redisUrl,
 };
 
-export const usageFlowQueue = new Queue(usageFlowQueueName, {
-  connection: bullmqConnection,
-});
+let usageFlowQueue: Queue | null = null;
+
+export function getUsageFlowQueue() {
+  if (!usageFlowQueue) {
+    usageFlowQueue = new Queue(usageFlowQueueName, {
+      connection: bullmqConnection,
+    });
+  }
+
+  return usageFlowQueue;
+}

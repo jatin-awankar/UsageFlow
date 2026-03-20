@@ -2,7 +2,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 import { writeAuditLog } from "@/lib/audit";
 
@@ -12,17 +12,23 @@ export async function toggleWebhook(
   webhookEndpointId: string,
   active: boolean,
 ) {
-  await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+  void userId;
+
+  const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
 
   try {
-    await prisma.webhookEndpoint.updateMany({
+    const result = await prisma.webhookEndpoint.updateMany({
       where: { id: webhookEndpointId, orgId },
       data: { active },
     });
 
+    if (result.count === 0) {
+      return { success: false, error: "Webhook endpoint not found" };
+    }
+
     await writeAuditLog({
       orgId,
-      userId,
+      userId: user.id,
       action: active
         ? "WEBHOOK_ACTIVATED"
         : "WEBHOOK_DEACTIVATED",

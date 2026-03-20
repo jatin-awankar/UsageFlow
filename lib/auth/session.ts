@@ -7,3 +7,13 @@ export async function getCurrentUser() {
 
   return session?.user ?? null;
 }
+
+export async function requireCurrentUser() {
+  const user = await getCurrentUser();
+
+  if (!user?.id) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  return user;
+}

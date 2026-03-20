@@ -1,22 +1,27 @@
 "use server";
 
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { usageQueue } from "@/lib/queue";
 import { Role } from "@prisma/client";
+import prisma from "@/lib/prisma";
 
 export async function generateManualInvoice(
     userId: string,
     orgId: string,
     subscriptionId: string
 ) {
-    if (!userId || !orgId || !subscriptionId) {
+    if (!orgId || !subscriptionId) {
         return { success: false, error: "Invalid request" };
     }
 
     try {
-        await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+        void userId;
+        await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
     } catch (err) {
         const message = err instanceof Error ? err.message : "Access denied";
+        if (message === "UNAUTHORIZED") {
+            return { success: false, error: "You must be signed in" };
+        }
         if (message === "NOT_A_MEMBER") {
             return { success: false, error: "You are not a member of this organization" };
         }
@@ -30,6 +35,20 @@ export async function generateManualInvoice(
     }
 
     try {
+        const subscription = await prisma.subscription.findFirst({
+            where: {
+                id: subscriptionId,
+                orgId,
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!subscription) {
+            return { success: false, error: "Subscription not found" };
+        }
+
         await usageQueue.add("GENERATE_INVOICE", { subscriptionId });
         return { success: true };
     } catch (err) {

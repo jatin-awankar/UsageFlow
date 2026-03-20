@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { writeAuditLog } from "@/lib/audit";
 import { Role } from "@prisma/client";
 
@@ -15,9 +15,58 @@ export async function addMetricToPlan(
         pricePerUnit: number;
     }
 ) {
-    await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+    void userId;
+
+    const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
+
+    if (
+        !Number.isInteger(data.includedUnits) ||
+        data.includedUnits < 0 ||
+        !Number.isInteger(data.pricePerUnit) ||
+        data.pricePerUnit < 0
+    ) {
+        return { success: false, error: "Invalid pricing values" };
+    }
 
     try {
+        const [plan, metric] = await Promise.all([
+            prisma.plan.findFirst({
+                where: {
+                    id: data.planId,
+                    orgId,
+                },
+                select: { id: true },
+            }),
+            prisma.metric.findFirst({
+                where: {
+                    id: data.metricId,
+                    orgId,
+                },
+                select: { id: true },
+            }),
+        ]);
+
+        if (!plan) {
+            return { success: false, error: "Plan not found" };
+        }
+
+        if (!metric) {
+            return { success: false, error: "Metric not found" };
+        }
+
+        const existing = await prisma.planMetric.findUnique({
+            where: {
+                planId_metricId: {
+                    planId: data.planId,
+                    metricId: data.metricId,
+                },
+            },
+        });
+
+        if (existing) {
+            return { success: false, error: "Metric already attached to this plan" };
+        }
+
         const planMetric = await prisma.planMetric.create({
             data: {
                 planId: data.planId,
@@ -29,7 +78,7 @@ export async function addMetricToPlan(
 
         await writeAuditLog({
             orgId,
-            userId,
+            userId: user.id,
             action: "PLAN_METRIC_ADDED",
             entity: "PlanMetric",
             entityId: planMetric.id,

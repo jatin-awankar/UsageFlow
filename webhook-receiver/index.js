@@ -2,6 +2,11 @@ import express from "express";
 import crypto from "crypto";
 
 const app = express();
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+
+if (!WEBHOOK_SECRET) {
+  throw new Error("WEBHOOK_SECRET is not configured");
+}
 
 /**
  * ⚠️ IMPORTANT:
@@ -15,8 +20,6 @@ app.use(
     },
   })
 );
-
-const WEBHOOK_SECRET = "GJAM/MSTpsZU2pkOCXZUKvpj7qW9zsMFM4g2w/pDesI=";
 
 app.post("/webhook", (req, res) => {
   const signature = req.headers["x-usageflow-signature"];

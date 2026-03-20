@@ -2,7 +2,7 @@
 
 import { createWebhookEvent } from "@/actions/webhooks/createWebhookEvent";
 import { writeAuditLog } from "@/lib/audit";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
 import {
   InvoiceStatus,
@@ -16,46 +16,30 @@ export async function markInvoiceFailed(
   invoiceId: string,
   reason?: string
 ) {
-  if (!userId || !orgId || !invoiceId) {
+  if (!orgId || !invoiceId) {
     return { success: false, error: "Invalid request" };
   }
 
   try {
-    await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Access denied";
-    if (message === "NOT_A_MEMBER") {
+    void userId;
+    const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { subscription: true },
+    });
+
+    if (!invoice || invoice.orgId !== orgId) {
+      return { success: false, error: "Invoice not found" };
+    }
+
+    if (invoice.status !== InvoiceStatus.PENDING) {
       return {
         success: false,
-        error: "You are not a member of this organization",
+        error: "Only pending invoices can be marked as failed",
       };
     }
-    if (message === "INSUFFICIENT_ROLE") {
-      return {
-        success: false,
-        error: "Only owners and admins can update invoice status",
-      };
-    }
-    return { success: false, error: "Access denied" };
-  }
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: { subscription: true },
-  });
-
-  if (!invoice || invoice.orgId !== orgId) {
-    return { success: false, error: "Invoice not found" };
-  }
-
-  if (invoice.status !== InvoiceStatus.PENDING) {
-    return {
-      success: false,
-      error: "Only pending invoices can be marked as failed",
-    };
-  }
-
-  try {
     await prisma.$transaction(async (tx) => {
       await tx.invoice.update({
         where: { id: invoiceId },
@@ -73,7 +57,7 @@ export async function markInvoiceFailed(
     await Promise.all([
       writeAuditLog({
         orgId,
-        userId,
+        userId: user.id,
         action: "INVOICE_FAILED",
         entity: "Invoice",
         entityId: invoiceId,
@@ -81,7 +65,7 @@ export async function markInvoiceFailed(
       }),
       writeAuditLog({
         orgId,
-        userId,
+        userId: user.id,
         action: "SUBSCRIPTION_SUSPENDED",
         entity: "Subscription",
         entityId: invoice.subscriptionId,
@@ -101,10 +85,28 @@ export async function markInvoiceFailed(
 
     return { success: true };
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Access denied";
+    if (message === "UNAUTHORIZED") {
+      return { success: false, error: "You must be signed in" };
+    }
+    if (message === "NOT_A_MEMBER") {
+      return {
+        success: false,
+        error: "You are not a member of this organization",
+      };
+    }
+    if (message === "INSUFFICIENT_ROLE") {
+      return {
+        success: false,
+        error: "Only owners and admins can update invoice status",
+      };
+    }
     console.error("Failed to mark invoice as failed:", err);
     return {
       success: false,
-      error: "Failed to update invoice. Please try again.",
+      error: message === "Access denied"
+        ? "Access denied"
+        : "Failed to update invoice. Please try again.",
     };
   }
 }

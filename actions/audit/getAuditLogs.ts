@@ -3,7 +3,7 @@
 
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 
 export async function getAuditLogs({
   userId,
@@ -18,7 +18,9 @@ export async function getAuditLogs({
   cursor?: string;
   direction?: "next" | "prev";
 }) {
-  await requireRole(userId, orgId, [Role.OWNER, Role.ADMIN]);
+  void userId;
+
+  await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
 
   const isNext = direction === "next";
 

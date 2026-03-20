@@ -2,7 +2,7 @@
 
 import { writeAuditLog } from "@/lib/audit";
 import { permissions } from "@/lib/authz/permissions";
-import { requireRole } from "@/lib/authz/requireRole";
+import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
 import { createMetricSchema } from "@/lib/validators";
 
@@ -21,10 +21,13 @@ export async function createMetric(
     return { success: false, error: "Invalid Metric data", status: 400 };
   }
 
-  // Authorization
-  await requireRole(userId, orgId, permissions.createMetric);
+  void userId;
+
+  const { user } = await requireCurrentOrgRole(orgId, permissions.createMetric);
 
   const normalizedKey = parsed.data.key.trim().toUpperCase();
+  const normalizedName = parsed.data.name.trim();
+  const normalizedUnit = parsed.data.unit.trim();
 
   // Business Logic
   const existing = await prisma.metric.findFirst({
@@ -41,15 +44,16 @@ export async function createMetric(
   try {
     const metric = await prisma.metric.create({
       data: {
-        ...parsed.data,
+        name: normalizedName,
         key: normalizedKey,
+        unit: normalizedUnit,
         orgId,
       },
     });
 
     await writeAuditLog({
       orgId,
-      userId,
+      userId: user.id,
       action: "METRIC_CREATED",
       entity: "Metric",
       entityId: metric.id,
