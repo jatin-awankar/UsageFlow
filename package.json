@@ -9,6 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:inventory": "node --experimental-strip-types --test scripts/inventory-customer-model.test.ts",
+    "inventory:customer-model": "node --experimental-strip-types scripts/inventory-customer-model.ts",
     "worker": "tsx worker/index.ts",
     "qstash:sync-schedule": "tsx scripts/qstash-sync-schedule.ts",
     "qstash:delete-schedule": "tsx scripts/qstash-delete-schedule.ts"
