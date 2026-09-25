@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { QueryResultRow } from "pg";
 import { INVENTORY_SQL, runInventory, summarize } from "./inventory-customer-model.ts";
 
 const fixture = {
@@ -31,10 +32,10 @@ test("queries run in a verified read-only snapshot and always roll back", async 
   const calls: string[] = [];
   const db = {
     async connect() { calls.push("connect"); },
-    async query(sql: string) {
+    async query<R extends QueryResultRow = QueryResultRow>(sql: string): Promise<{ rows: R[] }> {
       calls.push(sql);
-      if (sql === "SHOW transaction_read_only") return { rows: [{ transaction_read_only: "on" }] };
-      if (sql === INVENTORY_SQL) return { rows: [fixture] };
+      if (sql === "SHOW transaction_read_only") return { rows: [{ transaction_read_only: "on" } as unknown as R] };
+      if (sql === INVENTORY_SQL) return { rows: [fixture as unknown as R] };
       return { rows: [] };
     },
     async end() { calls.push("end"); },

@@ -44,6 +44,7 @@ const fields = [
   "event_identifier_matches_user_id", "event_identifier_unverified",
   "distinct_unverified_identifiers", "invoices", "duplicate_invoice_period_groups",
 ] as const;
+type CountField = (typeof fields)[number];
 
 function count(value: string, field: string): number {
   const number = Number(value);
@@ -53,10 +54,10 @@ function count(value: string, field: string): number {
 
 export function summarize(rows: InventoryRow[]) {
   const organizations = rows.map((row) => {
-    const counts = Object.fromEntries(fields.map((field) => [field, count(row[field], field)]));
+    const counts = Object.fromEntries(fields.map((field) => [field, count(row[field], field)])) as Record<CountField, number>;
     return { orgId: row.org_id, ...counts };
   });
-  const totals = Object.fromEntries(fields.map((field) => [field, organizations.reduce((sum, org) => sum + Number(org[field]), 0)]));
+  const totals = Object.fromEntries(fields.map((field) => [field, organizations.reduce((sum, org) => sum + org[field], 0)])) as Record<CountField, number>;
   return {
     classification: "No billed-customer table exists. Every nonblank event or subscription customer identifier remains unverified; matching a current User ID is a warning, not a mapping.",
     organizationCount: organizations.length,
