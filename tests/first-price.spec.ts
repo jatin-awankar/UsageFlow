@@ -80,6 +80,9 @@ test("admin and other Organization cannot publish or inspect", async ({ page, br
   await page.getByRole("button", { name: "Publish first price" }).click();
   await page.goto(`${base}/app/org-a/metrics/metric-boundary/pricing`);
   await expect(page.getByText("No published price.", { exact: false })).toBeVisible();
-  await page.goto(`${base}/app/org-b/metrics/metric-a/pricing`);
+  await page.goto(`${base}/app/org-b/metrics/metric-b/pricing`);
+  await expect(page.getByRole("button", { name: "Publish first price" })).toHaveCount(0);
   await expect(page.getByText(/Unit price:/)).toHaveCount(0);
+  await page.goto(`${base}/app/org-b/metrics/metric-a/pricing`);
+  await expect(page.getByRole("button", { name: "Publish first price" })).toHaveCount(0);
 });
