@@ -32,7 +32,7 @@ test("Customer ingestion resolves within the API key Organization and never bill
 
     const track = (orgId: string, customerId?: string) => request.post(`${baseURL}/api/track`, {
       headers: { "x-usageflow-api-key": `secret-${orgId}` },
-      data: { metric: "CALLS", amount: 3, ...(customerId === undefined ? {} : { customerId }) },
+      data: { metric: "CALLS", amount: 3, timestamp: "2026-09-03T00:00:00.000Z", ...(customerId === undefined ? {} : { customerId }) },
     });
     const count = async () => Number((await db.query(`SELECT count(*)::int AS n FROM "UsageEvent"`)).rows[0].n);
     for (const customerId of [undefined, "", " ", " shared-id ", "unknown-id", "inactive-id", "other-only"]) {
@@ -52,7 +52,7 @@ test("Customer ingestion resolves within the API key Organization and never bill
     await db.query(`INSERT INTO "Plan" (id, name, "basePrice", "billingPeriod", "orgId") VALUES ('plan-b', 'Plan', 0, 'MONTHLY', 'org-b')`);
     await db.query(`INSERT INTO "Subscription" (id, status, "periodStart", "periodEnd", "orgId", "planId") VALUES ('subscription-b', 'ACTIVE', '2026-09-01', '2026-10-01', 'org-b', 'plan-b')`);
     for (const orgId of ["org-a", "org-b"]) expect((await track(orgId, "shared-id")).status()).toBe(200);
-    const rows = (await db.query(`SELECT e."orgId", e."subscriptionId", e."customerId", e."billedCustomerId", e."billingTreatment", c."orgId" AS "customerOrgId" FROM "UsageEvent" e JOIN "Customer" c ON c.id = e."billedCustomerId" ORDER BY e."orgId"`)).rows;
+    const rows = (await db.query(`SELECT e."orgId", e."subscriptionId", e."customerId", e."billedCustomerId", e."billingTreatment", e.timestamp::text AS "occurrenceTime", c."orgId" AS "customerOrgId" FROM "UsageEvent" e JOIN "Customer" c ON c.id = e."billedCustomerId" ORDER BY e."orgId"`)).rows;
     expect(rows).toHaveLength(2);
     for (const row of rows) {
       expect(row.customerId).toBe("shared-id");
@@ -60,6 +60,7 @@ test("Customer ingestion resolves within the API key Organization and never bill
       expect(row.customerOrgId).toBe(row.orgId);
       expect(row.subscriptionId).toBe(`subscription-${row.orgId.slice(-1)}`);
       expect(row.billingTreatment).toBe("LEDGER_ONLY");
+      expect(row.occurrenceTime).toBe("2026-09-03 00:00:00");
     }
     expect(rows[0].billedCustomerId).not.toBe(rows[1].billedCustomerId);
     await processAggregation({ orgId: "org-a", subscriptionId: "subscription-a" });
