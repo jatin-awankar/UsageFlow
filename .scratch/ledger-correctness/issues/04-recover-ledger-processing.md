@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**Delivery:** After ticket 03 is merged, implement this ticket on a dedicated `codex/ledger-04-worker-recovery` branch from current `main`. Run the acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking this ticket and reporting test results and rollback steps.
+
 - [ ] With disposable PostgreSQL and the real queue and worker, simulate queue loss, worker restart, interruption during `PROCESSING`, duplicate delivery, and retry of `FAILED` work.
 - [ ] Reconcile accepted source events to the durable ledger-stage projection. Work may execute more than once, but persisted counts and completion have one effect per event.
 - [ ] `PENDING`, `PROCESSING`, `PROCESSED`, and `FAILED` states are visible and recoverable; `FAILED` retains a safe, reviewable reason. `PROCESSED` means completed ledger reconciliation work, not rating or billing.

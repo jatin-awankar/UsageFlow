@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**Delivery:** After ticket 04 is merged, implement this ticket on a dedicated `codex/ledger-05-snapshot-export` branch from current `main`. Run the acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking this ticket and reporting test results and rollback steps.
+
 - [ ] Create an export through the application API and page through it with a stable cursor. Include accepted event ID, safe key reference, receipt and occurrence times, external Customer ID, metric, quantity, and processing state.
 - [ ] While paging, accept later events and let the worker change existing processing states. All pages and grouped counts and quantities from the first export still match its creation snapshot; a new export sees the changes.
 - [ ] Tests verify owner authorization, Organization isolation, and exclusion of Customer names, secrets, and unnecessary personal data.

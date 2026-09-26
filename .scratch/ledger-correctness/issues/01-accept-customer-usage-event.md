@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**Delivery:** Once this ticket is on `main`, implement it on a dedicated `codex/ledger-01-accept-event` branch from current `main`. Run the acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking this ticket and reporting test results and rollback steps.
+
 - [ ] Through the API and disposable PostgreSQL, a valid request returns the committed event ID and acceptance result; the row has the resolved Organization and active Customer, metric, positive integer quantity, occurrence and receipt times, and `LEDGER_ONLY` treatment.
 - [ ] Missing or blank key, omitted or invalid occurrence time, invalid quantity, and new events outside the permitted window return validation errors and insert no UsageEvent.
 - [ ] Tests cover both sides of the UTC month boundary, the inclusive 72-hour arrival close, and exactly five minutes after receipt versus just beyond it. Use one captured server receipt instant for validation and persistence.
