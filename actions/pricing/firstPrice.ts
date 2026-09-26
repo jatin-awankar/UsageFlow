@@ -18,13 +18,32 @@ export async function getFirstPrice(orgId: string, metricId: string) {
   });
 }
 
-export async function publishFirstPrice(orgId: string, metricId: string, formData: FormData) {
+export async function getPriceSchedule(orgId: string, metricId: string) {
+  await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN, Role.DEVELOPER, Role.VIEWER]);
+  return prisma.priceVersion.findMany({
+    where: { orgId, metricId },
+    include: { createdBy: { select: { email: true } } },
+    orderBy: { effectiveFrom: "asc" },
+  });
+}
+
+export async function getPriceAt(orgId: string, metricId: string, at: Date) {
+  await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN, Role.DEVELOPER, Role.VIEWER]);
+  return prisma.priceVersion.findFirst({
+    where: { orgId, metricId, effectiveFrom: { lte: at } },
+    orderBy: { effectiveFrom: "desc" },
+  });
+}
+
+type PublicationKind = "first" | "scheduled";
+
+async function publishPrice(orgId: string, metricId: string, formData: FormData, kind: PublicationKind) {
   const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER]);
+  const path = `/app/${orgId}/metrics/${metricId}/pricing`;
+  const fail = (code: string) => redirect(`${path}?priceError=${code}`);
   const price = formData.get("unitPrice");
   const currency = formData.get("currency");
   const effective = formData.get("effectiveFrom");
-  const path = `/app/${orgId}/metrics/${metricId}/pricing`;
-  const fail = (code: string) => redirect(`${path}?priceError=${code}`);
   if (typeof price !== "string" || !PRICE_PATTERN.test(price)) return fail("invalidPrice");
   const [whole, fraction = ""] = price.split(".");
   const micros = BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, "0") || "0");
@@ -36,24 +55,34 @@ export async function publishFirstPrice(orgId: string, metricId: string, formDat
 
   try {
     await prisma.$transaction(async (tx) => {
-      // Serialize currency decisions and first publication on the Organization row.
+      // Serialize publication and currency decisions for this Organization.
       await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${orgId} FOR UPDATE`;
-      const [org, metric, existing] = await Promise.all([
+      const [org, metric, latest] = await Promise.all([
         tx.organization.findUnique({ where: { id: orgId }, select: { currency: true } }),
         tx.metric.findFirst({ where: { id: metricId, orgId }, select: { id: true } }),
-        tx.priceVersion.findFirst({ where: { orgId, metricId }, select: { id: true } }),
+        tx.priceVersion.findFirst({ where: { orgId, metricId }, orderBy: { effectiveFrom: "desc" }, select: { effectiveFrom: true } }),
       ]);
       if (!metric) throw new Error("metric");
       if (!org?.currency || org.currency !== currency) throw new Error("currency");
-      if (existing) throw new Error("exists");
+      if (kind === "first" && latest) throw new Error("exists");
+      if (kind === "scheduled" && !latest) throw new Error("missingFirst");
+      if (kind === "scheduled" && latest && effectiveFrom <= latest.effectiveFrom) throw new Error("conflict");
       if (effectiveFrom.getTime() <= Date.now() + 300_000) throw new Error("invalidTime");
       await tx.priceVersion.create({ data: { orgId, metricId, currency, unitPriceMicros: micros, effectiveFrom, createdById: user.id } });
     });
   } catch (error) {
-    if (error instanceof Error && ["metric", "currency", "exists", "invalidTime"].includes(error.message)) fail(error.message);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") fail("exists");
+    if (error instanceof Error && ["metric", "currency", "exists", "missingFirst", "conflict", "invalidTime"].includes(error.message)) fail(error.message);
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") fail(kind === "first" ? "exists" : "conflict");
     throw error;
   }
   revalidatePath(path);
   redirect(`${path}?published=1`);
+}
+
+export async function publishFirstPrice(orgId: string, metricId: string, formData: FormData) {
+  return publishPrice(orgId, metricId, formData, "first");
+}
+
+export async function publishScheduledPrice(orgId: string, metricId: string, formData: FormData) {
+  return publishPrice(orgId, metricId, formData, "scheduled");
 }

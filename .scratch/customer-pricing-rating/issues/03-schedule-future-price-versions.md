@@ -4,7 +4,9 @@
 
 **Blocked by:** 02: Publish and inspect a metric's first PriceVersion.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+**Resolution:** Acceptance checks and two-axis code review completed in draft [PR #49](https://github.com/jatin-awankar/UsageFlow/pull/49); merge pending.
 
 **Delivery:** After ticket 02 is merged, implement this ticket on a dedicated `codex/rating-03-schedule` branch from current `main`. Run its acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking the ticket and reporting test results and rollback steps.
 
