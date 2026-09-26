@@ -4,7 +4,9 @@
 
 **Blocked by:** 04: Recover and replay ledger processing after worker failure.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+**Resolution:** Merged in [PR #43](https://github.com/jatin-awankar/UsageFlow/pull/43).
 
 **Delivery:** After ticket 04 is merged, implement this ticket on a dedicated `codex/ledger-05-snapshot-export` branch from current `main`. Run the acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking this ticket and reporting test results and rollback steps.
 

@@ -4,7 +4,9 @@
 
 **Blocked by:** 03: Commit acceptance and processing intent atomically.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+**Resolution:** Merged in [PR #42](https://github.com/jatin-awankar/UsageFlow/pull/42).
 
 **Delivery:** After ticket 03 is merged, implement this ticket on a dedicated `codex/ledger-04-worker-recovery` branch from current `main`. Run the acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking this ticket and reporting test results and rollback steps.
 
