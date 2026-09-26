@@ -34,6 +34,7 @@ model Organization {
   webhookEvents       WebhookEvent[]
   organizationInvites OrganizationInvite[]
   customers           Customer[]
+  ledgerExports       LedgerExport[]
 }
 
 model Customer {
@@ -181,6 +182,36 @@ model LedgerEventProjection {
   event UsageEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([orgId, billedCustomerId, metricKey])
+}
+
+model LedgerExport {
+  id          String @id @default(uuid())
+  orgId       String
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime @default(now())
+  totals      Json
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  rows        LedgerExportRow[]
+
+  @@index([orgId, createdAt])
+}
+
+model LedgerExportRow {
+  exportId           String
+  position           Int
+  eventId            String
+  keyReference       String
+  occurredAt         DateTime
+  receivedAt         DateTime
+  externalCustomerId String
+  metric             String
+  quantity           Int
+  processingState    LedgerProcessingState
+  failureReason      String?
+  export             LedgerExport @relation(fields: [exportId], references: [id], onDelete: Restrict)
+
+  @@id([exportId, position])
 }
 
 enum BillingTreatment {

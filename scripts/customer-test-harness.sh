@@ -5,7 +5,7 @@ start_customer_test_database() {
   app_log="$(mktemp)"
   docker run --rm -d --name "$container" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD=synthetic-only postgres:17.6-alpine >/dev/null
   for _ in $(seq 1 40); do
-    if docker exec "$container" pg_isready -U postgres >/dev/null 2>&1; then break; fi
+    if docker exec "$container" psql -X -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then break; fi
     sleep 0.5
   done
   docker exec "$container" pg_isready -U postgres >/dev/null
