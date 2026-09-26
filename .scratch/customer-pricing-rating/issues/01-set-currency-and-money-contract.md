@@ -4,7 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+**Resolution:** Acceptance checks and code review completed in [PR #47](https://github.com/jatin-awankar/UsageFlow/pull/47); merge pending.
 
 **Delivery:** Once this ticket is on `main`, implement it on a dedicated `codex/rating-01-currency` branch from current `main`. Run its acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking the ticket and reporting test results and rollback steps.
 

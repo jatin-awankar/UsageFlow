@@ -18,6 +18,7 @@ export async function getOrganization(orgId: string) {
     },
     select: {
       name: true,
+      currency: true,
     },
   });
 }

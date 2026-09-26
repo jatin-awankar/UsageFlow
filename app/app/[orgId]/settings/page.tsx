@@ -12,11 +12,14 @@ import { requireRole } from "@/lib/authz/requireRole";
 
 import DangerZone from "./DangerZone";
 import OrganizationForm from "./OrganizationForm";
+import { setCurrency } from "@/actions/organization/setCurrency";
 
 export default async function SettingsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orgId: string }> | { orgId: string };
+  searchParams: Promise<{ currencyError?: string; currencySaved?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -28,6 +31,7 @@ export default async function SettingsPage({
   ]);
 
   if (!org) redirect("/app");
+  const { currencyError, currencySaved } = await searchParams;
 
   return (
     <>
@@ -50,6 +54,21 @@ export default async function SettingsPage({
       />
 
       <section className="space-y-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="font-semibold">Billing currency</h2>
+          <p className="mb-3 text-sm text-slate-600">Current currency: {org.currency ?? "Not set"}. Legacy Plan prices do not determine this currency.</p>
+          {membership.role === Role.OWNER && (
+            <form action={setCurrency.bind(null, orgId)} className="flex items-end gap-3">
+              <div>
+                <label htmlFor="currency" className="block text-sm">ISO 4217 currency</label>
+                <input id="currency" name="currency" maxLength={3} required placeholder="USD" className="rounded border px-3 py-2 uppercase" />
+              </div>
+              <button type="submit" className="rounded bg-slate-900 px-4 py-2 text-white">Set currency</button>
+            </form>
+          )}
+          {currencyError === "invalid" && <p role="alert">Enter a valid uppercase ISO 4217 currency.</p>}
+          {currencySaved === "1" && <p role="status">Currency saved.</p>}
+        </div>
         <SettingsOverview
           orgId={orgId}
           orgName={org.name}
