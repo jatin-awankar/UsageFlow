@@ -1,0 +1,7 @@
+# Organization-scoped retry migration
+
+Apply `20260926030000_org_scoped_ledger_retries` after the earlier ledger migrations. Before deployment, inspect a recent restored database copy and reconcile counts of UsageEvents by Organization and keyed rows. The migration checks for duplicate nonnull `(orgId, idempotencyKey)` pairs, creates the Organization-scoped unique index, and only then drops the global unique index. It adds a nullable fingerprint column without updating or reidentifying any legacy row. Existing Customer ledger rows with no stored fingerprint remain comparable from their original billable columns; legacy billing rows never qualify as Customer retries.
+
+Keep Customer-linked ingestion disabled in deployed pilot environments. After migration, verify the Organization-scoped index exists and the former global unique index does not, then run the focused API/PostgreSQL retry test against a disposable database. Do not use the test receipt-time override in production.
+
+Rollback must preserve accepted events. Once two Organizations have legitimately accepted the same key, restoring the old global unique index is invalid and would reject or require deletion of committed identities. Keep the Organization-scoped constraint and rows in place, disable the Customer ingestion gate, and repair the application forward. Only a pre-traffic rollback, after confirming no cross-Organization duplicate keys exist, may restore global uniqueness; it still must not delete or rewrite events.

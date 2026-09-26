@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { createHash } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { hashApiKey } from "@/lib/apiKeys/generateKey";
 import { usageQueue } from "@/lib/queue";
 import { customerLinkedUsageEventSchema, usageEventSchema } from "@/lib/validators";
+
+function billableFingerprint(customerId: string | null, metric: string, amount: number, timestamp: Date) {
+  return createHash("sha256").update(JSON.stringify([customerId, metric, amount, timestamp.toISOString()])).digest("hex");
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +36,7 @@ export async function POST(req: NextRequest) {
     const customerLinkedIngestion = process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true";
     const parsedBody = (customerLinkedIngestion ? customerLinkedUsageEventSchema : usageEventSchema).safeParse(await req.json());
 
-    if (!parsedBody.success || (customerLinkedIngestion && !idempotencyKey)) {
+    if (!parsedBody.success || (customerLinkedIngestion && (!idempotencyKey || !parsedBody.data.metric.trim()))) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
@@ -42,6 +47,17 @@ export async function POST(req: NextRequest) {
     const timestamp = parsedBody.data.timestamp
       ? new Date(parsedBody.data.timestamp)
       : undefined;
+    const fingerprint = customerLinkedIngestion && timestamp
+      ? billableFingerprint(customerId, metric, amount, timestamp)
+      : null;
+    const originalResult = (event: { id: string }) => NextResponse.json({ success: true, eventId: event.id, acceptance: "ACCEPTED" });
+    const conflict = () => NextResponse.json({ error: "Idempotency key conflicts with original event" }, { status: 409 });
+    const matches = (event: { billableFingerprint: string | null; billingTreatment: string; customerId: string | null; metricKey: string; amount: number; timestamp: Date }) =>
+      event.billingTreatment === "LEDGER_ONLY" && (event.billableFingerprint ?? billableFingerprint(event.customerId, event.metricKey, event.amount, event.timestamp)) === fingerprint;
+    if (customerLinkedIngestion) {
+      const existing = await prisma.usageEvent.findUnique({ where: { orgId_idempotencyKey: { orgId: keyRecord.orgId, idempotencyKey: idempotencyKey! } } });
+      if (existing) return matches(existing) ? originalResult(existing) : conflict();
+    }
     // The override is used only by the disposable PostgreSQL integration suite.
     const receivedAt = process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_RECEIPT_TIME
       ? new Date(process.env.LEDGER_TEST_RECEIPT_TIME)
@@ -102,11 +118,12 @@ export async function POST(req: NextRequest) {
           ...(customer ? { billedCustomerId: customer.id, billingTreatment: "LEDGER_ONLY" as const, receivedAt, processingState: "PENDING" as const } : {}),
           metadata,
           idempotencyKey,
+          ...(customerLinkedIngestion ? { billableFingerprint: fingerprint } : {}),
           ...(timestamp ? { timestamp } : {}),
         },
       });
       if (customerLinkedIngestion) {
-        return NextResponse.json({ success: true, eventId: event.id, acceptance: "ACCEPTED" });
+        return originalResult(event);
       }
     } catch (error) {
       if (
@@ -114,6 +131,11 @@ export async function POST(req: NextRequest) {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === "P2002"
       ) {
+        if (customerLinkedIngestion) {
+          const existing = await prisma.usageEvent.findUnique({ where: { orgId_idempotencyKey: { orgId: keyRecord.orgId, idempotencyKey } } });
+          if (existing) return matches(existing) ? originalResult(existing) : conflict();
+          throw error;
+        }
         return NextResponse.json({ success: true });
       }
 

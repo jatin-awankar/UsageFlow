@@ -142,7 +142,8 @@ model UsageEvent {
   orgId          String
   subscriptionId String
   apiKeyId       String
-  idempotencyKey String?  @unique
+  idempotencyKey String?
+  billableFingerprint String?
   metricId       String?
   createdAt      DateTime @default(now())
   metric         Metric?  @relation(fields: [metricId], references: [id], onDelete: SetNull)
@@ -154,6 +155,7 @@ model UsageEvent {
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
+  @@unique([orgId, idempotencyKey])
   @@index([orgId, billedCustomerId])
 }
 
