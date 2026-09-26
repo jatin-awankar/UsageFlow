@@ -4,7 +4,9 @@
 
 **Blocked by:** 01: Set Organization currency and money contract.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+**Resolution:** Acceptance checks and two-axis code review completed in draft [PR #48](https://github.com/jatin-awankar/UsageFlow/pull/48); merge pending.
 
 **Delivery:** After ticket 01 is merged, implement this ticket on a dedicated `codex/rating-02-first-price` branch from current `main`. Run its acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking the ticket and reporting test results and rollback steps.
 
