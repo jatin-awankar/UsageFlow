@@ -15,6 +15,7 @@
     "test:ledger-acceptance": "bash scripts/test-ledger-acceptance.sh",
     "test:ledger-processing-intent": "bash scripts/test-ledger-processing-intent.sh",
     "test:legacy-billing-treatment": "bash scripts/test-legacy-billing-treatment.sh",
+    "test:ledger-legacy-regression": "bash scripts/test-ledger-legacy-regression.sh",
     "inventory:customer-model": "node --experimental-strip-types scripts/inventory-customer-model.ts",
     "worker": "tsx worker/index.ts",
     "qstash:sync-schedule": "tsx scripts/qstash-sync-schedule.ts",

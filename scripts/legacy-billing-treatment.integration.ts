@@ -38,11 +38,13 @@ async function main() {
   await processInvoice({ subscriptionId });
   const invoice = await prisma.invoice.findFirstOrThrow({ where: { subscriptionId, periodStart } });
   assert.equal(invoice.amount, 70, "the recorded invoice must derive from the historical aggregate");
+  const recordedAmount = invoice.amount;
 
   await prisma.usageEvent.update({ where: { id: "historical" }, data: { billedCustomerId: "mapped-customer" } });
   await processAggregation({ orgId, subscriptionId });
   assert.equal(await total(), 7, "mapping alone must preserve the recomputed legacy quantity");
-  assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } })).amount, 70);
+  assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } })).amount, recordedAmount,
+    "mapping alone must preserve the recorded invoice amount");
   assert.equal((await prisma.usageEvent.findUniqueOrThrow({ where: { id: "historical" } })).billingTreatment, "LEGACY");
 
   await prisma.usageEvent.create({ data: { ...event, id: "later-legacy", amount: 3 } });
