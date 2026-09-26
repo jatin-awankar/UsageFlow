@@ -135,6 +135,8 @@ model UsageEvent {
   customerId     String?
   billedCustomerId String?
   billingTreatment BillingTreatment @default(LEGACY)
+  receivedAt     DateTime?
+  processingState LedgerProcessingState?
   metadata       Json?
   timestamp      DateTime @default(now())
   orgId          String
@@ -158,6 +160,13 @@ model UsageEvent {
 enum BillingTreatment {
   LEGACY
   LEDGER_ONLY
+}
+
+enum LedgerProcessingState {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
 }
 
 model AggregatedUsage {

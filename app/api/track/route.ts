@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const customerLinkedIngestion = process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true";
     const parsedBody = (customerLinkedIngestion ? customerLinkedUsageEventSchema : usageEventSchema).safeParse(await req.json());
 
-    if (!parsedBody.success) {
+    if (!parsedBody.success || (customerLinkedIngestion && !idempotencyKey)) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
     const timestamp = parsedBody.data.timestamp
       ? new Date(parsedBody.data.timestamp)
       : undefined;
+    // The override is used only by the disposable PostgreSQL integration suite.
+    const receivedAt = process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_RECEIPT_TIME
+      ? new Date(process.env.LEDGER_TEST_RECEIPT_TIME)
+      : new Date();
+    if (customerLinkedIngestion && timestamp) {
+      const monthClose = Date.UTC(timestamp.getUTCFullYear(), timestamp.getUTCMonth() + 1, 1) + 72 * 60 * 60 * 1000;
+      if (receivedAt.getTime() > monthClose || timestamp.getTime() > receivedAt.getTime() + 5 * 60 * 1000) {
+        return NextResponse.json({ error: "Occurrence time outside permitted window" }, { status: 400 });
+      }
+    }
 
     // 4️⃣ Active subscription
     const subscription = await prisma.subscription.findFirst({
@@ -80,7 +90,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      await prisma.usageEvent.create({
+      const event = await prisma.usageEvent.create({
         data: {
           orgId: keyRecord.orgId,
           subscriptionId: subscription.id,
@@ -89,12 +99,15 @@ export async function POST(req: NextRequest) {
           metricKey: metric,
           amount,
           customerId,
-          ...(customer ? { billedCustomerId: customer.id, billingTreatment: "LEDGER_ONLY" as const } : {}),
+          ...(customer ? { billedCustomerId: customer.id, billingTreatment: "LEDGER_ONLY" as const, receivedAt, processingState: "PENDING" as const } : {}),
           metadata,
           idempotencyKey,
           ...(timestamp ? { timestamp } : {}),
         },
       });
+      if (customerLinkedIngestion) {
+        return NextResponse.json({ success: true, eventId: event.id, acceptance: "ACCEPTED" });
+      }
     } catch (error) {
       if (
         idempotencyKey &&

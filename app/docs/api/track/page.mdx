@@ -6,6 +6,18 @@ import Callout from "@/components/docs/Callout.tsx";
 
 The **Track Usage API** allows your application to record usage events in UsageFlow.
 
+<Callout>
+  Customer-linked ledger ingestion is gated and disabled by default. The contract below applies only when the pilot gate is explicitly enabled; enabling it is outside this ticket.
+</Callout>
+
+## Customer ledger acceptance contract
+
+For a new Customer-linked event, send a nonblank `Idempotency-Key`, an active Customer's exact external ID in `customerId`, a metric, a positive integer `amount`, and an explicit `timestamp` with a timezone offset. An active Organization Subscription is also required. A successful response is `{ "success": true, "eventId": "...", "acceptance": "ACCEPTED" }`; the ID names the committed `LEDGER_ONLY` UsageEvent. The row records the same captured server receipt instant used to validate its time window. This acceptance does not mean the event was rated or billed.
+
+The canonical billable fields for this contract are the submitted external Customer ID (case sensitive, with surrounding whitespace rejected), the metric after trimming and uppercasing, the positive integer quantity, and the UTC occurrence instant. Timestamps may use `Z` or a numeric offset and at most millisecond precision. Equivalent offsets for one instant mean one occurrence time; precision beyond milliseconds is rejected. Metadata is stored on first acceptance and is not a billable field. Ticket 01 does not provide the retry comparison or conflict guarantee yet.
+
+The occurrence instant determines its UTC calendar month. A new event may arrive until 72 hours after that month ends, including the exact close instant. A new event more than five minutes after server receipt is rejected; exactly five minutes is allowed. Missing or invalid timestamps are rejected and never replaced with receipt time. Keep original keys for later retry support during the proposed 12-month raw event retention period. The gate stays off until the remaining ledger tickets and pilot checks are complete.
+
 Every time a billable action occurs in your product (for example an API call or storage usage), your backend should send a request to this endpoint.
 
 UsageFlow stores the event and uses it later to calculate invoices.
@@ -152,7 +164,7 @@ Status code:
 
 ### Duplicate Usage Event
 
-If the same `Idempotency-Key` is reused, the event will not be recorded again.
+For the legacy route, reusing the same `Idempotency-Key` does not record another event. The gated Customer ledger route does not yet offer a stable retry or conflict response; that work is planned for the next ticket.
 
 This prevents accidental double billing.
 
