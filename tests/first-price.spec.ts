@@ -22,7 +22,7 @@ test("owner publishes exact maximum and inspects immutable evidence", async ({ p
   await page.getByLabel("ISO 4217 currency").fill("USD");
   await page.getByRole("button", { name: "Set currency" }).click();
   await page.goto(path);
-  const publishForm = await page.locator("form").evaluate((form) => form.outerHTML);
+  const publishForm = await page.locator("form[method='POST']").evaluate((form) => form.outerHTML);
   await submit(page, "999999.999999");
   await expect(page.getByText("Unit price: 999999.999999 USD")).toBeVisible();
   await expect(page.getByText(/Effective from \(UTC\): .*Z/)).toBeVisible();
@@ -33,8 +33,9 @@ test("owner publishes exact maximum and inspects immutable evidence", async ({ p
     wrapper.innerHTML = html;
     document.body.append(wrapper);
   }, publishForm);
-  await page.getByLabel("Unit price").fill("1");
-  await page.getByLabel("Effective from (UTC, ISO 8601)").fill(new Date(Date.now() + 900_000).toISOString());
+  const staleForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Publish first price" }) });
+  await staleForm.getByLabel("Unit price").fill("1");
+  await staleForm.getByLabel("Effective from (UTC, ISO 8601)").fill(new Date(Date.now() + 900_000).toISOString());
   await page.getByRole("button", { name: "Publish first price" }).click();
   await expect(page.getByText("This metric already has a published first price.")).toBeVisible();
   await expect(page.getByText("Unit price: 999999.999999 USD")).toBeVisible();
@@ -65,7 +66,7 @@ test("admin and other Organization cannot publish or inspect", async ({ page, br
   const owner = await browser.newPage();
   await signIn(owner, "owner@example.test");
   await owner.goto(`${base}/app/org-a/metrics/metric-boundary/pricing`);
-  const form = await owner.locator("form").evaluate((element) => element.outerHTML);
+  const form = await owner.locator("form[method='POST']").evaluate((element) => element.outerHTML);
   await owner.close();
   await signIn(page, "admin@example.test");
   await page.goto(`${base}/app/org-a/metrics/metric-boundary/pricing`);
