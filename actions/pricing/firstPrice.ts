@@ -56,7 +56,7 @@ async function publishPrice(orgId: string, metricId: string, formData: FormData,
   try {
     await prisma.$transaction(async (tx) => {
       // Serialize publication and currency decisions for this Organization.
-      await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${orgId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${orgId} FOR NO KEY UPDATE`;
       const [org, metric, latest] = await Promise.all([
         tx.organization.findUnique({ where: { id: orgId }, select: { currency: true } }),
         tx.metric.findFirst({ where: { id: metricId, orgId }, select: { id: true } }),
@@ -68,10 +68,15 @@ async function publishPrice(orgId: string, metricId: string, formData: FormData,
       if (kind === "scheduled" && !latest) throw new Error("missingFirst");
       if (kind === "scheduled" && latest && effectiveFrom <= latest.effectiveFrom) throw new Error("conflict");
       if (effectiveFrom.getTime() <= Date.now() + 300_000) throw new Error("invalidTime");
+      const changedRating = await tx.ratedEvent.findFirst({
+        where: { orgId, priceVersion: { metricId }, event: { timestamp: { gte: effectiveFrom } } },
+        select: { eventId: true },
+      });
+      if (changedRating) throw new Error("ratedConflict");
       await tx.priceVersion.create({ data: { orgId, metricId, currency, unitPriceMicros: micros, effectiveFrom, createdById: user.id } });
     });
   } catch (error) {
-    if (error instanceof Error && ["metric", "currency", "exists", "missingFirst", "conflict", "invalidTime"].includes(error.message)) fail(error.message);
+    if (error instanceof Error && ["metric", "currency", "exists", "missingFirst", "conflict", "invalidTime", "ratedConflict"].includes(error.message)) fail(error.message);
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") fail(kind === "first" ? "exists" : "conflict");
     throw error;
   }

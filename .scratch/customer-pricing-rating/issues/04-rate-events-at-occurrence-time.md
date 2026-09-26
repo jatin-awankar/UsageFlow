@@ -4,7 +4,9 @@
 
 **Blocked by:** 03: Schedule future PriceVersions.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+**Resolution:** Ticket 04 acceptance and review passed on `codex/rating-04-rate-events`. The disposable PostgreSQL rating suite, typecheck, money and inventory tests, and the full set of repository integration scripts passed. The final full-suite run encountered transient disposable PostgreSQL startup failures in the currency and rating harnesses; each passed on retry. Standards and spec code review found no remaining actionable issues. Draft PR link will be added after creation.
 
 **Delivery:** After ticket 03 is merged, implement this ticket on a dedicated `codex/rating-04-rate-events` branch from current `main`. Run its acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking the ticket and reporting test results and rollback steps.
 

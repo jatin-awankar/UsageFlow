@@ -38,6 +38,8 @@ model Organization {
   customers           Customer[]
   ledgerExports       LedgerExport[]
   priceVersions       PriceVersion[]
+  ratedEvents         RatedEvent[]
+  ratingFailures      RatingFailure[]
 }
 
 model Customer {
@@ -48,6 +50,7 @@ model Customer {
   createdAt  DateTime     @default(now())
   org        Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   usageEvents UsageEvent[]
+  ratedEvents RatedEvent[]
 
   @@unique([orgId, externalId])
   @@unique([orgId, id])
@@ -106,9 +109,47 @@ model PriceVersion {
   org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   metric Metric @relation(fields: [orgId, metricId], references: [orgId, id], onDelete: Restrict)
   createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  ratedEvents RatedEvent[]
+  ratingFailures RatingFailure[]
 
   @@unique([orgId, metricId, effectiveFrom])
+  @@unique([id, orgId, metricId])
+  @@unique([id, orgId, metricId, currency, unitPriceMicros])
   @@index([orgId, metricId, effectiveFrom])
+}
+
+model RatedEvent {
+  eventId String @id
+  orgId String
+  billedCustomerId String
+  metricId String
+  priceVersionId String
+  quantity Int
+  unitPriceMicros BigInt
+  amount Decimal @db.Decimal(18, 3)
+  currency String @db.VarChar(3)
+  ratedAt DateTime @default(now()) @db.Timestamptz(3)
+  event UsageEvent @relation(fields: [eventId, orgId, billedCustomerId, metricId, quantity], references: [id, orgId, billedCustomerId, metricId, amount], onDelete: Restrict)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
+  priceVersion PriceVersion @relation(fields: [priceVersionId, orgId, metricId, currency, unitPriceMicros], references: [id, orgId, metricId, currency, unitPriceMicros], onDelete: Restrict)
+
+  @@index([orgId, billedCustomerId])
+  @@unique([eventId, orgId, billedCustomerId, metricId, quantity])
+}
+
+model RatingFailure {
+  eventId String @id
+  orgId String
+  metricId String
+  priceVersionId String
+  reason String @db.VarChar(32)
+  failedAt DateTime @default(now()) @db.Timestamptz(3)
+  event UsageEvent @relation(fields: [eventId, orgId, metricId], references: [id, orgId, metricId], onDelete: Restrict)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  priceVersion PriceVersion @relation(fields: [priceVersionId, orgId, metricId], references: [id, orgId, metricId], onDelete: Restrict)
+
+  @@unique([eventId, orgId, metricId])
 }
 
 model Plan {
@@ -177,11 +218,15 @@ model UsageEvent {
   billedCustomer Customer? @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
   processingIntent LedgerProcessingIntent?
   ledgerProjection LedgerEventProjection?
+  ratedEvent RatedEvent?
+  ratingFailure RatingFailure?
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
   @@unique([orgId, idempotencyKey])
+  @@unique([id, orgId, metricId])
   @@index([orgId, billedCustomerId])
+  @@unique([id, orgId, billedCustomerId, metricId, amount])
 }
 
 model LedgerProcessingIntent {
