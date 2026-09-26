@@ -21,6 +21,11 @@ export TZ=UTC CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2
 start_customer_test_app
 npx playwright test tests/ledger-processing-intent.spec.ts --workers=1 || { cat "$app_log"; exit 1; }
 stop_customer_test_app
+export CUSTOMER_LINKED_INGESTION_ENABLED=false
+start_customer_test_app
+npx playwright test tests/ledger-processing-intent-rollback.spec.ts --workers=1 || { cat "$app_log"; exit 1; }
+stop_customer_test_app
+export CUSTOMER_LINKED_INGESTION_ENABLED=true
 export LEDGER_TEST_FAIL_DISPATCH=false REDIS_URL="redis://127.0.0.1:${redis_port}"
 start_customer_test_app
 npx playwright test tests/ledger-processing-intent.spec.ts --workers=1 || { cat "$app_log"; exit 1; }

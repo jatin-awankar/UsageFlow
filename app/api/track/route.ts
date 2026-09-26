@@ -106,22 +106,25 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+      const eventData = {
+        orgId: keyRecord.orgId,
+        subscriptionId: subscription.id,
+        apiKeyId: keyRecord.id,
+        metricId: metricRecord.id,
+        metricKey: metric,
+        amount,
+        customerId,
+        metadata,
+        idempotencyKey,
+      };
       const event = customerLinkedIngestion ? await prisma.$transaction(async (tx) => {
         const accepted = await tx.usageEvent.create({
           data: {
-            orgId: keyRecord.orgId,
-            subscriptionId: subscription.id,
-            apiKeyId: keyRecord.id,
-            metricId: metricRecord.id,
-            metricKey: metric,
-            amount,
-            customerId,
+            ...eventData,
             billedCustomerId: customer!.id,
             billingTreatment: "LEDGER_ONLY",
             receivedAt,
             processingState: "PENDING",
-            metadata,
-            idempotencyKey,
             billableFingerprint: fingerprint,
             timestamp: timestamp!,
           },
@@ -130,16 +133,8 @@ export async function POST(req: NextRequest) {
         return accepted;
       }) : await prisma.usageEvent.create({
         data: {
-          orgId: keyRecord.orgId,
-          subscriptionId: subscription.id,
-          apiKeyId: keyRecord.id,
-          metricId: metricRecord.id,
-          metricKey: metric,
-          amount,
-          customerId,
+          ...eventData,
           ...(customer ? { billedCustomerId: customer.id, billingTreatment: "LEDGER_ONLY" as const, receivedAt, processingState: "PENDING" as const } : {}),
-          metadata,
-          idempotencyKey,
           ...(customerLinkedIngestion ? { billableFingerprint: fingerprint } : {}),
           ...(timestamp ? { timestamp } : {}),
         },

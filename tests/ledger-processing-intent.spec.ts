@@ -10,6 +10,13 @@ test("acceptance and pending intent commit together despite dispatch failure", a
       data: { customerId: "customer-c", metric: "calls", amount: 3, timestamp: "2026-10-04T00:00:00.000Z" },
     });
 
+    if (process.env.LEDGER_TEST_FAIL_DISPATCH !== "true") {
+      const original = await db.query(`SELECT id FROM "UsageEvent" WHERE "orgId" = $1 AND "idempotencyKey" = $2`, ["org-c", "intent-dispatch-failed"]);
+      const afterRestart = await send("intent-dispatch-failed");
+      expect(afterRestart.status()).toBe(200);
+      expect(await afterRestart.json()).toEqual({ success: true, eventId: original.rows[0].id, acceptance: "ACCEPTED" });
+    }
+
     const key = process.env.LEDGER_TEST_FAIL_DISPATCH === "true" ? "intent-dispatch-failed" : "intent-dispatched";
     const first = await send(key);
     expect(first.status()).toBe(200);
