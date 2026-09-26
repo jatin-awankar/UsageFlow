@@ -152,11 +152,18 @@ model UsageEvent {
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   billedCustomer Customer? @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
+  processingIntent LedgerProcessingIntent?
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
   @@unique([orgId, idempotencyKey])
   @@index([orgId, billedCustomerId])
+}
+
+model LedgerProcessingIntent {
+  eventId   String @id
+  createdAt DateTime @default(now())
+  event     UsageEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 enum BillingTreatment {
