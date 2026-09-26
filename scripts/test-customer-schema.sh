@@ -22,7 +22,7 @@ docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres <
 # proposal after the original migrations, since the proposal is not a migration.
 docker exec "$container" createdb -U postgres customer_proposal
 for file in prisma/migrations/*/migration.sql; do
-  [[ "$file" == *20260926000000_add_customer_identity* ]] && continue
+  [[ "$file" == *20260926000000_add_customer_identity* || "$file" == *20260926010000_protect_legacy_billing_treatment* ]] && continue
   docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d customer_proposal < "$file" >/dev/null
 done
 docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d customer_proposal < scripts/customer-schema-proposal.sql >/dev/null

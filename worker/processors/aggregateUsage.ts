@@ -34,6 +34,7 @@ export async function processAggregation({
     where: {
       orgId,
       subscriptionId,
+      billingTreatment: "LEGACY",
       timestamp: {
         gte: periodStart,
         lt: periodEnd,
@@ -46,6 +47,9 @@ export async function processAggregation({
   });
 
   if (events.length === 0) {
+    await prisma.aggregatedUsage.deleteMany({
+      where: { orgId, subscriptionId, periodStart },
+    });
     console.log("No usage events to aggregate");
     return;
   }
@@ -85,6 +89,15 @@ export async function processAggregation({
       },
     });
   }
+
+  await prisma.aggregatedUsage.deleteMany({
+    where: {
+      orgId,
+      subscriptionId,
+      periodStart,
+      metricKey: { notIn: [...totals.keys()] },
+    },
+  });
 
   console.log("Aggregation complete", {
     metrics: totals.size,
