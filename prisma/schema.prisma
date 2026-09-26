@@ -15,6 +15,7 @@ model User {
   createdAt   DateTime     @default(now())
   auditLogs   AuditLog[]
   memberships Membership[]
+  priceVersions PriceVersion[]
 }
 
 model Organization {
@@ -36,6 +37,7 @@ model Organization {
   organizationInvites OrganizationInvite[]
   customers           Customer[]
   ledgerExports       LedgerExport[]
+  priceVersions       PriceVersion[]
 }
 
 model Customer {
@@ -86,8 +88,27 @@ model Metric {
   org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   planMetrics PlanMetric[]
   usageEvents UsageEvent[]
+  priceVersions PriceVersion[]
 
   @@unique([orgId, key])
+  @@unique([orgId, id])
+}
+
+model PriceVersion {
+  id String @id @default(uuid())
+  orgId String
+  metricId String
+  currency String @db.VarChar(3)
+  unitPriceMicros BigInt
+  effectiveFrom DateTime @db.Timestamptz(3)
+  createdById String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  metric Metric @relation(fields: [orgId, metricId], references: [orgId, id], onDelete: Restrict)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([orgId, metricId, effectiveFrom])
+  @@index([orgId, metricId, effectiveFrom])
 }
 
 model Plan {

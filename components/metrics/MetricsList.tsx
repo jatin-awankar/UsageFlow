@@ -47,6 +47,7 @@ export default function MetricsList({
               {metric.key}
             </p>
             <p className="mt-2 text-xs text-slate-500">Unit: {metric.unit}</p>
+            <Link href={`/app/${orgId}/metrics/${metric.id}/pricing`} className="text-sm underline">Pricing</Link>
           </article>
         ))}
       </div>
@@ -85,6 +86,7 @@ export default function MetricsList({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-slate-700">{metric.unit}</td>
+                <td className="px-4 py-3"><Link href={`/app/${orgId}/metrics/${metric.id}/pricing`} className="underline">Pricing</Link></td>
               </tr>
             ))}
           </tbody>
