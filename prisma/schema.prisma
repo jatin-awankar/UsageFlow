@@ -43,6 +43,7 @@ model Customer {
   active     Boolean      @default(true)
   createdAt  DateTime     @default(now())
   org        Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  usageEvents UsageEvent[]
 
   @@unique([orgId, externalId])
   @@unique([orgId, id])
@@ -132,6 +133,8 @@ model UsageEvent {
   metricKey      String
   amount         Int
   customerId     String?
+  billedCustomerId String?
+  billingTreatment BillingTreatment @default(LEGACY)
   metadata       Json?
   timestamp      DateTime @default(now())
   orgId          String
@@ -145,9 +148,16 @@ model UsageEvent {
   apiKey       ApiKey       @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  billedCustomer Customer? @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
+  @@index([orgId, billedCustomerId])
+}
+
+enum BillingTreatment {
+  LEGACY
+  LEDGER_ONLY
 }
 
 model AggregatedUsage {
