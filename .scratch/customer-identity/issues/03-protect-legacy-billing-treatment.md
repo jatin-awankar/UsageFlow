@@ -4,11 +4,15 @@
 
 **Blocked by:** 02: Owner creates a Customer.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Billing treatment is independent of the nullable Customer link: existing UsageEvents retain legacy treatment; new Customer-linked events can be explicitly ledger-only.
-- [ ] The legacy aggregation path includes legacy-treated events whether or not they have a Customer link and excludes ledger-only events on every recomputation.
-- [ ] In a disposable PostgreSQL test, aggregate a synthetic historical event and record the legacy aggregate and invoice amount. Add only a Customer link, recompute, and assert the **recomputed legacy aggregate is unchanged** and the recorded invoice amount is unchanged.
-- [ ] Trigger a later recomputation with another legacy-treated event and assert the mapped historical event still contributes its original quantity.
-- [ ] Add a ledger-only event, trigger aggregation through another event, and assert the ledger-only quantity contributes nothing to the recomputed legacy aggregate or legacy invoice amount.
-- [ ] No production mapping, historical backfill, Customer rating, or BillingRecord calculation is performed.
+- [x] Billing treatment is independent of the nullable Customer link: existing UsageEvents retain legacy treatment; new Customer-linked events can be explicitly ledger-only.
+- [x] The legacy aggregation path includes legacy-treated events whether or not they have a Customer link and excludes ledger-only events on every recomputation.
+- [x] In a disposable PostgreSQL test, aggregate a synthetic historical event and record the legacy aggregate and invoice amount. Add only a Customer link, recompute, and assert the **recomputed legacy aggregate is unchanged** and the recorded invoice amount is unchanged.
+- [x] Trigger a later recomputation with another legacy-treated event and assert the mapped historical event still contributes its original quantity.
+- [x] Add a ledger-only event, trigger aggregation through another event, and assert the ledger-only quantity contributes nothing to the recomputed legacy aggregate or legacy invoice amount.
+- [x] No production mapping, historical backfill, Customer rating, or BillingRecord calculation is performed.
+
+## Execution record
+
+Implemented on the `codex/ticket-03-protect-legacy-billing-treatment` branch and merged into `main` in PR #33. The disposable PostgreSQL legacy billing treatment test passed on 2026-09-26. No production mapping or historical backfill was run.
