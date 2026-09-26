@@ -4,7 +4,7 @@
 - Run the inventory tests with `npm run test:inventory` before changing customer-model migration code.
 - Treat missing, arbitrary, and user-ID-shaped customer identifiers as unmapped. Never automatically assign them to billed customers or infer a billed customer from `Subscription.externalCustomerId`.
 - Before any customer-model backfill, run the inventory on a recent restored database copy and reconcile organization, subscription, usage-event, and invoice counts plus identifier classifications. Preserve ambiguous records for explicit review.
-- For each implementation ticket, create a dedicated branch before editing. Keep the commit limited to that ticket, run its acceptance checks, then commit, push, and open a draft PR from the branch. Keep unrelated work out of the commit and report any checks that could not run.
+- For each implementation ticket, ensure its approved spec and ticket are on `main`, read its acceptance criteria, and verify its blockers are complete. Create a dedicated `codex/` branch from current `main` before editing. Keep changes limited to that ticket, run its acceptance checks and `git diff --check`, then commit, push, and open a draft PR against `main`. In the PR, link the ticket and report test results plus migration or rollback steps. If a check, push, or PR cannot complete, report the blocker and leave the work on its branch.
 
 ## Agent skills
 
