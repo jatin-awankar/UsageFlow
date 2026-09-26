@@ -16,17 +16,17 @@ INSERT INTO "ApiKey" (id,name,"hashedKey","orgId") VALUES ('rating-key-a','A',:'
 INSERT INTO "Customer" (id,"orgId","externalId") VALUES ('rating-customer-a','rating-a','same-customer'),('rating-other-a','rating-a','other-customer'),('rating-customer-b','rating-b','same-customer');
 INSERT INTO "Plan" (id,name,"basePrice","billingPeriod","orgId") VALUES ('rating-plan-a','Legacy',777,'MONTHLY','rating-a'),('rating-plan-b','Legacy',777,'MONTHLY','rating-b');
 INSERT INTO "Subscription" (id,status,"periodStart","orgId","planId") VALUES ('rating-sub-a','ACTIVE','2026-09-01','rating-a','rating-plan-a'),('rating-sub-b','ACTIVE','2026-09-01','rating-b','rating-plan-b');
-INSERT INTO "Metric" (id,name,key,unit,"orgId") VALUES ('rating-metric-a','Calls','CALLS','calls','rating-a'),('rating-metric-b','Calls','CALLS','calls','rating-b'),('rating-zero','Free','FREE','calls','rating-a'),('rating-overflow','Huge','HUGE','calls','rating-a');
+INSERT INTO "Metric" (id,name,key,unit,"orgId") VALUES ('rating-metric-a','Calls','CALLS','calls','rating-a'),('rating-metric-b','Calls','CALLS','calls','rating-b'),('rating-zero','Free','FREE','calls','rating-a'),('rating-overflow','Huge','HUGE','calls','rating-a'),('rating-limit','Limit','LIMIT','calls','rating-a');
 INSERT INTO "AggregatedUsage" (id,"metricKey",total,"periodStart","periodEnd","orgId","subscriptionId") VALUES ('rating-aggregate','CALLS',11,'2026-09-01','2026-10-01','rating-a','rating-sub-a');
 INSERT INTO "Invoice" (id,amount,status,"periodStart","periodEnd","orgId","subscriptionId") VALUES ('rating-invoice',1234,'PENDING','2026-09-01','2026-10-01','rating-a','rating-sub-a');
 SQL
 set_customer_test_environment
 export NEXTAUTH_URL="http://127.0.0.1:3103" CUSTOMER_TEST_BASE_URL="$NEXTAUTH_URL" PRICE_TEST_BASE_URL="$NEXTAUTH_URL"
-export REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z" RATING_TEST_SKIP_ONCE=true TZ=UTC
+export REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z" TZ=UTC
 start_customer_test_app
 worker_log="$(mktemp)"
-npx tsx worker/index.ts >"$worker_log" 2>&1 &
+./node_modules/.bin/tsx worker/index.ts >"$worker_log" 2>&1 &
 worker_pid=$!
+export RATING_TEST_WORKER_PID="$worker_pid"
 npx playwright test tests/rating.spec.ts --workers=1
-grep -q 'Rating interrupted after projection' "$worker_log"
-grep -q 'Recovering unrated Customer events' "$worker_log"
+wait "$worker_pid" 2>/dev/null || true

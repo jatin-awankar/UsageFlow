@@ -5,7 +5,6 @@ import { rateCustomerEvent } from "./rateCustomerEvent";
 
 const LEASE_MS = 30_000;
 const RETRY_MS = 5_000;
-let skipFirstRatingForTest = true;
 
 class InvalidLedgerEventError extends Error {}
 
@@ -59,11 +58,6 @@ export async function processLedgerEvent(eventId: string) {
       await tx.usageEvent.update({ where: { id: eventId }, data: { processingState: "PROCESSED" } });
       await tx.ledgerProcessingIntent.update({ where: { eventId }, data: { leaseToken: null, leaseUntil: null, failureReason: null } });
     });
-    if (process.env.NODE_ENV !== "production" && process.env.RATING_TEST_SKIP_ONCE === "true" && skipFirstRatingForTest) {
-      skipFirstRatingForTest = false;
-      console.log("Rating interrupted after projection", eventId);
-      return; // Simulate interruption after the committed ledger projection.
-    }
     try { await rateCustomerEvent(eventId); } catch (error) { console.error("Customer rating failed", { eventId, error }); }
   } catch (error) {
     console.error("Ledger projection failed", { eventId, error });

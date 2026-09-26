@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import { Queue } from "bullmq";
+import { spawn, type ChildProcess } from "node:child_process";
 
 const base = process.env.CUSTOMER_TEST_BASE_URL!;
 
@@ -22,8 +23,9 @@ async function publish(page: Page, metricId: string, price: string, instant: str
 }
 
 test("occurrence-time rating preserves exact immutable evidence and legacy billing", async ({ page, request }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   const db = new Client({ connectionString: process.env.DATABASE_URL });
+  let recoveryWorker: ChildProcess | undefined;
   await db.connect();
   try {
     await signIn(page);
@@ -35,6 +37,8 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
     await publish(page, "rating-metric-a", "3", "2026-10-01T00:00:00.001Z");
     await publish(page, "rating-zero", "0", "2026-09-30T23:59:59.999Z");
     await publish(page, "rating-overflow", "999999.999999", "2026-09-30T23:59:59.999Z");
+    await publish(page, "rating-limit", "999955.301998", "2026-09-30T23:59:59.999Z");
+    await publish(page, "rating-limit", "999999.000001", "2026-10-01T00:00:00.000Z");
     const send = async (key: string, metric: string, amount: number, timestamp: string, customerId = "same-customer", apiKey = "secret-org-c") => {
       const response = await request.post(`${base}/api/track`, {
         headers: { "x-usageflow-api-key": apiKey, "idempotency-key": key },
@@ -44,28 +48,49 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
       return (await response.json()).eventId as string;
     };
     // Receipt order differs from occurrence order. A missing version is not zero.
-    const after = await send("rating-after", "calls", 2, "2026-10-01T00:00:00.001Z");
+    const ratingBlocker = new Client({ connectionString: process.env.DATABASE_URL });
+    await ratingBlocker.connect();
+    let after: string;
+    try {
+      await ratingBlocker.query("BEGIN");
+      await ratingBlocker.query(`LOCK TABLE "RatedEvent" IN ACCESS EXCLUSIVE MODE`);
+      after = await send("rating-after", "calls", 2, "2026-10-01T00:00:00.001Z");
+      await expect.poll(async () => (await db.query(`SELECT "processingState" FROM "UsageEvent" WHERE id=$1`, [after])).rows[0]?.processingState, { timeout: 30_000 }).toBe("PROCESSED");
+      process.kill(Number(process.env.RATING_TEST_WORKER_PID), "SIGKILL");
+    } finally {
+      await ratingBlocker.query("ROLLBACK");
+      await ratingBlocker.end();
+    }
+    recoveryWorker = spawn("./node_modules/.bin/tsx", ["worker/index.ts"], { cwd: process.cwd(), env: process.env, stdio: "ignore" });
+    await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId"=$1`, [after])).rows[0].n), { timeout: 30_000 }).toBe(1);
     const before = await send("rating-before", "calls", 1, "2026-09-30T23:59:59.998Z");
     const at = await send("rating-at", "calls", 3, "2026-10-01T00:00:00.000Z");
     const previous = await send("rating-previous", "calls", 1, "2026-09-30T23:59:59.999Z");
+    const halfUpTie = await send("rating-half-up-tie", "calls", 1000, "2026-09-30T23:59:59.999Z");
     const zero = await send("rating-zero", "free", 4, "2026-10-01T00:00:00.000Z");
     const future = await send("rating-future", "calls", 1, "2026-10-04T00:05:00.000Z");
     const overflow = await send("rating-overflow", "huge", 1_000_000_000, "2026-10-01T00:00:00.000Z");
     const large = await send("rating-large", "huge", 10_000_000, "2026-10-01T00:00:00.000Z");
+    const amountLimit = await send("rating-amount-limit", "limit", 10_000_447, "2026-09-30T23:59:59.999Z");
+    const amountBeyondLimit = await send("rating-amount-beyond-limit", "limit", 10_000_010, "2026-10-01T00:00:00.000Z");
     const otherCustomer = await send("rating-other-customer", "calls", 1, "2026-10-01T00:00:00.001Z", "other-customer");
     await page.goto(`${base}/app/rating-b/settings`);
     await page.getByLabel("ISO 4217 currency").fill("USD");
     await page.getByRole("button", { name: "Set currency" }).click();
     await publish(page, "rating-metric-b", "7", "2026-09-30T23:59:59.999Z", "rating-b");
     const otherOrg = await send("rating-other-org", "calls", 1, "2026-10-01T00:00:00.001Z", "same-customer", "secret-org-b");
-    await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId" = ANY($1)`, [[after, at, previous, zero, future, large, otherCustomer, otherOrg]])).rows[0].n), { timeout: 30_000 }).toBe(8);
+    await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId" = ANY($1)`, [[after, at, previous, halfUpTie, zero, future, large, amountLimit, otherCustomer, otherOrg]])).rows[0].n), { timeout: 30_000 }).toBe(10);
     const rows = (await db.query(`SELECT r.*, p."effectiveFrom" FROM "RatedEvent" r JOIN "PriceVersion" p ON p.id = r."priceVersionId" WHERE r."eventId" = ANY($1)`, [[after, at, previous, zero]])).rows;
     const byId = new Map(rows.map((row) => [row.eventId, row]));
     expect(byId.get(after)).toMatchObject({ orgId: "rating-a", billedCustomerId: "rating-customer-a", quantity: 2, unitPriceMicros: "3000000", amount: "6.000", currency: "USD" });
     expect(byId.get(at)).toMatchObject({ quantity: 3, unitPriceMicros: "2123456", amount: "6.370", currency: "USD" });
     expect(byId.get(previous)).toMatchObject({ quantity: 1, unitPriceMicros: "5", amount: "0.000", currency: "USD" });
+    expect((await db.query(`SELECT quantity, "unitPriceMicros", amount FROM "RatedEvent" WHERE "eventId"=$1`, [halfUpTie])).rows[0]).toMatchObject({ quantity: 1000, unitPriceMicros: "5", amount: "0.010" });
     expect(byId.get(zero)).toMatchObject({ quantity: 4, unitPriceMicros: "0", amount: "0.000", currency: "USD" });
     expect((await db.query(`SELECT amount, "billedCustomerId" FROM "RatedEvent" WHERE "eventId"=$1`, [large])).rows[0]).toMatchObject({ amount: "9999999999990.000", billedCustomerId: "rating-customer-a" });
+    expect((await db.query(`SELECT quantity, "unitPriceMicros", amount FROM "RatedEvent" WHERE "eventId"=$1`, [amountLimit])).rows[0]).toMatchObject({ quantity: 10_000_447, unitPriceMicros: "999955301998", amount: "9999999999999.990" });
+    await expect.poll(async () => (await db.query(`SELECT f.reason, p."unitPriceMicros" FROM "RatingFailure" f JOIN "PriceVersion" p ON p.id=f."priceVersionId" WHERE f."eventId"=$1`, [amountBeyondLimit])).rows[0], { timeout: 30_000 }).toMatchObject({ reason: "AMOUNT_OVERFLOW", unitPriceMicros: "999999000001" });
+    expect((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId"=$1`, [amountBeyondLimit])).rows[0].n).toBe(0);
     expect((await db.query(`SELECT "orgId", "billedCustomerId", amount FROM "RatedEvent" WHERE "eventId"=$1`, [otherCustomer])).rows[0]).toMatchObject({ orgId: "rating-a", billedCustomerId: "rating-other-a", amount: "3.000" });
     expect((await db.query(`SELECT "orgId", "billedCustomerId", amount FROM "RatedEvent" WHERE "eventId"=$1`, [otherOrg])).rows[0]).toMatchObject({ orgId: "rating-b", billedCustomerId: "rating-customer-b", amount: "7.000" });
     for (const row of rows) expect(row.ratedAt).toBeInstanceOf(Date);
@@ -83,6 +108,8 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
     await expect(db.query(`UPDATE "RatedEvent" SET amount=0 WHERE "eventId"=$1`, [after])).rejects.toThrow(/immutable/);
     await expect(db.query(`DELETE FROM "RatedEvent" WHERE "eventId"=$1`, [after])).rejects.toThrow(/immutable/);
     await expect(db.query(`UPDATE "UsageEvent" SET amount=4 WHERE id=$1`, [after])).rejects.toThrow();
+    await expect(db.query(`UPDATE "UsageEvent" SET timestamp='2026-10-01T00:00:00.000Z' WHERE id=$1`, [after])).rejects.toThrow();
+    await expect(db.query(`UPDATE "UsageEvent" SET "billingTreatment"='LEGACY' WHERE id=$1`, [after])).rejects.toThrow();
     const same = await send("rating-after", "calls", 2, "2026-10-01T00:00:00.001Z");
     expect(same).toBe(after);
     expect((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId"=$1`, [after])).rows[0].n).toBe(1);
@@ -136,6 +163,7 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
       await blocker.end();
     }
   } finally {
+    recoveryWorker?.kill("SIGTERM");
     await db.end();
   }
 });
