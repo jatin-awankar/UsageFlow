@@ -89,6 +89,32 @@ try {
   await waitFor(async () => (await state(interrupted)).processingState === "PROCESSED", "expired lease recovery");
   await stopWorker(worker);
 
+  const invalid = await accept("worker-invalid-event");
+  await db.query(`UPDATE "UsageEvent" SET "billedCustomerId" = NULL WHERE id = $1`, [invalid]);
+  worker = startWorker();
+  await waitFor(async () => (await state(invalid)).processingState === "FAILED", "invalid event failure");
+  assert.equal((await state(invalid)).failureReason, "LEDGER_EVENT_INVALID");
+  await stopWorker(worker);
+  await db.query(`UPDATE "UsageEvent" SET "billedCustomerId" = 'customer-row-c' WHERE id = $1`, [invalid]);
+  await db.query(`UPDATE "LedgerProcessingIntent" SET "leaseUntil" = now() - interval '1 second' WHERE "eventId" = $1`, [invalid]);
+  worker = startWorker();
+  await waitFor(async () => (await state(invalid)).processingState === "PROCESSED", "invalid event retry");
+  await stopWorker(worker);
+
+  const storageFailed = await accept("worker-storage-failed");
+  await db.query(`CREATE FUNCTION reject_ledger_projection() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected storage failure'; END $$`);
+  await db.query(`CREATE TRIGGER reject_ledger_projection BEFORE INSERT ON "LedgerEventProjection" FOR EACH ROW EXECUTE FUNCTION reject_ledger_projection()`);
+  worker = startWorker();
+  await waitFor(async () => (await state(storageFailed)).processingState === "FAILED", "storage failure");
+  assert.equal((await state(storageFailed)).failureReason, "LEDGER_STORAGE_FAILED");
+  await stopWorker(worker);
+  await db.query(`DROP TRIGGER reject_ledger_projection ON "LedgerEventProjection"`);
+  await db.query(`DROP FUNCTION reject_ledger_projection()`);
+  await db.query(`UPDATE "LedgerProcessingIntent" SET "leaseUntil" = now() - interval '1 second' WHERE "eventId" = $1`, [storageFailed]);
+  worker = startWorker();
+  await waitFor(async () => (await state(storageFailed)).processingState === "PROCESSED", "storage retry");
+  await stopWorker(worker);
+
   const failed = await accept("worker-failed");
   console.log("Accepted failed event");
   worker = startWorker({ LEDGER_TEST_FAIL_PROJECTION: "true" });
@@ -100,8 +126,8 @@ try {
   await waitFor(async () => (await state(failed)).processingState === "PROCESSED", "failed retry");
   await queue.add("PROCESS_LEDGER_EVENT", { eventId: failed }, { jobId: `duplicate-${failed}`, removeOnComplete: true });
   await waitFor(async () => (await queue.getJob(`duplicate-${failed}`)) === undefined, "duplicate delivery");
-  await assertProjection([lost, restarted, interrupted, failed]);
-  for (const id of [lost, restarted, interrupted, failed]) {
+  await assertProjection([lost, restarted, interrupted, invalid, storageFailed, failed]);
+  for (const id of [lost, restarted, interrupted, invalid, storageFailed, failed]) {
     assert.equal((await state(id)).billingTreatment, "LEDGER_ONLY");
     assert.equal((await state(id)).processingState, "PROCESSED");
   }
