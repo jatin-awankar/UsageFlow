@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getUsageFlowQueue } from "@/lib/bullmq";
+import { findRateableUnratedEventIds } from "./processors/rateCustomerEvent";
 
 export async function recoverLedgerWork() {
   const now = new Date();
@@ -18,5 +19,11 @@ export async function recoverLedgerWork() {
     // A fresh recovery ID lets the expired PostgreSQL lease determine ownership.
     await queue.add("PROCESS_LEDGER_EVENT", { eventId }, { jobId: `recover-${eventId}-${Math.floor(now.getTime() / 5000)}`, removeOnComplete: true });
   }
-  return intents.length;
+  // A crash after projection commits but before rating must be recoverable.
+  const ratingCandidates = await findRateableUnratedEventIds();
+  if (ratingCandidates.length) console.log("Recovering unrated Customer events", ratingCandidates.map(({ id }) => id));
+  for (const { id } of ratingCandidates) {
+    await queue.add("PROCESS_LEDGER_EVENT", { eventId: id }, { jobId: `rate-${id}-${Math.floor(now.getTime() / 5000)}`, removeOnComplete: true });
+  }
+  return intents.length + ratingCandidates.length;
 }

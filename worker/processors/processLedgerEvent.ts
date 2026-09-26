@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { rateCustomerEvent } from "./rateCustomerEvent";
 
 const LEASE_MS = 30_000;
 const RETRY_MS = 5_000;
@@ -31,7 +32,10 @@ export async function processLedgerEvent(eventId: string) {
     await tx.usageEvent.update({ where: { id: eventId }, data: { processingState: "PROCESSING" } });
     return true;
   });
-  if (!claimed) return;
+  if (!claimed) {
+    try { await rateCustomerEvent(eventId); } catch (error) { console.error("Customer rating failed", { eventId, error }); }
+    return;
+  }
 
   // The integration suite kills this worker after the durable PROCESSING claim.
   if (process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_EXIT_AFTER_CLAIM === "true") process.exit(91);
@@ -54,6 +58,7 @@ export async function processLedgerEvent(eventId: string) {
       await tx.usageEvent.update({ where: { id: eventId }, data: { processingState: "PROCESSED" } });
       await tx.ledgerProcessingIntent.update({ where: { eventId }, data: { leaseToken: null, leaseUntil: null, failureReason: null } });
     });
+    try { await rateCustomerEvent(eventId); } catch (error) { console.error("Customer rating failed", { eventId, error }); }
   } catch (error) {
     console.error("Ledger projection failed", { eventId, error });
     await prisma.$transaction(async (tx) => {

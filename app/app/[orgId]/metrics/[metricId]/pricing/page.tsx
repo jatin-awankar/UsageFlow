@@ -14,6 +14,7 @@ const errors: Record<string, string> = {
   exists: "This metric already has a published first price.",
   conflict: "The start must be later than every published version for this metric.",
   missingFirst: "Publish the first price before scheduling another version.",
+  ratedConflict: "This schedule would change the price of an already rated event.",
 };
 
 export default async function PricingPage({ params, searchParams }: {
