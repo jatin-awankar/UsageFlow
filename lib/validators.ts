@@ -45,6 +45,7 @@ export const usageEventSchema = z.object({
 
 export const customerLinkedUsageEventSchema = usageEventSchema.extend({
   customerId: z.string().min(1).refine((id) => id === id.trim(), "Customer ID must not have surrounding whitespace"),
+  timestamp: z.iso.datetime({ offset: true }).refine((value) => /(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value), "Timestamp precision must be milliseconds or less"),
 });
 
 export const createWebhookSchema = z.object({

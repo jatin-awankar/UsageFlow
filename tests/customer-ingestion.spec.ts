@@ -30,8 +30,9 @@ test("Customer ingestion resolves within the API key Organization and never bill
       await db.query(`INSERT INTO "ApiKey" (id, name, "hashedKey", "orgId") VALUES ($1, 'Test', $2, $3)`, [`key-${orgId}`, createHash("sha256").update(`secret-${orgId}`).digest("hex"), orgId]);
     }
 
+    let requestNumber = 0;
     const track = (orgId: string, customerId?: string) => request.post(`${baseURL}/api/track`, {
-      headers: { "x-usageflow-api-key": `secret-${orgId}` },
+      headers: { "x-usageflow-api-key": `secret-${orgId}`, "idempotency-key": `customer-ingestion-${++requestNumber}` },
       data: { metric: "CALLS", amount: 3, timestamp: "2026-09-03T00:00:00.000Z", ...(customerId === undefined ? {} : { customerId }) },
     });
     const count = async () => Number((await db.query(`SELECT count(*)::int AS n FROM "UsageEvent"`)).rows[0].n);
