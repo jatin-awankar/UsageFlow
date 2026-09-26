@@ -33,6 +33,19 @@ model Organization {
   webhookEndpoints    WebhookEndpoint[]
   webhookEvents       WebhookEvent[]
   organizationInvites OrganizationInvite[]
+  customers           Customer[]
+}
+
+model Customer {
+  id         String       @id @default(uuid())
+  orgId      String
+  externalId String
+  active     Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+
+  @@unique([orgId, externalId])
+  @@unique([orgId, id])
 }
 
 model Membership {

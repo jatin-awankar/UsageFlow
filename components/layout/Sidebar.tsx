@@ -7,6 +7,7 @@ import {
   Activity,
   BarChart3,
   CreditCard,
+  Building2,
   FileText,
   Key,
   Layers,
@@ -60,6 +61,7 @@ const navSections: NavSection[] = [
     items: [
       { name: "Metrics", path: "metrics", icon: Activity },
       { name: "Plans", path: "plans", icon: Layers },
+      { name: "Customers", path: "customers", icon: Building2 },
     ],
   },
   {
