@@ -18,7 +18,8 @@
     "inventory:customer-model": "node --experimental-strip-types scripts/inventory-customer-model.ts",
     "worker": "tsx worker/index.ts",
     "qstash:sync-schedule": "tsx scripts/qstash-sync-schedule.ts",
-    "qstash:delete-schedule": "tsx scripts/qstash-delete-schedule.ts"
+    "qstash:delete-schedule": "tsx scripts/qstash-delete-schedule.ts",
+    "test:ledger-export": "bash scripts/test-ledger-export.sh"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
