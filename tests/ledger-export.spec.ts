@@ -105,3 +105,15 @@ test("owner export freezes rows, states, failure reasons and totals across pages
     await owner.close(); await viewer.close(); await db.end();
   }
 });
+
+test("owner can export an early UTC year without shifting the period", async ({ page }) => {
+  await signIn(page, "owner@example.test");
+  const response = await page.request.post(`${base}/api/ledger-exports`, {
+    data: { orgId: "org-c", period: "0099-01" },
+  });
+  expect(response.status()).toBe(201);
+  const snapshot = await response.json();
+  expect(snapshot.periodStart).toBe("0099-01-01T00:00:00.000Z");
+  expect(snapshot.periodEnd).toBe("0099-02-01T00:00:00.000Z");
+  expect(snapshot.rowCount).toBe(0);
+});

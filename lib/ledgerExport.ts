@@ -4,10 +4,27 @@ import prisma from "@/lib/prisma";
 
 export const pageSize = 100;
 
+const SAFE_LEDGER_FAILURE_REASONS = [
+  "LEDGER_EVENT_INVALID",
+  "LEDGER_STORAGE_FAILED",
+  "LEDGER_PROJECTION_FAILED",
+] as const;
+type SafeLedgerFailureReason = (typeof SAFE_LEDGER_FAILURE_REASONS)[number];
+
+function exportFailureReason(reason: string | null | undefined): SafeLedgerFailureReason | null {
+  return SAFE_LEDGER_FAILURE_REASONS.find((safeReason) => safeReason === reason) ?? null;
+}
+
 export function utcPeriod(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return null;
   const [year, month] = value.split("-").map(Number);
-  return { start: new Date(Date.UTC(year, month - 1, 1)), end: new Date(Date.UTC(year, month, 1)) };
+  if (year === 0) return null;
+  const start = new Date(0);
+  start.setUTCFullYear(year, month - 1, 1);
+  start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setUTCMonth(month);
+  return { start, end };
 }
 
 export async function createLedgerExport(orgId: string, period: { start: Date; end: Date }) {
@@ -41,7 +58,7 @@ export async function createLedgerExport(orgId: string, period: { start: Date; e
         occurredAt: event.timestamp, receivedAt: event.receivedAt!,
         externalCustomerId, metric: event.metricKey, quantity: event.amount,
         processingState: event.processingState!,
-        failureReason: ["LEDGER_EVENT_INVALID", "LEDGER_STORAGE_FAILED", "LEDGER_PROJECTION_FAILED"].includes(event.processingIntent?.failureReason ?? "") ? event.processingIntent!.failureReason : null,
+        failureReason: exportFailureReason(event.processingIntent?.failureReason),
       };
     });
     const snapshot = await tx.ledgerExport.create({
