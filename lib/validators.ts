@@ -43,6 +43,10 @@ export const usageEventSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
+export const customerLinkedUsageEventSchema = usageEventSchema.extend({
+  customerId: z.string().min(1).refine((id) => id === id.trim(), "Customer ID must not have surrounding whitespace"),
+});
+
 export const createWebhookSchema = z.object({
   url: z.url(),
   events: z.array(z.string()).min(1),

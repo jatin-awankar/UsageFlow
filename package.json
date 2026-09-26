@@ -11,6 +11,7 @@
     "lint": "eslint",
     "test:inventory": "node --experimental-strip-types --test scripts/inventory-customer-model.test.ts",
     "test:customer-owner": "bash scripts/test-customer-owner.sh",
+    "test:customer-ingestion": "bash scripts/test-customer-ingestion.sh",
     "test:legacy-billing-treatment": "bash scripts/test-legacy-billing-treatment.sh",
     "inventory:customer-model": "node --experimental-strip-types scripts/inventory-customer-model.ts",
     "worker": "tsx worker/index.ts",

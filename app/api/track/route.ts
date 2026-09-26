@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { hashApiKey } from "@/lib/apiKeys/generateKey";
 import { usageQueue } from "@/lib/queue";
-import { usageEventSchema } from "@/lib/validators";
+import { customerLinkedUsageEventSchema, usageEventSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
 
     const idempotencyKey = req.headers.get("idempotency-key")?.trim() || null;
 
-    const parsedBody = usageEventSchema.safeParse(await req.json());
+    // Pilot ingestion stays disabled until the Customer billing pipeline is ready.
+    const customerLinkedIngestion = process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true";
+    const parsedBody = (customerLinkedIngestion ? customerLinkedUsageEventSchema : usageEventSchema).safeParse(await req.json());
 
     if (!parsedBody.success) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -56,6 +58,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const customer = customerLinkedIngestion
+      ? await prisma.customer.findFirst({
+          where: { orgId: keyRecord.orgId, externalId: customerId!, active: true },
+        })
+      : null;
+    if (customerLinkedIngestion && !customer) {
+      return NextResponse.json({ error: "Unknown or inactive customer ID" }, { status: 400 });
+    }
+
     // 5️⃣ Metric validation
     const metricRecord = await prisma.metric.findFirst({
       where: {
@@ -78,6 +89,7 @@ export async function POST(req: NextRequest) {
           metricKey: metric,
           amount,
           customerId,
+          ...(customer ? { billedCustomerId: customer.id, billingTreatment: "LEDGER_ONLY" as const } : {}),
           metadata,
           idempotencyKey,
           ...(timestamp ? { timestamp } : {}),
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
     }
 
     // add aggregated_usage
-    await usageQueue.add(
+    if (!customerLinkedIngestion) await usageQueue.add(
       "AGGREGATE_USAGE",
       {
         orgId: keyRecord.orgId,
