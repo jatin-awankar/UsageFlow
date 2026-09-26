@@ -4,7 +4,9 @@
 
 **Blocked by:** 01: Accept a valid Customer UsageEvent with a stable receipt.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+**Resolution:** Merged in [PR #39](https://github.com/jatin-awankar/UsageFlow/pull/39).
 
 **Delivery:** After ticket 01 is merged, implement this ticket on a dedicated `codex/ledger-02-retries` branch from current `main`. Run the acceptance checks and `git diff --check`; commit and push only this ticket's changes, then open a draft PR against `main` linking this ticket and reporting test results and rollback steps.
 
