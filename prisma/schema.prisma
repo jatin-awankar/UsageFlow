@@ -153,6 +153,7 @@ model UsageEvent {
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   billedCustomer Customer? @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
   processingIntent LedgerProcessingIntent?
+  ledgerProjection LedgerEventProjection?
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
@@ -163,7 +164,23 @@ model UsageEvent {
 model LedgerProcessingIntent {
   eventId   String @id
   createdAt DateTime @default(now())
+  leaseToken String?
+  leaseUntil DateTime?
+  attempts Int @default(0)
+  failureReason String?
   event     UsageEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model LedgerEventProjection {
+  eventId String @id
+  orgId String
+  billedCustomerId String
+  metricKey String
+  amount Int
+  projectedAt DateTime @default(now())
+  event UsageEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, billedCustomerId, metricKey])
 }
 
 enum BillingTreatment {
