@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:inventory": "node --experimental-strip-types --test scripts/inventory-customer-model.test.ts",
+    "test:customer-owner": "bash scripts/test-customer-owner.sh",
     "inventory:customer-model": "node --experimental-strip-types scripts/inventory-customer-model.ts",
     "worker": "tsx worker/index.ts",
     "qstash:sync-schedule": "tsx scripts/qstash-sync-schedule.ts",
@@ -53,6 +54,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.27",
     "@types/pg": "^8.16.0",
