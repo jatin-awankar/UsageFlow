@@ -67,6 +67,7 @@ export default async function SettingsPage({
             </form>
           )}
           {currencyError === "invalid" && <p role="alert">Enter a valid uppercase ISO 4217 currency.</p>}
+          {currencyError === "locked" && <p role="alert">Published pricing locks this Organization's currency.</p>}
           {currencySaved === "1" && <p role="status">Currency saved.</p>}
         </div>
         <SettingsOverview

@@ -13,7 +13,17 @@ export async function setCurrency(orgId: string, formData: FormData) {
   if (typeof currency !== "string" || !isSupportedCurrency(currency)) {
     redirect(`/app/${orgId}/settings?currencyError=invalid`);
   }
-  await prisma.organization.update({ where: { id: orgId }, data: { currency } });
+  const published = await prisma.priceVersion.findFirst({ where: { orgId }, select: { id: true } });
+  if (published) redirect(`/app/${orgId}/settings?currencyError=locked`);
+  try {
+    await prisma.organization.update({ where: { id: orgId }, data: { currency } });
+  } catch (error) {
+    // The database trigger closes the race with concurrent publication.
+    if (error instanceof Error && error.message.includes("locks Organization currency")) {
+      redirect(`/app/${orgId}/settings?currencyError=locked`);
+    }
+    throw error;
+  }
   revalidatePath(`/app/${orgId}/settings`);
   redirect(`/app/${orgId}/settings?currencySaved=1`);
 }
