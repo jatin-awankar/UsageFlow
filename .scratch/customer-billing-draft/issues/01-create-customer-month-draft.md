@@ -4,10 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Owner-authorized request and read paths are Organization scoped; another Organization cannot read or aggregate the draft, including when external IDs are reused.
-- [ ] UTC half-open occurrence periods, leap month and year boundaries, calculation time, close time, one BillingRecord per key, and a current append-only snapshot are observable.
-- [ ] A disposable PostgreSQL application-level acceptance test configures Customers through owner paths, accepts events through `POST /api/track`, runs the real ledger worker, and inspects the draft and persisted snapshot. It covers repeat requests, UTC boundaries, pre-close `OPEN`, post-close `BLOCKED`, and tenant isolation with the deployed Customer ingestion gate enabled only in the test harness.
-- [ ] Migration adds the BillingRecord identity, append-only calculation snapshots, and current-snapshot linkage without changing legacy Invoices. Rollback disables the new application path while retaining populated draft tables, snapshots, and source evidence for recovery; any schema removal is a separate, explicitly reviewed cleanup.
-- [ ] Create a dedicated branch before editing; limit the commit to this ticket, run its acceptance check and relevant regression checks, then commit, push, and open a draft PR. Report any checks that could not run.
+- [x] Owner-authorized request and read paths are Organization scoped; another Organization cannot read or aggregate the draft, including when external IDs are reused.
+- [x] UTC half-open occurrence periods, leap month and year boundaries, calculation time, close time, one BillingRecord per key, and a current append-only snapshot are observable.
+- [x] A disposable PostgreSQL application-level acceptance test configures Customers through owner paths, accepts events through `POST /api/track`, runs the real ledger worker, and inspects the draft and persisted snapshot. It covers repeat requests, UTC boundaries, pre-close `OPEN`, post-close `BLOCKED`, and tenant isolation with the deployed Customer ingestion gate enabled only in the test harness.
+- [x] Migration adds the BillingRecord identity, append-only calculation snapshots, and current-snapshot linkage without changing legacy Invoices. Rollback disables the new application path while retaining populated draft tables, snapshots, and source evidence for recovery; any schema removal is a separate, explicitly reviewed cleanup.
+- [x] Create a dedicated branch before editing; limit the commit to this ticket, run its acceptance check and relevant regression checks, then commit, push, and open a draft PR. Report any checks that could not run.
+
+## Comments
+
+- Implemented in [draft PR #56](https://github.com/jatin-awankar/UsageFlow/pull/56) (open). All nine repository `test:*` scripts passed; typecheck, scoped lint, and `git diff --check` passed. The two-axis code review found no blocking issues. Repository-wide lint has an existing unrelated JSX apostrophe error in `app/app/[orgId]/settings/page.tsx:70`.
+- Rollback: disable the new BillingRecord API path while retaining the migrated BillingRecord, snapshot, and source UsageEvent evidence. Review any schema removal separately.
