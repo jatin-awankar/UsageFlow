@@ -40,6 +40,7 @@ model Organization {
   priceVersions       PriceVersion[]
   ratedEvents         RatedEvent[]
   ratingFailures      RatingFailure[]
+  unratedEvents        UnratedEvent[]
 }
 
 model Customer {
@@ -51,6 +52,7 @@ model Customer {
   org        Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   usageEvents UsageEvent[]
   ratedEvents RatedEvent[]
+  unratedEvents UnratedEvent[]
 
   @@unique([orgId, externalId])
   @@unique([orgId, id])
@@ -138,6 +140,29 @@ model RatedEvent {
   @@unique([eventId, orgId, billedCustomerId, metricId, quantity])
 }
 
+model UnratedEvent {
+  eventId String @id
+  orgId String
+  billedCustomerId String
+  metricId String
+  reason String @db.VarChar(32)
+  recordedAt DateTime @default(now()) @db.Timestamptz(3)
+  event UsageEvent @relation(fields: [eventId, orgId, billedCustomerId, metricId], references: [id, orgId, billedCustomerId, metricId], onDelete: Restrict)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
+
+  @@unique([eventId, orgId, billedCustomerId, metricId])
+}
+
+model RatingRetry {
+  eventId String @id
+  attempts Int @default(0)
+  reason String @db.VarChar(32)
+  failedAt DateTime @default(now()) @db.Timestamptz(3)
+  retryAfter DateTime @db.Timestamptz(3)
+  event UsageEvent @relation(fields: [eventId], references: [id], onDelete: Restrict)
+}
+
 model RatingFailure {
   eventId String @id
   orgId String
@@ -220,6 +245,8 @@ model UsageEvent {
   ledgerProjection LedgerEventProjection?
   ratedEvent RatedEvent?
   ratingFailure RatingFailure?
+  unratedEvent UnratedEvent?
+  ratingRetry RatingRetry?
 
   @@index([orgId, subscriptionId, metricKey, timestamp])
   @@index([idempotencyKey])
@@ -227,6 +254,7 @@ model UsageEvent {
   @@unique([id, orgId, metricId])
   @@index([orgId, billedCustomerId])
   @@unique([id, orgId, billedCustomerId, metricId, amount])
+  @@unique([id, orgId, billedCustomerId, metricId])
 }
 
 model LedgerProcessingIntent {
