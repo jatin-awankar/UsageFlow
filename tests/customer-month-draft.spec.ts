@@ -311,6 +311,49 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(JSON.stringify(reconciled)).not.toContain("draft-rated");
     expect((await db.query(`SELECT "eventOutcomes", reconciliation FROM "BillingRecordSnapshot" WHERE id=$1`, [reconciled.currentSnapshotId])).rows[0]).toMatchObject({ eventOutcomes: outcomes, reconciliation: reconciled.snapshot.reconciliation });
     expect((await db.query(`SELECT "eventOutcomes" FROM "BillingRecordSnapshot" WHERE id=$1`, [blocked.currentSnapshotId])).rows[0].eventOutcomes).toEqual([expect.objectContaining({ eventId: feb, state: "UNRATED" })]);
+    const secondRecoveryResponse = await request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": "secret-org-c", "idempotency-key": "draft-recovery-second",
+      "x-ledger-test-received-at": eventInstant }, data: { customerId: "recovery", metric: "CALLS", amount: 2, timestamp: eventInstant } });
+    expect(secondRecoveryResponse.status()).toBe(200);
+    const secondRecoveryEvent = (await secondRecoveryResponse.json()).eventId as string;
+    run(secondRecoveryEvent);
+    const completeBeforeMismatch = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
+    expect(completeBeforeMismatch.snapshot.state).toBe("READY_FOR_REVIEW");
+    const existingPrice = (await db.query(`SELECT "orgId", "metricId", "unitPriceMicros", "createdById", "effectiveFrom" FROM "PriceVersion" WHERE id=$1`,
+      [completeBeforeMismatch.snapshot.ratedSources[0].priceVersionId])).rows[0];
+    await db.query(`INSERT INTO "PriceVersion" (id, "orgId", "metricId", currency, "unitPriceMicros", "createdById", "effectiveFrom")
+      VALUES ('draft-mismatched-eur', $1, $2, 'EUR', $3, $4, $5::timestamptz + interval '1 millisecond')`,
+    [existingPrice.orgId, existingPrice.metricId, existingPrice.unitPriceMicros, existingPrice.createdById, existingPrice.effectiveFrom]);
+    await db.query(`ALTER TABLE "RatedEvent" DISABLE TRIGGER USER`);
+    try {
+      await db.query(`UPDATE "RatedEvent" SET "priceVersionId"='draft-mismatched-eur', currency='EUR' WHERE "eventId"=$1`, [secondRecoveryEvent]);
+    } finally {
+      await db.query(`ALTER TABLE "RatedEvent" ENABLE TRIGGER USER`);
+    }
+    const mismatchResponse = await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose);
+    expect(mismatchResponse.status()).toBe(200);
+    const mismatch = await mismatchResponse.json();
+    expect(mismatch.snapshot.state).toBe("BLOCKED");
+    expect(mismatch.snapshot.reconciliation).toMatchObject({ balanced: false, rated: { amount: null, currency: null } });
+    expect(mismatch.snapshot.reconciliation.rated.byCurrency).toEqual([
+      { currency: "EUR", amount: "4.000" }, { currency: "USD", amount: "4.000" },
+    ]);
+    expect(mismatch.snapshot.comparison).toMatchObject({ previousSnapshotId: completeBeforeMismatch.currentSnapshotId,
+      amountDifference: null, unavailableReason: "MIXED_CURRENCY" });
+    expect(mismatch.snapshot.lines.map((line: { currency: string }) => line.currency).sort()).toEqual(["EUR", "USD"]);
+    expect(mismatch.currentSnapshotId).not.toBe(completeBeforeMismatch.currentSnapshotId);
+    expect(mismatch.history.find((snapshot: { id: string }) => snapshot.id === completeBeforeMismatch.currentSnapshotId).state).toBe("READY_FOR_REVIEW");
+    await db.query(`ALTER TABLE "RatedEvent" DISABLE TRIGGER USER`);
+    try {
+      await db.query(`UPDATE "RatedEvent" SET "priceVersionId"=$1, currency='USD' WHERE "eventId"=$2`,
+        [completeBeforeMismatch.snapshot.ratedSources[0].priceVersionId, secondRecoveryEvent]);
+    } finally {
+      await db.query(`ALTER TABLE "RatedEvent" ENABLE TRIGGER USER`);
+    }
+    const correctedEvidence = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
+    expect(correctedEvidence.snapshot.state).toBe("READY_FOR_REVIEW");
+    expect(correctedEvidence.snapshot.reconciliation.rated).toMatchObject({ amount: "8.000", currency: "USD" });
+    expect(correctedEvidence.snapshot.comparison).toMatchObject({ previousSnapshotId: mismatch.currentSnapshotId,
+      amountDifference: null, unavailableReason: "MIXED_CURRENCY" });
   } finally {
     worker?.kill("SIGTERM");
     await owner.close(); await viewer.close(); await db.end();

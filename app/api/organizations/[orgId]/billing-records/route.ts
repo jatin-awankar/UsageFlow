@@ -53,6 +53,17 @@ function summarizeByMetricAndState(outcomes: readonly { metric: string; state: s
     .map((bucket) => ({ ...bucket, quantity: bucket.quantity.toString() }));
 }
 
+function amountsByCurrency(sources: readonly { currency: string; amount: string }[]) {
+  const amounts = new Map<string, string[]>();
+  for (const source of sources) {
+    const values = amounts.get(source.currency) ?? [];
+    values.push(source.amount);
+    amounts.set(source.currency, values);
+  }
+  return [...amounts].sort(([a], [b]) => compareText(a, b))
+    .map(([currency, values]) => ({ currency, amount: sumPersistedRatedAmounts(values) }));
+}
+
 const safeReasons = new Set([
   "LEDGER_EVENT_INVALID", "LEDGER_STORAGE_FAILED", "LEDGER_PROJECTION_FAILED",
   "RATING_STORAGE_FAILED", "RATING_WORKER_FAILED", "AMOUNT_OVERFLOW", "NO_APPLICABLE_PRICE",
@@ -111,25 +122,29 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
       ...eventOutcomes[index], occurredAt: event.timestamp.toISOString(), receivedAt: event.receivedAt!.toISOString(),
     }] : []);
     const lateRatedSources = ratedSources.filter((source) => lateEventIds.has(source.eventId));
+    const lateCurrencyTotals = amountsByCurrency(lateRatedSources);
     const lateArrivals = {
       events: lateEvents,
       byMetricAndState: summarizeByMetricAndState(lateEvents),
       ratedContribution: { count: lateRatedSources.length,
         quantity: lateRatedSources.reduce((sum, source) => sum + BigInt(source.quantity), 0n).toString(),
-        amount: sumPersistedRatedAmounts(lateRatedSources.map((source) => source.amount)),
-        currency: lateRatedSources[0]?.currency ?? null },
+        amount: lateCurrencyTotals.length > 1 ? null : lateCurrencyTotals[0]?.amount ?? "0.000",
+        currency: lateCurrencyTotals.length > 1 ? null : lateCurrencyTotals[0]?.currency ?? null,
+        ...(lateCurrencyTotals.length > 1 ? { byCurrency: lateCurrencyTotals } : {}) },
     };
     const byMetricAndState = summarizeByMetricAndState(eventOutcomes);
     const acceptedQuantity = events.reduce((sum, event) => sum + BigInt(event.amount), 0n);
     const ratedQuantity = ratedSources.reduce((sum, source) => sum + BigInt(source.quantity), 0n);
-    const currencies = [...new Set(ratedSources.map((source) => source.currency))];
-    if (currencies.length > 1) throw new Error("Mixed rating currencies in Customer draft");
-    const ratedAmount = sumPersistedRatedAmounts(ratedSources.map((source) => source.amount));
+    const currencyTotals = amountsByCurrency(ratedSources);
+    const mixedCurrencies = currencyTotals.length > 1;
+    const ratedAmount = mixedCurrencies ? null : currencyTotals[0]?.amount ?? "0.000";
+    const ratedCurrency = mixedCurrencies ? null : currencyTotals[0]?.currency ?? null;
     const ratedQuantitiesMatch = events.every((event) => !event.ratedEvent || event.ratedEvent.quantity === event.amount);
-    const reconciliation = { accepted: { count: events.length, quantity: acceptedQuantity.toString() },
-      rated: { count: ratedSources.length, quantity: ratedQuantity.toString(), amount: ratedAmount, currency: currencies[0] ?? null },
+    let reconciliation = { accepted: { count: events.length, quantity: acceptedQuantity.toString() },
+      rated: { count: ratedSources.length, quantity: ratedQuantity.toString(), amount: ratedAmount, currency: ratedCurrency,
+        ...(mixedCurrencies ? { byCurrency: currencyTotals } : {}) },
       byMetricAndState, balanced: byMetricAndState.reduce((sum, bucket) => sum + bucket.count, 0) === events.length &&
-        byMetricAndState.reduce((sum, bucket) => sum + BigInt(bucket.quantity), 0n) === acceptedQuantity && ratedQuantitiesMatch };
+        byMetricAndState.reduce((sum, bucket) => sum + BigInt(bucket.quantity), 0n) === acceptedQuantity && ratedQuantitiesMatch && !mixedCurrencies };
     ratedSources.sort((a, b) => compareText(a.metricId, b.metricId) || compareText(a.basis, b.basis) ||
       compareText(a.occurredAt, b.occurredAt) || compareText(a.eventId, b.eventId) ||
       compareText(a.priceVersionId ?? a.correctionId ?? "", b.priceVersionId ?? b.correctionId ?? "") || compareText(a.currency, b.currency));
@@ -150,10 +165,9 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     }
     const lines = [...grouped.values()].map(({ amounts, ...line }) => ({ ...line, quantity: line.quantity.toString(),
       amount: sumPersistedRatedAmounts(amounts) }));
-    if (sumPersistedRatedAmounts(lines.map((line) => line.amount)) !== ratedAmount ||
-        lines.reduce((sum, line) => sum + BigInt(line.quantity), 0n) !== ratedQuantity) {
-      throw new Error("Draft source reconciliation failed");
-    }
+    const linesReconcile = sameEvidence(amountsByCurrency(lines), currencyTotals) &&
+      lines.reduce((sum, line) => sum + BigInt(line.quantity), 0n) === ratedQuantity;
+    if (!linesReconcile) reconciliation = { ...reconciliation, balanced: false };
     const fullyRated = reconciliation.balanced && ratedSources.length === events.length &&
       ratedQuantity === acceptedQuantity && eventOutcomes.every((outcome) => outcome.state === "RATED");
     const state = calculatedAt <= period.close ? "OPEN" : fullyRated ? "READY_FOR_REVIEW" : "BLOCKED";
@@ -165,7 +179,7 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
       sameEvidence(existing.currentSnapshot.eventOutcomes, eventOutcomes) && sameEvidence(existing.currentSnapshot.reconciliation, reconciliation) &&
       sameEvidence(existing.currentSnapshot.lateArrivals, lateArrivals)) return existing;
     const comparison = compareDrafts(existing.currentSnapshot, { ratedSources, sourceEvents, total: ratedAmount,
-      currency: currencies[0] ?? null, periodEnd: period.end, closeAt: period.close });
+      currency: ratedCurrency, periodEnd: period.end, closeAt: period.close });
     const snapshot = await tx.billingRecordSnapshot.create({ data: { billingRecordId: existing.id, calculatedAt, state, sourceEvents: sourceEvents as Prisma.InputJsonValue,
       lines: lines as Prisma.InputJsonValue, ratedSources: ratedSources as Prisma.InputJsonValue,
       eventOutcomes: eventOutcomes as Prisma.InputJsonValue, reconciliation: reconciliation as Prisma.InputJsonValue,
