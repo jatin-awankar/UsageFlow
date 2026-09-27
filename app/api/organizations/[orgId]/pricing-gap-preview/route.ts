@@ -9,6 +9,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ org
   const { orgId } = await context.params;
   if ((await getMembership(user.id, orgId))?.role !== "OWNER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const params = request.nextUrl.searchParams;
-  const result = await previewPricingGap(orgId, params.get("metricId") ?? "", params.get("customerId") ?? "", params.get("start") ?? "", params.get("end") ?? "");
+  const result = await previewPricingGap(orgId, params.get("metricId") ?? "", params.get("customerId") ?? "", params.get("start") ?? "", params.get("end") ?? "", user.id);
   return NextResponse.json(result, { status: "error" in result ? 400 : 200 });
 }

@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMembership } from "@/lib/authz/getMembership";
 import { previewPricingGap } from "@/lib/pricing-gap-preview";
+import { ApproveGap } from "./ApproveGap";
 
 export default async function GapPreviewPage({ params, searchParams }: {
   params: Promise<{ orgId: string; metricId: string }>;
@@ -18,7 +19,7 @@ export default async function GapPreviewPage({ params, searchParams }: {
   const query = await searchParams;
   const customers = await prisma.customer.findMany({ where: { orgId }, orderBy: { externalId: "asc" }, select: { id: true, externalId: true } });
   const result = query.customerId || query.start || query.end
-    ? await previewPricingGap(orgId, metricId, query.customerId ?? "", query.start ?? "", query.end ?? "") : null;
+    ? await previewPricingGap(orgId, metricId, query.customerId ?? "", query.start ?? "", query.end ?? "", user.id) : null;
   return <main className="space-y-5 rounded-xl border bg-white p-6">
     <Link href={`/app/${orgId}/metrics/${metricId}/pricing`} className="underline">Back to pricing</Link>
     <h1 className="text-xl font-semibold">Preview pricing gap for {metric.name}</h1>
@@ -35,6 +36,7 @@ export default async function GapPreviewPage({ params, searchParams }: {
       <p>Currency: {result.currency}</p>
       <p>Eligible UNRATED event IDs: {result.eligibleEventIds.length ? result.eligibleEventIds.join(", ") : "None"}</p>
       <table className="w-full text-left"><thead><tr><th>Event ID</th><th>Occurred (UTC)</th><th>Received (UTC)</th><th>Metric</th><th>Quantity</th><th>Ledger state</th></tr></thead><tbody>{result.events.map((event) => <tr key={event.eventId}><td>{event.eventId}</td><td>{event.occurredAt}</td><td>{event.receivedAt ?? "—"}</td><td>{event.metric}</td><td>{event.quantity}</td><td>{event.processingState}</td></tr>)}</tbody></table>
+      <ApproveGap orgId={orgId} metricId={metricId} customerId={result.customerId} start={result.start} end={result.end} currency={result.currency} eligibleEventIds={result.eligibleEventIds} reviewedAt={result.reviewedAt} reviewToken={result.reviewToken} />
     </section>)}
   </main>;
 }
