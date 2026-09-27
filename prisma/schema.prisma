@@ -16,6 +16,7 @@ model User {
   auditLogs   AuditLog[]
   memberships Membership[]
   priceVersions PriceVersion[]
+  pricingGapCorrections PricingGapCorrection[]
 }
 
 model Organization {
@@ -41,6 +42,7 @@ model Organization {
   ratedEvents         RatedEvent[]
   ratingFailures      RatingFailure[]
   unratedEvents        UnratedEvent[]
+  pricingGapCorrections PricingGapCorrection[]
 }
 
 model Customer {
@@ -53,6 +55,7 @@ model Customer {
   usageEvents UsageEvent[]
   ratedEvents RatedEvent[]
   unratedEvents UnratedEvent[]
+  pricingGapCorrections PricingGapCorrection[]
 
   @@unique([orgId, externalId])
   @@unique([orgId, id])
@@ -94,6 +97,7 @@ model Metric {
   planMetrics PlanMetric[]
   usageEvents UsageEvent[]
   priceVersions PriceVersion[]
+  pricingGapCorrections PricingGapCorrection[]
 
   @@unique([orgId, key])
   @@unique([orgId, id])
@@ -125,7 +129,8 @@ model RatedEvent {
   orgId String
   billedCustomerId String
   metricId String
-  priceVersionId String
+  priceVersionId String?
+  correctionId String?
   quantity Int
   unitPriceMicros BigInt
   amount Decimal @db.Decimal(18, 3)
@@ -134,10 +139,34 @@ model RatedEvent {
   event UsageEvent @relation(fields: [eventId, orgId, billedCustomerId, metricId, quantity], references: [id, orgId, billedCustomerId, metricId, amount], onDelete: Restrict)
   org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   customer Customer @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
-  priceVersion PriceVersion @relation(fields: [priceVersionId, orgId, metricId, currency, unitPriceMicros], references: [id, orgId, metricId, currency, unitPriceMicros], onDelete: Restrict)
+  priceVersion PriceVersion? @relation(fields: [priceVersionId, orgId, metricId, currency, unitPriceMicros], references: [id, orgId, metricId, currency, unitPriceMicros], onDelete: Restrict)
+  correction PricingGapCorrection? @relation(fields: [correctionId], references: [id], onDelete: Restrict)
 
   @@index([orgId, billedCustomerId])
   @@unique([eventId, orgId, billedCustomerId, metricId, quantity])
+}
+
+model PricingGapCorrection {
+  id String @id @default(uuid())
+  orgId String
+  metricId String
+  billedCustomerId String
+  start DateTime @db.Timestamptz(3)
+  end DateTime @db.Timestamptz(3)
+  currency String @db.VarChar(3)
+  unitPriceMicros BigInt
+  reviewedAt DateTime @db.Timestamptz(3)
+  approvedAt DateTime @default(now()) @db.Timestamptz(3)
+  approvedById String
+  reason String
+  evidence String
+  affectedEventIds String[]
+  resultingRatingIds String[]
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
+  metric Metric @relation(fields: [orgId, metricId], references: [orgId, id], onDelete: Restrict)
+  approvedBy User @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  ratings RatedEvent[]
 }
 
 model UnratedEvent {
