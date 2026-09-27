@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMembership } from "@/lib/authz/getMembership";
+import { persistedRatedAmount, sumPersistedRatedAmounts } from "@/lib/persisted-rated-amount";
 
 function month(value: string | null) {
   if (!value || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return null;
@@ -55,7 +56,7 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
       const rating = event.ratedEvent;
       return rating ? [{
         eventId: event.id, ratingId: rating.eventId, occurredAt: event.timestamp.toISOString(),
-        metricId: rating.metricId, quantity: rating.quantity, amount: rating.amount.toFixed(3),
+        metricId: rating.metricId, quantity: rating.quantity, amount: persistedRatedAmount(rating.amount),
         currency: rating.currency, unitPriceMicros: rating.unitPriceMicros.toString(),
         priceVersionId: rating.priceVersionId, correctionId: rating.correctionId,
         basis: rating.priceVersionId ? "PRICE_VERSION" : "PRICING_GAP_CORRECTION",
@@ -64,23 +65,23 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     ratedSources.sort((a, b) => compareText(a.metricId, b.metricId) || compareText(a.basis, b.basis) ||
       compareText(a.occurredAt, b.occurredAt) || compareText(a.eventId, b.eventId) ||
       compareText(a.priceVersionId ?? a.correctionId ?? "", b.priceVersionId ?? b.correctionId ?? "") || compareText(a.currency, b.currency));
-    const grouped = new Map<string, { metricId: string; currency: string; basis: string; priceVersionId: string | null; correctionId: string | null; unitPriceMicros: string; quantity: bigint; amountMillis: bigint; sourceEventIds: string[]; ratingIds: string[] }>();
+    const grouped = new Map<string, { metricId: string; currency: string; basis: string; priceVersionId: string | null; correctionId: string | null; unitPriceMicros: string; quantity: bigint; amounts: string[]; sourceEventIds: string[]; ratingIds: string[] }>();
     for (const source of ratedSources) {
       const key = JSON.stringify([source.metricId, source.currency, source.basis, source.priceVersionId, source.correctionId, source.unitPriceMicros]);
       let line = grouped.get(key);
       if (!line) {
         line = { metricId: source.metricId, currency: source.currency, basis: source.basis, priceVersionId: source.priceVersionId,
           correctionId: source.correctionId, unitPriceMicros: source.unitPriceMicros, quantity: 0n,
-          amountMillis: 0n, sourceEventIds: [], ratingIds: [] };
+          amounts: [], sourceEventIds: [], ratingIds: [] };
         grouped.set(key, line);
       }
       line.quantity += BigInt(source.quantity);
-      line.amountMillis += BigInt(source.amount.replace(".", ""));
+      line.amounts.push(source.amount);
       line.sourceEventIds.push(source.eventId);
       line.ratingIds.push(source.ratingId);
     }
-    const lines = [...grouped.values()].map(({ amountMillis, ...line }) => ({ ...line, quantity: line.quantity.toString(),
-      amount: `${amountMillis / 1000n}.${(amountMillis % 1000n).toString().padStart(3, "0")}` }));
+    const lines = [...grouped.values()].map(({ amounts, ...line }) => ({ ...line, quantity: line.quantity.toString(),
+      amount: sumPersistedRatedAmounts(amounts) }));
     const state = calculatedAt <= period.close ? "OPEN" : "BLOCKED";
     if (!existing) {
       existing = await tx.billingRecord.create({ data: { ...key, periodEnd: period.end, closeAt: period.close }, include: { currentSnapshot: true } });
