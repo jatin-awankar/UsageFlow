@@ -415,10 +415,12 @@ model BillingRecordSnapshot {
   eventOutcomes Json @default("[]")
   reconciliation Json @default("{}")
   lateArrivals Json @default("{}")
+  comparison Json @default("{}")
   record BillingRecord @relation("RecordSnapshots", fields: [billingRecordId], references: [id], onDelete: Restrict)
   currentFor BillingRecord[] @relation("CurrentSnapshot")
 
   @@unique([id, billingRecordId])
+  @@index([billingRecordId, calculatedAt, id])
 }
 
 enum BillingRecordState {

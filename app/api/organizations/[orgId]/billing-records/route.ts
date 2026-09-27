@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMembership } from "@/lib/authz/getMembership";
 import { persistedRatedAmount, sumPersistedRatedAmounts } from "@/lib/persisted-rated-amount";
+import { compareDrafts } from "@/lib/draft-comparison";
 
 function month(value: string | null) {
   if (!value || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return null;
@@ -160,10 +161,14 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
       sameEvidence(existing.currentSnapshot.lines, lines) && sameEvidence(existing.currentSnapshot.ratedSources, ratedSources) &&
       sameEvidence(existing.currentSnapshot.eventOutcomes, eventOutcomes) && sameEvidence(existing.currentSnapshot.reconciliation, reconciliation) &&
       sameEvidence(existing.currentSnapshot.lateArrivals, lateArrivals)) return existing;
+    const comparison = compareDrafts(existing.currentSnapshot, { ratedSources, sourceEvents, total: ratedAmount,
+      currency: currencies[0] ?? null, periodEnd: period.end, closeAt: period.close });
     const snapshot = await tx.billingRecordSnapshot.create({ data: { billingRecordId: existing.id, calculatedAt, state, sourceEvents: sourceEvents as Prisma.InputJsonValue,
       lines: lines as Prisma.InputJsonValue, ratedSources: ratedSources as Prisma.InputJsonValue,
       eventOutcomes: eventOutcomes as Prisma.InputJsonValue, reconciliation: reconciliation as Prisma.InputJsonValue,
-      lateArrivals: lateArrivals as Prisma.InputJsonValue } });
+      lateArrivals: lateArrivals as Prisma.InputJsonValue, comparison: comparison ? comparison as Prisma.InputJsonValue : Prisma.JsonNull } });
+    if (process.env.NODE_ENV !== "production" && process.env.BILLING_RECORD_TEST_CLOCK_ENABLED === "true" &&
+      request.headers.get("x-billing-test-fail-publication") === "true") throw new Error("Injected draft publication failure");
     return tx.billingRecord.update({ where: { id: existing.id }, data: { currentSnapshotId: snapshot.id }, include: { currentSnapshot: true } });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -176,8 +181,9 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
   throw new Error("Draft calculation retry exhausted");
 }
 
-function recordResponse(record: Awaited<ReturnType<typeof calculateRecord>>) {
-  return NextResponse.json({ id: record.id, orgId: record.orgId, billedCustomerId: record.billedCustomerId, periodStart: record.periodStart, periodEnd: record.periodEnd, closeAt: record.closeAt, currentSnapshotId: record.currentSnapshotId, kind: "CALCULATION", snapshot: record.currentSnapshot });
+async function recordResponse(record: Awaited<ReturnType<typeof calculateRecord>>) {
+  const history = await prisma.billingRecordSnapshot.findMany({ where: { billingRecordId: record.id }, orderBy: [{ calculatedAt: "asc" }, { id: "asc" }] });
+  return NextResponse.json({ id: record.id, orgId: record.orgId, billedCustomerId: record.billedCustomerId, periodStart: record.periodStart, periodEnd: record.periodEnd, closeAt: record.closeAt, currentSnapshotId: record.currentSnapshotId, kind: "CALCULATION", snapshot: record.currentSnapshot, history });
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ orgId: string }> }) {
