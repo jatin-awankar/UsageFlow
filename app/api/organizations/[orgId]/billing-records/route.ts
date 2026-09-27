@@ -125,10 +125,11 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     const currencies = [...new Set(ratedSources.map((source) => source.currency))];
     if (currencies.length > 1) throw new Error("Mixed rating currencies in Customer draft");
     const ratedAmount = sumPersistedRatedAmounts(ratedSources.map((source) => source.amount));
+    const ratedQuantitiesMatch = events.every((event) => !event.ratedEvent || event.ratedEvent.quantity === event.amount);
     const reconciliation = { accepted: { count: events.length, quantity: acceptedQuantity.toString() },
       rated: { count: ratedSources.length, quantity: ratedQuantity.toString(), amount: ratedAmount, currency: currencies[0] ?? null },
       byMetricAndState, balanced: byMetricAndState.reduce((sum, bucket) => sum + bucket.count, 0) === events.length &&
-        byMetricAndState.reduce((sum, bucket) => sum + BigInt(bucket.quantity), 0n) === acceptedQuantity };
+        byMetricAndState.reduce((sum, bucket) => sum + BigInt(bucket.quantity), 0n) === acceptedQuantity && ratedQuantitiesMatch };
     ratedSources.sort((a, b) => compareText(a.metricId, b.metricId) || compareText(a.basis, b.basis) ||
       compareText(a.occurredAt, b.occurredAt) || compareText(a.eventId, b.eventId) ||
       compareText(a.priceVersionId ?? a.correctionId ?? "", b.priceVersionId ?? b.correctionId ?? "") || compareText(a.currency, b.currency));
@@ -150,10 +151,12 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     const lines = [...grouped.values()].map(({ amounts, ...line }) => ({ ...line, quantity: line.quantity.toString(),
       amount: sumPersistedRatedAmounts(amounts) }));
     if (sumPersistedRatedAmounts(lines.map((line) => line.amount)) !== ratedAmount ||
-        lines.reduce((sum, line) => sum + BigInt(line.quantity), 0n) !== ratedQuantity || !reconciliation.balanced) {
+        lines.reduce((sum, line) => sum + BigInt(line.quantity), 0n) !== ratedQuantity) {
       throw new Error("Draft source reconciliation failed");
     }
-    const state = calculatedAt <= period.close ? "OPEN" : "BLOCKED";
+    const fullyRated = reconciliation.balanced && ratedSources.length === events.length &&
+      ratedQuantity === acceptedQuantity && eventOutcomes.every((outcome) => outcome.state === "RATED");
+    const state = calculatedAt <= period.close ? "OPEN" : fullyRated ? "READY_FOR_REVIEW" : "BLOCKED";
     if (!existing) {
       existing = await tx.billingRecord.create({ data: { ...key, periodEnd: period.end, closeAt: period.close }, include: { currentSnapshot: true } });
     }

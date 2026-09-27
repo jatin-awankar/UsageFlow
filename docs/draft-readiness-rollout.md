@@ -1,0 +1,5 @@
+# Draft readiness rollout and rollback
+
+The additive migration extends `BillingRecordState` with `READY_FOR_REVIEW`. Recalculation continues to publish one complete append-only snapshot and its current pointer in the same transaction. After the inclusive close, it publishes `READY_FOR_REVIEW` only when every eligible accepted event has a persisted rating and counts, quantities, and monetary lines reconcile. `READY_FOR_REVIEW` is eligibility for owner review; it does not approve, finalize, or emit a webhook.
+
+Before rollback, record the affected BillingRecord IDs, current snapshot IDs, and any stable ledger export IDs. Deploy the previous billing-record application route to disable readiness publication, while retaining BillingRecords, snapshots, source evidence, ratings, and the current pointers. The added enum value can remain in PostgreSQL; do not delete or rewrite populated snapshots to remove it. A later constraint or enum cleanup needs a separate evidence-preserving migration and review. Keep deployed `CUSTOMER_LINKED_INGESTION_ENABLED` disabled.
