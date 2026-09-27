@@ -15,3 +15,4 @@
 ## Comments
 
 - 2026-09-27: Focused disposable PostgreSQL regression, typecheck, inventory tests, targeted ESLint, complete shell test sweep, two-axis code review, and `git diff --check` passed. The regression exercises owner pricing, real worker rating, reviewed gap correction, and a worker attempt on a synthetically Customer-linked historical LEGACY event. Rollback removes only the test and harness additions; it does not reclassify historical records or recalculate legacy billing.
+- 2026-09-27: Draft PR [#54](https://github.com/jatin-awankar/UsageFlow/pull/54) targets `main`.
