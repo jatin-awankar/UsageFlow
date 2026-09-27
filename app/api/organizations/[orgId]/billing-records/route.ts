@@ -39,6 +39,19 @@ function compareText(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+function summarizeByMetricAndState(outcomes: readonly { metric: string; state: string; quantity: number }[]) {
+  const buckets = new Map<string, { metric: string; state: string; count: number; quantity: bigint }>();
+  for (const outcome of outcomes) {
+    const key = JSON.stringify([outcome.metric, outcome.state]);
+    const bucket = buckets.get(key) ?? { metric: outcome.metric, state: outcome.state, count: 0, quantity: 0n };
+    bucket.count++;
+    bucket.quantity += BigInt(outcome.quantity);
+    buckets.set(key, bucket);
+  }
+  return [...buckets.values()].sort((a, b) => compareText(a.metric, b.metric) || compareText(a.state, b.state))
+    .map((bucket) => ({ ...bucket, quantity: bucket.quantity.toString() }));
+}
+
 const safeReasons = new Set([
   "LEDGER_EVENT_INVALID", "LEDGER_STORAGE_FAILED", "LEDGER_PROJECTION_FAILED",
   "RATING_STORAGE_FAILED", "RATING_WORKER_FAILED", "AMOUNT_OVERFLOW", "NO_APPLICABLE_PRICE",
@@ -96,34 +109,16 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     const lateEvents = events.flatMap((event, index) => lateEventIds.has(event.id) ? [{
       ...eventOutcomes[index], occurredAt: event.timestamp.toISOString(), receivedAt: event.receivedAt!.toISOString(),
     }] : []);
-    const lateBuckets = new Map<string, { metric: string; state: string; count: number; quantity: bigint }>();
-    for (const event of lateEvents) {
-      const key = JSON.stringify([event.metric, event.state]);
-      const bucket = lateBuckets.get(key) ?? { metric: event.metric, state: event.state, count: 0, quantity: 0n };
-      bucket.count++;
-      bucket.quantity += BigInt(event.quantity);
-      lateBuckets.set(key, bucket);
-    }
     const lateRatedSources = ratedSources.filter((source) => lateEventIds.has(source.eventId));
     const lateArrivals = {
       events: lateEvents,
-      byMetricAndState: [...lateBuckets.values()].sort((a, b) => compareText(a.metric, b.metric) || compareText(a.state, b.state))
-        .map((bucket) => ({ ...bucket, quantity: bucket.quantity.toString() })),
+      byMetricAndState: summarizeByMetricAndState(lateEvents),
       ratedContribution: { count: lateRatedSources.length,
         quantity: lateRatedSources.reduce((sum, source) => sum + BigInt(source.quantity), 0n).toString(),
         amount: sumPersistedRatedAmounts(lateRatedSources.map((source) => source.amount)),
         currency: lateRatedSources[0]?.currency ?? null },
     };
-    const buckets = new Map<string, { metric: string; state: string; count: number; quantity: bigint }>();
-    for (const outcome of eventOutcomes) {
-      const key = JSON.stringify([outcome.metric, outcome.state]);
-      const bucket = buckets.get(key) ?? { metric: outcome.metric, state: outcome.state, count: 0, quantity: 0n };
-      bucket.count++;
-      bucket.quantity += BigInt(outcome.quantity);
-      buckets.set(key, bucket);
-    }
-    const byMetricAndState = [...buckets.values()].sort((a, b) => compareText(a.metric, b.metric) || compareText(a.state, b.state))
-      .map((bucket) => ({ ...bucket, quantity: bucket.quantity.toString() }));
+    const byMetricAndState = summarizeByMetricAndState(eventOutcomes);
     const acceptedQuantity = events.reduce((sum, event) => sum + BigInt(event.amount), 0n);
     const ratedQuantity = ratedSources.reduce((sum, source) => sum + BigInt(source.quantity), 0n);
     const currencies = [...new Set(ratedSources.map((source) => source.currency))];
