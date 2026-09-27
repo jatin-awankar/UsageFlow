@@ -19,6 +19,8 @@ INSERT INTO "Subscription" (id,status,"periodStart","orgId","planId") VALUES ('g
 INSERT INTO "Metric" (id,name,key,unit,"orgId") VALUES ('gap-metric-a','Calls','CALLS','calls','gap-a'),('gap-other-metric','Other','OTHER','calls','gap-a'),('gap-metric-b','Calls','CALLS','calls','gap-b');
 INSERT INTO "AggregatedUsage" (id,"metricKey",total,"periodStart","periodEnd","orgId","subscriptionId") VALUES ('gap-aggregate','CALLS',11,'2026-09-01','2026-10-01','gap-a','gap-sub-a');
 INSERT INTO "Invoice" (id,amount,status,"periodStart","periodEnd","orgId","subscriptionId") VALUES ('gap-invoice',1234,'PENDING','2026-09-01','2026-10-01','gap-a','gap-sub-a');
+INSERT INTO "UsageEvent" (id,"metricKey",amount,"customerId","billedCustomerId","billingTreatment",timestamp,"orgId","subscriptionId","apiKeyId","metricId")
+VALUES ('gap-linked-legacy','CALLS',2,'same-external','gap-customer-a','LEGACY','2026-09-30T00:00:00.000Z','gap-a','gap-sub-a','gap-key-a','gap-metric-a');
 SQL
 set_customer_test_environment
 export TZ=UTC REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z"

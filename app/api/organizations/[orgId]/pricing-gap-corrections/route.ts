@@ -15,6 +15,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       orgId, actorId: user.id,
       metricId: String(body.metricId ?? ""), customerId: String(body.customerId ?? ""),
       start: String(body.start ?? ""), end: String(body.end ?? ""), reviewedAt: String(body.reviewedAt ?? ""),
+      reviewToken: String(body.reviewToken ?? ""),
       eligibleEventIds: body.eligibleEventIds as string[], unitPrice: String(body.unitPrice ?? ""),
       currency: String(body.currency ?? ""), reason: String(body.reason ?? ""), evidence: String(body.evidence ?? ""),
     });

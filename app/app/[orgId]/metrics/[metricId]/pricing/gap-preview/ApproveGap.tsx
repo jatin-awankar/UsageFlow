@@ -5,10 +5,10 @@ import { useState } from "react";
 type Props = {
   orgId: string; metricId: string; customerId: string; start: string; end: string;
   currency: string; eligibleEventIds: string[];
+  reviewedAt: string; reviewToken: string;
 };
 
 export function ApproveGap(props: Props) {
-  const [reviewedAt] = useState(() => new Date().toISOString());
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   if (!props.eligibleEventIds.length) return null;
@@ -19,7 +19,7 @@ export function ApproveGap(props: Props) {
     try {
       const response = await fetch(`/api/organizations/${props.orgId}/pricing-gap-corrections`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...props, reviewedAt, unitPrice: data.get("unitPrice"), reason: data.get("reason"), evidence: data.get("evidence") }),
+        body: JSON.stringify({ ...props, unitPrice: data.get("unitPrice"), reason: data.get("reason"), evidence: data.get("evidence") }),
       });
       const result = await response.json();
       setMessage(response.ok ? `Correction approved: ${result.correctionId}` : result.error);

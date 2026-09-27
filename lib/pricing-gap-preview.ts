@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
@@ -9,7 +10,25 @@ export function parseUtcInstant(value: string): Date | null {
   return date.toISOString() === value ? date : null;
 }
 
-export async function previewPricingGap(orgId: string, metricId: string, customerId: string, startText: string, endText: string, db: Prisma.TransactionClient = prisma) {
+type ReviewScope = {
+  orgId: string; metricId: string; customerId: string; start: string; end: string;
+  currency: string; eligibleEventIds: string[]; reviewedAt: string; reviewerId: string;
+};
+
+function reviewSignature(scope: ReviewScope): Buffer {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) throw new Error("Review signing secret is unavailable");
+  return createHmac("sha256", secret).update(JSON.stringify(scope)).digest();
+}
+
+export function verifyGapReview(scope: ReviewScope, token: string): boolean {
+  const reviewedAt = parseUtcInstant(scope.reviewedAt);
+  const age = reviewedAt ? Date.now() - reviewedAt.getTime() : -1;
+  if (age < 0 || age > 24 * 60 * 60 * 1000 || !/^[0-9a-f]{64}$/.test(token)) return false;
+  return timingSafeEqual(reviewSignature(scope), Buffer.from(token, "hex"));
+}
+
+export async function previewPricingGap(orgId: string, metricId: string, customerId: string, startText: string, endText: string, reviewerId: string, db: Prisma.TransactionClient = prisma) {
   const start = parseUtcInstant(startText);
   const end = parseUtcInstant(endText);
   if (!start || !end || start >= end) return { error: "Enter an increasing half-open interval using UTC instants with milliseconds." } as const;
@@ -36,11 +55,15 @@ export async function previewPricingGap(orgId: string, metricId: string, custome
     orderBy: [{ timestamp: "asc" }, { id: "asc" }],
     select: { id: true, timestamp: true, receivedAt: true, amount: true, metricKey: true, processingState: true },
   });
+  const reviewedAt = new Date().toISOString();
+  const reviewScope = { orgId, metricId, customerId, start: start.toISOString(), end: end.toISOString(),
+    currency: org.currency, eligibleEventIds: events.map((event) => event.id), reviewedAt, reviewerId };
   return {
     orgId, metricId, metricKey: metric.key, metricName: metric.name,
     customerId, externalCustomerId: customer.externalId, currency: org.currency,
     start: start.toISOString(), end: end.toISOString(),
     eligibleEventIds: events.map((event) => event.id),
+    reviewedAt, reviewToken: reviewSignature(reviewScope).toString("hex"),
     events: events.map((event) => ({
       eventId: event.id, occurredAt: event.timestamp.toISOString(), receivedAt: event.receivedAt?.toISOString() ?? null,
       metric: event.metricKey, quantity: event.amount, processingState: event.processingState,

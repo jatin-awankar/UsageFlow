@@ -1,17 +1,17 @@
 import prisma from "@/lib/prisma";
-import { previewPricingGap, parseUtcInstant } from "@/lib/pricing-gap-preview";
+import { previewPricingGap, parseUtcInstant, verifyGapReview } from "@/lib/pricing-gap-preview";
 import { rateMoney } from "@/lib/money-contract";
 
 type Approval = {
   orgId: string; metricId: string; customerId: string; start: string; end: string;
-  reviewedAt: string; eligibleEventIds: string[]; unitPrice: string; currency: string;
+  reviewedAt: string; reviewToken: string; eligibleEventIds: string[]; unitPrice: string; currency: string;
   reason: string; evidence: string; actorId: string;
 };
 
 export class CorrectionRejected extends Error {}
 
 export async function approvePricingGap(input: Approval) {
-  const { orgId, metricId, customerId, start, end, reviewedAt, eligibleEventIds, unitPrice, currency, reason, evidence, actorId } = input;
+  const { orgId, metricId, customerId, start, end, reviewedAt, reviewToken, eligibleEventIds, unitPrice, currency, reason, evidence, actorId } = input;
   if (!parseUtcInstant(reviewedAt) || !Array.isArray(eligibleEventIds) || eligibleEventIds.length === 0 ||
       !eligibleEventIds.every((id) => typeof id === "string" && id.length > 0) ||
       !reason?.trim() || !evidence?.trim()) throw new CorrectionRejected("Complete the review, affected IDs, reason, and evidence.");
@@ -25,13 +25,15 @@ export async function approvePricingGap(input: Approval) {
     // This is the same lock used for ordinary publication and rating.
     const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Organization" WHERE id = ${orgId} FOR NO KEY UPDATE`;
     if (!locked.length) throw new CorrectionRejected("Organization is unavailable.");
-    const preview = await previewPricingGap(orgId, metricId, customerId, start, end, tx);
+    const preview = await previewPricingGap(orgId, metricId, customerId, start, end, actorId, tx);
     if ("error" in preview) throw new CorrectionRejected(preview.error);
     if (preview.currency !== currency) throw new CorrectionRejected("Currency changed since review.");
     const expected = preview.eligibleEventIds;
     if (eligibleEventIds.length !== expected.length ||
       new Set(eligibleEventIds).size !== expected.length ||
       eligibleEventIds.some((id) => !expected.includes(id))) throw new CorrectionRejected("Reviewed event IDs are stale or incomplete.");
+    if (!verifyGapReview({ orgId, metricId, customerId, start, end, currency, eligibleEventIds: expected, reviewedAt, reviewerId: actorId }, reviewToken))
+      throw new CorrectionRejected("The reviewed preview is invalid or expired. Preview the gap again.");
     const amounts = preview.events.map((event) => {
       try { return rateMoney(unitPrice, BigInt(event.quantity), currency); }
       catch { throw new CorrectionRejected("Corrected amount exceeds the money contract."); }
