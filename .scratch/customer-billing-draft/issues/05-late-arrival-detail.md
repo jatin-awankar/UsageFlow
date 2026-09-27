@@ -14,4 +14,4 @@
 
 ## Comments
 
-- Implemented on `codex/customer-draft-05-late-arrivals`; draft PR link will be recorded after publication.
+- Implemented on `codex/customer-draft-05-late-arrivals`; draft PR: https://github.com/jatin-awankar/UsageFlow/pull/60.
