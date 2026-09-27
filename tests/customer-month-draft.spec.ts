@@ -31,9 +31,16 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const customerB = customers.find((row) => row.orgId === "draft-b").id;
     const url = `${base}/api/organizations/draft-a/billing-records`;
     const create = (month: string, billedCustomerId = customerA, now = "2024-03-04T00:00:00.000Z") => owner.request.post(url, { headers: { "x-billing-test-now": now }, data: { month, billedCustomerId } });
+    const readiness = async (month: string, billedCustomerId: string, now: string) => {
+      const response = await owner.request.post(url, { headers: { "x-billing-test-now": now }, data: { action: "readiness", month, billedCustomerId } });
+      expect(response.status()).toBe(200);
+      return response.json();
+    };
     expect((await request.post(url, { data: { month: "2024-02", billedCustomerId: customerA } })).status()).toBe(403);
     expect((await viewer.request.post(url, { data: { month: "2024-02", billedCustomerId: customerA } })).status()).toBe(403);
     expect((await create("2024-02", customerB)).status()).toBe(404);
+    expect((await viewer.request.post(url, { data: { action: "readiness", month: "2024-02", billedCustomerId: customerA } })).status()).toBe(403);
+    expect((await owner.request.post(url, { data: { action: "readiness", month: "2024-02", billedCustomerId: customerB } })).status()).toBe(404);
     const accept = async (key: string, timestamp: string, apiKey = "secret-org-c") => {
       const result = await request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": apiKey, "idempotency-key": key }, data: { customerId: "shared", metric: "CALLS", amount: 3, timestamp } });
       expect(result.status()).toBe(200);
@@ -150,11 +157,17 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const readyRecovery = await recoveredFirst.json();
     expect((await recoveredSecond.json()).currentSnapshotId).toBe(readyRecovery.currentSnapshotId);
     expect(readyRecovery.snapshot.state).toBe("READY_FOR_REVIEW");
+    const closeAt = new Date(Date.UTC(Number(reconciliationMonth.slice(0, 4)), Number(reconciliationMonth.slice(5)), 4)).toISOString();
+    expect(await readiness(reconciliationMonth, recoveryCustomer, closeAt)).toMatchObject({ ready: false, informational: true,
+      blockingReasons: [{ code: "CLOSE_NOT_PASSED" }] });
+    const readyView = await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose);
+    expect(readyView).toMatchObject({ ready: true, informational: true, billingRecordId: readyRecovery.id, blockingReasons: [],
+      reconciliation: { balanced: true, accepted: { count: 1 }, rated: { count: 1, amount: "4.000" } } });
     expect(readyRecovery.currentSnapshotId).not.toBe(recoveryDraft.currentSnapshotId);
     expect(readyRecovery.snapshot.reconciliation).toMatchObject({ accepted: { count: 1, quantity: "2" }, rated: { count: 1, quantity: "2", amount: "4.000" }, balanced: true });
     expect(readyRecovery.snapshot.lines.flatMap((line: { sourceEventIds: string[] }) => line.sourceEventIds)).toEqual([recoveryEvent]);
-    expect((await db.query(`SELECT count(*)::int AS count FROM "BillingRecordSnapshot" WHERE "billingRecordId"=$1`, [readyRecovery.id])).rows[0].count).toBe(2);
-    expect((await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose).then((response) => response.json())).currentSnapshotId).toBe(readyRecovery.currentSnapshotId);
+    expect((await db.query(`SELECT count(*)::int AS count FROM "BillingRecordSnapshot" WHERE "billingRecordId"=$1`, [readyRecovery.id])).rows[0].count).toBe(4);
+    expect((await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose).then((response) => response.json())).currentSnapshotId).toBe(readyView.snapshotId);
     const pending = await send("draft-pending");
     const processing = await send("draft-processing"); run(processing, "LEDGER_TEST_EXIT_AFTER_CLAIM");
     const ledgerFailed = await send("draft-ledger-failed"); run(ledgerFailed, "LEDGER_TEST_FAIL_PROJECTION");
@@ -172,6 +185,13 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const frozen = await (await owner.request.get(`${base}/api/ledger-exports/${exportId}?orgId=draft-a`)).json();
     const reconciled = await (await create(reconciliationMonth, customerA, eventInstant)).json();
     const outcomes = reconciled.snapshot.eventOutcomes;
+    const blockedReadiness = await readiness(reconciliationMonth, customerA, recoveryAfterClose);
+    expect(blockedReadiness.ready).toBe(false);
+    expect(blockedReadiness.blockingReasons.map((reason: { code: string }) => reason.code).sort()).toEqual([
+      "UNRATED", "LEDGER_PENDING", "LEDGER_PROCESSING", "LEDGER_FAILED", "RATING_PENDING", "RATING_RETRY", "RATING_FAILED",
+    ].sort());
+    expect(blockedReadiness.blockingReasons).toContainEqual(expect.objectContaining({ code: "LEDGER_FAILED", reason: "LEDGER_PROJECTION_FAILED" }));
+    expect(blockedReadiness.blockingReasons).toContainEqual(expect.objectContaining({ code: "RATING_FAILED", reason: "AMOUNT_OVERFLOW" }));
     expect(outcomes.map((item: { eventId: string }) => item.eventId).sort()).toEqual([unrated, rated, pending, processing, ledgerFailed, ratingPending, ratingRetry, ratingFailed].sort());
     expect(outcomes.map((item: { state: string }) => item.state).sort()).toEqual([
       "UNRATED", "RATED", "LEDGER_PENDING", "LEDGER_PROCESSING", "LEDGER_FAILED", "RATING_PENDING", "RATING_RETRY", "RATING_FAILED",
@@ -315,7 +335,14 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       "x-ledger-test-received-at": eventInstant }, data: { customerId: "recovery", metric: "CALLS", amount: 2, timestamp: eventInstant } });
     expect(secondRecoveryResponse.status()).toBe(200);
     const secondRecoveryEvent = (await secondRecoveryResponse.json()).eventId as string;
+    const stalePending = await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose);
+    expect(stalePending).toMatchObject({ ready: false, blockingReasons: [{ code: "LEDGER_PENDING", eventId: secondRecoveryEvent }] });
+    expect(stalePending.snapshotId).not.toBe(readyView.snapshotId);
+    run(secondRecoveryEvent, "RATING_TEST_FAIL_ATTEMPT");
+    expect(await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).toMatchObject({ ready: false,
+      blockingReasons: [{ code: "RATING_RETRY", eventId: secondRecoveryEvent, reason: "RATING_WORKER_FAILED" }] });
     run(secondRecoveryEvent);
+    expect((await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).ready).toBe(true);
     const completeBeforeMismatch = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
     expect(completeBeforeMismatch.snapshot.state).toBe("READY_FOR_REVIEW");
     const existingPrice = (await db.query(`SELECT "orgId", "metricId", "unitPriceMicros", "createdById", "effectiveFrom" FROM "PriceVersion" WHERE id=$1`,
@@ -333,6 +360,8 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(mismatchResponse.status()).toBe(200);
     const mismatch = await mismatchResponse.json();
     expect(mismatch.snapshot.state).toBe("BLOCKED");
+    expect(await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).toMatchObject({ ready: false,
+      blockingReasons: [{ code: "RECONCILIATION_MISMATCH" }] });
     expect(mismatch.snapshot.reconciliation).toMatchObject({ balanced: false, rated: { amount: null, currency: null } });
     expect(mismatch.snapshot.reconciliation.rated.byCurrency).toEqual([
       { currency: "EUR", amount: "4.000" }, { currency: "USD", amount: "4.000" },
@@ -351,6 +380,9 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     }
     const correctedEvidence = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
     expect(correctedEvidence.snapshot.state).toBe("READY_FOR_REVIEW");
+    expect((await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).ready).toBe(true);
+    expect((await db.query(`SELECT count(*)::int AS count FROM "WebhookEvent"`)).rows[0].count).toBe(0);
+    expect((await db.query(`SELECT count(*)::int AS count FROM information_schema.tables WHERE table_name = 'BillingRecordVersion'`)).rows[0].count).toBe(0);
     expect(correctedEvidence.snapshot.reconciliation.rated).toMatchObject({ amount: "8.000", currency: "USD" });
     expect(correctedEvidence.snapshot.comparison).toMatchObject({ previousSnapshotId: mismatch.currentSnapshotId,
       amountDifference: null, unavailableReason: "MIXED_CURRENCY" });
