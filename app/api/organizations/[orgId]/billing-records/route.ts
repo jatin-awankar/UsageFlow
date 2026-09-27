@@ -65,10 +65,22 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
         ratedEvent: { select: { eventId: true, metricId: true, quantity: true, amount: true, currency: true, unitPriceMicros: true, priceVersionId: true, correctionId: true } } },
     });
     const sourceEvents = events.map((event) => ({ eventId: event.id, occurredAt: event.timestamp.toISOString(), receivedAt: event.receivedAt?.toISOString() ?? null, metric: event.metricKey, quantity: event.amount, processingState: event.processingState }));
+    const ratedSources = events.flatMap((event) => {
+      const rating = event.ratedEvent;
+      return rating ? [{
+        eventId: event.id, ratingId: rating.eventId, occurredAt: event.timestamp.toISOString(),
+        metricId: rating.metricId, quantity: rating.quantity, amount: persistedRatedAmount(rating.amount),
+        currency: rating.currency, unitPriceMicros: rating.unitPriceMicros.toString(),
+        priceVersionId: rating.priceVersionId, correctionId: rating.correctionId,
+        basis: rating.priceVersionId ? "PRICE_VERSION" : "PRICING_GAP_CORRECTION",
+      }] : [];
+    });
+    const ratedSourceByEventId = new Map(ratedSources.map((source) => [source.eventId, source]));
     const eventOutcomes = events.map((event) => {
       // A completed ledger projection is not rating evidence. Persisted rating wins
       // even when a stale retry marker survives a worker interruption.
-      const state = event.ratedEvent ? "RATED" : event.processingState === "FAILED" ? "LEDGER_FAILED"
+      const ratedSource = ratedSourceByEventId.get(event.id);
+      const state = ratedSource ? "RATED" : event.processingState === "FAILED" ? "LEDGER_FAILED"
         : event.processingState === "PROCESSING" ? "LEDGER_PROCESSING"
         : event.processingState === "PENDING" ? "LEDGER_PENDING"
         : event.ratingFailure ? "RATING_FAILED" : event.unratedEvent ? "UNRATED"
@@ -78,7 +90,7 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
         : state === "RATING_RETRY" ? safeReason(event.ratingRetry?.reason)
         : state === "UNRATED" ? safeReason(event.unratedEvent?.reason) : null;
       return { eventId: event.id, metric: event.metricKey, quantity: event.amount, state, reason,
-        ...(event.ratedEvent ? { amount: persistedRatedAmount(event.ratedEvent.amount), currency: event.ratedEvent.currency } : {}) };
+        ...(ratedSource ? { amount: ratedSource.amount, currency: ratedSource.currency } : {}) };
     });
     const buckets = new Map<string, { metric: string; state: string; count: number; quantity: bigint }>();
     for (const outcome of eventOutcomes) {
@@ -91,26 +103,14 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     const byMetricAndState = [...buckets.values()].sort((a, b) => compareText(a.metric, b.metric) || compareText(a.state, b.state))
       .map((bucket) => ({ ...bucket, quantity: bucket.quantity.toString() }));
     const acceptedQuantity = events.reduce((sum, event) => sum + BigInt(event.amount), 0n);
-    const ratedEvents = events.filter((event) => !!event.ratedEvent);
-    const ratedQuantity = ratedEvents.reduce((sum, event) => sum + BigInt(event.amount), 0n);
-    const ratedAmounts = ratedEvents.map((event) => persistedRatedAmount(event.ratedEvent!.amount));
-    const currencies = [...new Set(ratedEvents.map((event) => event.ratedEvent!.currency))];
+    const ratedQuantity = ratedSources.reduce((sum, source) => sum + BigInt(source.quantity), 0n);
+    const currencies = [...new Set(ratedSources.map((source) => source.currency))];
     if (currencies.length > 1) throw new Error("Mixed rating currencies in Customer draft");
-    const ratedAmount = sumPersistedRatedAmounts(ratedAmounts);
+    const ratedAmount = sumPersistedRatedAmounts(ratedSources.map((source) => source.amount));
     const reconciliation = { accepted: { count: events.length, quantity: acceptedQuantity.toString() },
-      rated: { count: ratedEvents.length, quantity: ratedQuantity.toString(), amount: ratedAmount, currency: currencies[0] ?? null },
+      rated: { count: ratedSources.length, quantity: ratedQuantity.toString(), amount: ratedAmount, currency: currencies[0] ?? null },
       byMetricAndState, balanced: byMetricAndState.reduce((sum, bucket) => sum + bucket.count, 0) === events.length &&
         byMetricAndState.reduce((sum, bucket) => sum + BigInt(bucket.quantity), 0n) === acceptedQuantity };
-    const ratedSources = events.flatMap((event) => {
-      const rating = event.ratedEvent;
-      return rating ? [{
-        eventId: event.id, ratingId: rating.eventId, occurredAt: event.timestamp.toISOString(),
-        metricId: rating.metricId, quantity: rating.quantity, amount: persistedRatedAmount(rating.amount),
-        currency: rating.currency, unitPriceMicros: rating.unitPriceMicros.toString(),
-        priceVersionId: rating.priceVersionId, correctionId: rating.correctionId,
-        basis: rating.priceVersionId ? "PRICE_VERSION" : "PRICING_GAP_CORRECTION",
-      }] : [];
-    });
     ratedSources.sort((a, b) => compareText(a.metricId, b.metricId) || compareText(a.basis, b.basis) ||
       compareText(a.occurredAt, b.occurredAt) || compareText(a.eventId, b.eventId) ||
       compareText(a.priceVersionId ?? a.correctionId ?? "", b.priceVersionId ?? b.correctionId ?? "") || compareText(a.currency, b.currency));
