@@ -72,6 +72,7 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
     const overflow = await send("rating-overflow", "huge", 1_000_000_000, "2026-10-01T00:00:00.000Z");
     const large = await send("rating-large", "huge", 10_000_000, "2026-10-01T00:00:00.000Z");
     const amountLimit = await send("rating-amount-limit", "limit", 10_000_447, "2026-09-30T23:59:59.999Z");
+    const secondLimit = await send("rating-second-limit", "limit", 1, "2026-09-30T23:59:59.999Z");
     const amountBeyondLimit = await send("rating-amount-beyond-limit", "limit", 10_000_010, "2026-10-01T00:00:00.000Z");
     const otherCustomer = await send("rating-other-customer", "calls", 1, "2026-10-01T00:00:00.001Z", "other-customer");
     await page.goto(`${base}/app/rating-b/settings`);
@@ -79,9 +80,32 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
     await page.getByRole("button", { name: "Set currency" }).click();
     await publish(page, "rating-metric-b", "7", "2026-09-30T23:59:59.999Z", "rating-b");
     const otherOrg = await send("rating-other-org", "calls", 1, "2026-10-01T00:00:00.001Z", "same-customer", "secret-org-b");
-    await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId" = ANY($1)`, [[after, at, previous, halfUpTie, zero, future, large, amountLimit, otherCustomer, otherOrg]])).rows[0].n), { timeout: 30_000 }).toBe(10);
+    await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId" = ANY($1)`, [[after, at, previous, halfUpTie, zero, future, large, amountLimit, secondLimit, otherCustomer, otherOrg]])).rows[0].n), { timeout: 30_000 }).toBe(11);
     const rows = (await db.query(`SELECT r.*, p."effectiveFrom" FROM "RatedEvent" r JOIN "PriceVersion" p ON p.id = r."priceVersionId" WHERE r."eventId" = ANY($1)`, [[after, at, previous, zero]])).rows;
     const byId = new Map(rows.map((row) => [row.eventId, row]));
+    const draftUrl = `${base}/api/organizations/rating-a/billing-records`;
+    const draft = async (month: string) => {
+      const response = await page.request.post(draftUrl, { headers: { "x-billing-test-now": "2026-10-04T00:00:00.000Z" }, data: { month, billedCustomerId: "rating-customer-a" } });
+      expect(response.status()).toBe(200);
+      return response.json();
+    };
+    const septemberDraft = await draft("2026-09");
+    const limitLine = septemberDraft.snapshot.lines.find((line: { metricId: string }) => line.metricId === "rating-limit");
+    expect(limitLine).toMatchObject({ currency: "USD", basis: "PRICE_VERSION", quantity: "10000448", amount: "10000000999955.290",
+      sourceEventIds: [amountLimit, secondLimit].sort(), ratingIds: [amountLimit, secondLimit].sort() });
+    const octoberDraft = await draft("2026-10");
+    const calls = octoberDraft.snapshot.lines.filter((line: { metricId: string }) => line.metricId === "rating-metric-a");
+    expect(calls).toHaveLength(2);
+    expect(calls).toEqual([
+      expect.objectContaining({ amount: "6.370", quantity: "3", sourceEventIds: [at], ratingIds: [at] }),
+      expect.objectContaining({ amount: "9.000", quantity: "3", sourceEventIds: [after, future], ratingIds: [after, future] }),
+    ]);
+    expect(octoberDraft.snapshot.lines).toEqual(expect.arrayContaining([expect.objectContaining({
+      metricId: "rating-zero", basis: "PRICE_VERSION", amount: "0.000", quantity: "4", sourceEventIds: [zero], ratingIds: [zero],
+    })]));
+    expect(octoberDraft.snapshot.ratedSources.filter((source: { metricId: string }) => source.metricId === "rating-metric-a").map((source: { eventId: string; ratingId: string; priceVersionId: string }) => [source.eventId, source.ratingId, source.priceVersionId])).toEqual([
+      [at, at, byId.get(at).priceVersionId], [after, after, byId.get(after).priceVersionId], [future, future, byId.get(after).priceVersionId],
+    ]);
     expect(byId.get(after)).toMatchObject({ orgId: "rating-a", billedCustomerId: "rating-customer-a", quantity: 2, unitPriceMicros: "3000000", amount: "6.000", currency: "USD" });
     expect(byId.get(at)).toMatchObject({ quantity: 3, unitPriceMicros: "2123456", amount: "6.370", currency: "USD" });
     expect(byId.get(previous)).toMatchObject({ quantity: 1, unitPriceMicros: "5", amount: "0.000", currency: "USD" });

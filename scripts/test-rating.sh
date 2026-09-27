@@ -22,7 +22,7 @@ INSERT INTO "Invoice" (id,amount,status,"periodStart","periodEnd","orgId","subsc
 SQL
 set_customer_test_environment
 export NEXTAUTH_URL="http://127.0.0.1:3103" CUSTOMER_TEST_BASE_URL="$NEXTAUTH_URL" PRICE_TEST_BASE_URL="$NEXTAUTH_URL"
-export REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z" TZ=UTC
+export REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true BILLING_RECORD_TEST_CLOCK_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z" TZ=UTC
 start_customer_test_app
 worker_log="$(mktemp)"
 ./node_modules/.bin/tsx worker/index.ts >"$worker_log" 2>&1 &
