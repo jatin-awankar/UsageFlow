@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { rateCustomerEvent } from "./rateCustomerEvent";
+import { attemptCustomerRating } from "./rateCustomerEvent";
 
 const LEASE_MS = 30_000;
 const RETRY_MS = 5_000;
@@ -33,7 +33,7 @@ export async function processLedgerEvent(eventId: string) {
     return true;
   });
   if (!claimed) {
-    try { await rateCustomerEvent(eventId); } catch (error) { console.error("Customer rating failed", { eventId, error }); }
+    await attemptCustomerRating(eventId);
     return;
   }
 
@@ -58,7 +58,7 @@ export async function processLedgerEvent(eventId: string) {
       await tx.usageEvent.update({ where: { id: eventId }, data: { processingState: "PROCESSED" } });
       await tx.ledgerProcessingIntent.update({ where: { eventId }, data: { leaseToken: null, leaseUntil: null, failureReason: null } });
     });
-    try { await rateCustomerEvent(eventId); } catch (error) { console.error("Customer rating failed", { eventId, error }); }
+    await attemptCustomerRating(eventId);
   } catch (error) {
     console.error("Ledger projection failed", { eventId, error });
     await prisma.$transaction(async (tx) => {
