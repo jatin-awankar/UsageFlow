@@ -202,7 +202,12 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const unpricedLate = (await unpricedResponse.json()).eventId as string;
     expect((await lateSend("late-too-late", beforeEnd, afterClose)).status()).toBe(400);
     expect((await lateSend("late-next-month", afterEnd, afterEnd)).status()).toBe(200);
-    run(exactLate); run(unpricedLate); run(firstLate); run(pendingOnTime); // process in receipt order's reverse
+    run(exactLate); run(unpricedLate); run(firstLate); // process in receipt order's reverse
+    const afterLateArrival = await (await create(lateMonth, customerA, atClose)).json();
+    expect(afterLateArrival.snapshot.comparison).toMatchObject({ previousSnapshotId: beforeLate.currentSnapshotId,
+      previousTotal: beforeLate.snapshot.reconciliation.rated.amount, currentTotal: afterLateArrival.snapshot.reconciliation.rated.amount,
+      amountDifference: "+8.000", lateArrivalContribution: "+8.000", ratingRecoveryContribution: "+0.000" });
+    run(pendingOnTime);
     const withLate = await (await create(lateMonth, customerA, atClose)).json();
     expect([...withLate.snapshot.lateArrivals.events].sort((a, b) => [firstLate, exactLate, unpricedLate].indexOf(a.eventId) - [firstLate, exactLate, unpricedLate].indexOf(b.eventId))).toEqual([
       expect.objectContaining({ eventId: firstLate, occurredAt: beforeEnd, receivedAt: afterEndByMillisecond, metric: "CALLS", quantity: 2, state: "RATED", amount: "4.000" }),
@@ -215,16 +220,16 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       { metric: "UNPRICED", state: "UNRATED", count: 1, quantity: "5" },
     ]);
     expect(withLate.snapshot.lateArrivals.ratedContribution).toEqual({ count: 2, quantity: "4", amount: "8.000", currency: "USD" });
-    expect(withLate.snapshot.comparison).toMatchObject({ previousSnapshotId: beforeLate.currentSnapshotId,
-      previousCalculatedAt: beforeLate.snapshot.calculatedAt, previousTotal: beforeLate.snapshot.reconciliation.rated.amount,
-      currentTotal: withLate.snapshot.reconciliation.rated.amount, amountDifference: "+12.000", currency: "USD",
-      lateArrivalContribution: "+8.000", ratingRecoveryContribution: "+4.000" });
-    expect(withLate.snapshot.comparison.changes).toEqual(expect.arrayContaining([
+    expect(afterLateArrival.snapshot.comparison.changes).toEqual(expect.arrayContaining([
       expect.objectContaining({ eventId: firstLate, kind: "ADDED", lateArrival: true, amountDifference: "+4.000" }),
       expect.objectContaining({ eventId: exactLate, kind: "ADDED", lateArrival: true, amountDifference: "+4.000" }),
       expect.objectContaining({ eventId: unpricedLate, kind: "ADDED", lateArrival: true, amountDifference: "+0.000" }),
-      expect.objectContaining({ eventId: pendingOnTime, kind: "NEWLY_RATED", lateArrival: false, amountDifference: "+4.000" }),
     ]));
+    expect(withLate.snapshot.comparison).toMatchObject({ previousSnapshotId: afterLateArrival.currentSnapshotId,
+      previousCalculatedAt: afterLateArrival.snapshot.calculatedAt, previousTotal: afterLateArrival.snapshot.reconciliation.rated.amount,
+      currentTotal: withLate.snapshot.reconciliation.rated.amount, amountDifference: "+4.000", currency: "USD",
+      lateArrivalContribution: "+0.000", ratingRecoveryContribution: "+4.000",
+      changes: [expect.objectContaining({ eventId: pendingOnTime, kind: "NEWLY_RATED", lateArrival: false, amountDifference: "+4.000" })] });
     expect(BigInt(withLate.snapshot.reconciliation.rated.amount.replace(".", "")) - BigInt(beforeLate.snapshot.reconciliation.rated.amount.replace(".", ""))).toBe(12000n);
     expect(withLate.snapshot.lines.flatMap((line: { sourceEventIds: string[] }) => line.sourceEventIds)).toEqual(expect.arrayContaining([onTime, pendingOnTime, firstLate, exactLate]));
     expect(withLate.snapshot.reconciliation.accepted.count - beforeLate.snapshot.reconciliation.accepted.count).toBe(3);
@@ -242,7 +247,7 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       .map((row: { eventId: string }) => row.eventId).sort()).toEqual(withLate.snapshot.sourceEvents.map((event: { eventId: string }) => event.eventId).sort());
     expect((await db.query(`SELECT "lateArrivals" FROM "BillingRecordSnapshot" WHERE id = $1`, [withLate.currentSnapshotId])).rows[0].lateArrivals).toEqual(withLate.snapshot.lateArrivals);
     expect((await db.query(`SELECT "lateArrivals" FROM "BillingRecordSnapshot" WHERE id = $1`, [beforeLate.currentSnapshotId])).rows[0].lateArrivals.events).toEqual([]);
-    expect(withLate.history.map((snapshot: { id: string }) => snapshot.id)).toEqual(expect.arrayContaining([beforeLate.currentSnapshotId, withLate.currentSnapshotId]));
+    expect(withLate.history.map((snapshot: { id: string }) => snapshot.id)).toEqual(expect.arrayContaining([beforeLate.currentSnapshotId, afterLateArrival.currentSnapshotId, withLate.currentSnapshotId]));
     expect(withLate.history.find((snapshot: { id: string }) => snapshot.id === beforeLate.currentSnapshotId).lines).toEqual(beforeLate.snapshot.lines);
     expect((await db.query(`SELECT comparison, lines, "ratedSources", "lateArrivals", reconciliation FROM "BillingRecordSnapshot" WHERE id=$1`, [withLate.currentSnapshotId])).rows[0])
       .toMatchObject({ comparison: withLate.snapshot.comparison, lines: withLate.snapshot.lines, ratedSources: withLate.snapshot.ratedSources,

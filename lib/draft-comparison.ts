@@ -12,12 +12,21 @@ function signedAmount(value: bigint): string {
   return `${value < 0n ? "-" : "+"}${magnitude / 1000n}.${(magnitude % 1000n).toString().padStart(3, "0")}`;
 }
 
+function changeUnits(change: { amountDifference: string }): bigint {
+  const value = change.amountDifference;
+  return units(value.slice(1)) * (value[0] === "-" ? -1n : 1n);
+}
+
 export function compareDrafts(previous: { id: string; calculatedAt: Date; ratedSources: unknown; sourceEvents: unknown; reconciliation: unknown } | null,
   current: { ratedSources: Source[]; sourceEvents: Event[]; total: string; currency: string | null; periodEnd: Date; closeAt: Date }) {
   if (!previous) return null;
   const oldSources = previous.ratedSources as Source[];
   const oldEvents = previous.sourceEvents as Event[];
-  const oldTotal = (previous.reconciliation as { rated: { amount: string; currency: string | null } }).rated.amount;
+  const oldRated = (previous.reconciliation as { rated: { amount: string; currency: string | null } }).rated;
+  const oldTotal = oldRated.amount;
+  if (oldRated.currency && current.currency && oldRated.currency !== current.currency) {
+    throw new Error("Cannot compare draft totals in different currencies");
+  }
   const oldById = new Map(oldSources.map((source) => [source.eventId, source]));
   const newById = new Map(current.ratedSources.map((source) => [source.eventId, source]));
   const oldEventIds = new Set(oldEvents.map((event) => event.eventId));
@@ -32,14 +41,13 @@ export function compareDrafts(previous: { id: string; calculatedAt: Date; ratedS
     return [{ eventId, kind, lateArrival, previous: before ?? null, current: after ?? null, amountDifference: signedAmount(delta) }];
   });
   const difference = units(current.total) - units(oldTotal);
-  if (changes.reduce((sum, change) => sum + units(change.amountDifference.slice(1)) * (change.amountDifference[0] === "-" ? -1n : 1n), 0n) !== difference) {
+  if (changes.reduce((sum, change) => sum + changeUnits(change), 0n) !== difference) {
     throw new Error("Draft comparison does not reconcile");
   }
-  const contribution = (filter: (change: typeof changes[number]) => boolean) => signedAmount(changes.filter(filter).reduce((sum, change) =>
-    sum + units(change.amountDifference.slice(1)) * (change.amountDifference[0] === "-" ? -1n : 1n), 0n));
+  const contribution = (filter: (change: typeof changes[number]) => boolean) => signedAmount(changes.filter(filter).reduce((sum, change) => sum + changeUnits(change), 0n));
   return { previousSnapshotId: previous.id, previousCalculatedAt: previous.calculatedAt.toISOString(),
     previousTotal: oldTotal, currentTotal: current.total, amountDifference: signedAmount(difference),
-    currency: current.currency ?? (previous.reconciliation as { rated: { currency: string | null } }).rated.currency,
+    currency: current.currency ?? oldRated.currency,
     lateArrivalContribution: contribution((change) => change.kind === "ADDED" && change.lateArrival),
     ratingRecoveryContribution: contribution((change) => change.kind === "NEWLY_RATED"), changes };
 }
