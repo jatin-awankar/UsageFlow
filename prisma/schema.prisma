@@ -410,6 +410,8 @@ model BillingRecordSnapshot {
   calculatedAt DateTime @db.Timestamptz(3)
   state BillingRecordState
   sourceEvents Json
+  lines Json @default("[]")
+  ratedSources Json @default("[]")
   record BillingRecord @relation("RecordSnapshots", fields: [billingRecordId], references: [id], onDelete: Restrict)
   currentFor BillingRecord[] @relation("CurrentSnapshot")
 
