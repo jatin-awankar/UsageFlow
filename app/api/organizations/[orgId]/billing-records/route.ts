@@ -39,6 +39,19 @@ function compareText(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+function summarizeByMetricAndState(outcomes: readonly { metric: string; state: string; quantity: number }[]) {
+  const buckets = new Map<string, { metric: string; state: string; count: number; quantity: bigint }>();
+  for (const outcome of outcomes) {
+    const key = JSON.stringify([outcome.metric, outcome.state]);
+    const bucket = buckets.get(key) ?? { metric: outcome.metric, state: outcome.state, count: 0, quantity: 0n };
+    bucket.count++;
+    bucket.quantity += BigInt(outcome.quantity);
+    buckets.set(key, bucket);
+  }
+  return [...buckets.values()].sort((a, b) => compareText(a.metric, b.metric) || compareText(a.state, b.state))
+    .map((bucket) => ({ ...bucket, quantity: bucket.quantity.toString() }));
+}
+
 const safeReasons = new Set([
   "LEDGER_EVENT_INVALID", "LEDGER_STORAGE_FAILED", "LEDGER_PROJECTION_FAILED",
   "RATING_STORAGE_FAILED", "RATING_WORKER_FAILED", "AMOUNT_OVERFLOW", "NO_APPLICABLE_PRICE",
@@ -92,16 +105,20 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
       return { eventId: event.id, metric: event.metricKey, quantity: event.amount, state, reason,
         ...(ratedSource ? { amount: ratedSource.amount, currency: ratedSource.currency } : {}) };
     });
-    const buckets = new Map<string, { metric: string; state: string; count: number; quantity: bigint }>();
-    for (const outcome of eventOutcomes) {
-      const key = JSON.stringify([outcome.metric, outcome.state]);
-      const bucket = buckets.get(key) ?? { metric: outcome.metric, state: outcome.state, count: 0, quantity: 0n };
-      bucket.count++;
-      bucket.quantity += BigInt(outcome.quantity);
-      buckets.set(key, bucket);
-    }
-    const byMetricAndState = [...buckets.values()].sort((a, b) => compareText(a.metric, b.metric) || compareText(a.state, b.state))
-      .map((bucket) => ({ ...bucket, quantity: bucket.quantity.toString() }));
+    const lateEventIds = new Set(events.filter((event) => event.receivedAt && event.receivedAt > period.end && event.receivedAt <= period.close).map((event) => event.id));
+    const lateEvents = events.flatMap((event, index) => lateEventIds.has(event.id) ? [{
+      ...eventOutcomes[index], occurredAt: event.timestamp.toISOString(), receivedAt: event.receivedAt!.toISOString(),
+    }] : []);
+    const lateRatedSources = ratedSources.filter((source) => lateEventIds.has(source.eventId));
+    const lateArrivals = {
+      events: lateEvents,
+      byMetricAndState: summarizeByMetricAndState(lateEvents),
+      ratedContribution: { count: lateRatedSources.length,
+        quantity: lateRatedSources.reduce((sum, source) => sum + BigInt(source.quantity), 0n).toString(),
+        amount: sumPersistedRatedAmounts(lateRatedSources.map((source) => source.amount)),
+        currency: lateRatedSources[0]?.currency ?? null },
+    };
+    const byMetricAndState = summarizeByMetricAndState(eventOutcomes);
     const acceptedQuantity = events.reduce((sum, event) => sum + BigInt(event.amount), 0n);
     const ratedQuantity = ratedSources.reduce((sum, source) => sum + BigInt(source.quantity), 0n);
     const currencies = [...new Set(ratedSources.map((source) => source.currency))];
@@ -141,10 +158,12 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     }
     if (existing.currentSnapshot?.state === state && sameEvidence(existing.currentSnapshot.sourceEvents, sourceEvents) &&
       sameEvidence(existing.currentSnapshot.lines, lines) && sameEvidence(existing.currentSnapshot.ratedSources, ratedSources) &&
-      sameEvidence(existing.currentSnapshot.eventOutcomes, eventOutcomes) && sameEvidence(existing.currentSnapshot.reconciliation, reconciliation)) return existing;
+      sameEvidence(existing.currentSnapshot.eventOutcomes, eventOutcomes) && sameEvidence(existing.currentSnapshot.reconciliation, reconciliation) &&
+      sameEvidence(existing.currentSnapshot.lateArrivals, lateArrivals)) return existing;
     const snapshot = await tx.billingRecordSnapshot.create({ data: { billingRecordId: existing.id, calculatedAt, state, sourceEvents: sourceEvents as Prisma.InputJsonValue,
       lines: lines as Prisma.InputJsonValue, ratedSources: ratedSources as Prisma.InputJsonValue,
-      eventOutcomes: eventOutcomes as Prisma.InputJsonValue, reconciliation: reconciliation as Prisma.InputJsonValue } });
+      eventOutcomes: eventOutcomes as Prisma.InputJsonValue, reconciliation: reconciliation as Prisma.InputJsonValue,
+      lateArrivals: lateArrivals as Prisma.InputJsonValue } });
     return tx.billingRecord.update({ where: { id: existing.id }, data: { currentSnapshotId: snapshot.id }, include: { currentSnapshot: true } });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   for (let attempt = 0; attempt < 3; attempt++) {

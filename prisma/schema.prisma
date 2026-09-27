@@ -414,6 +414,7 @@ model BillingRecordSnapshot {
   ratedSources Json @default("[]")
   eventOutcomes Json @default("[]")
   reconciliation Json @default("{}")
+  lateArrivals Json @default("{}")
   record BillingRecord @relation("RecordSnapshots", fields: [billingRecordId], references: [id], onDelete: Restrict)
   currentFor BillingRecord[] @relation("CurrentSnapshot")
 

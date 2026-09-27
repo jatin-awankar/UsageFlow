@@ -4,10 +4,14 @@
 
 **Blocked by:** 03: Show unresolved events and reconcile the ledger.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] An eligible late event stays in its occurrence month, including one received at the exact close instant; acceptance just after close follows the existing ledger rejection rule.
-- [ ] Late counts, quantities, status, and rated contribution agree with source and reconciliation evidence without duplicating a billable line.
-- [ ] A disposable PostgreSQL application-level acceptance test uses controlled server time, owner paths, `POST /api/track`, and real workers to cover month end, exact close and just after, out-of-order processing, and exact idempotent retry. It verifies owner detail and persisted snapshot evidence.
-- [ ] Migration adds late-arrival evidence to new snapshots. Rollback disables its application view while retaining populated tables, snapshots, and source evidence for recovery; ingestion rules remain unchanged.
-- [ ] Create a dedicated branch before editing; limit the commit to this ticket, run its acceptance check and relevant regression checks, then commit, push, and open a draft PR. Report any checks that could not run.
+- [x] An eligible late event stays in its occurrence month, including one received at the exact close instant; acceptance just after close follows the existing ledger rejection rule.
+- [x] Late counts, quantities, status, and rated contribution agree with source and reconciliation evidence without duplicating a billable line.
+- [x] A disposable PostgreSQL application-level acceptance test uses controlled server time, owner paths, `POST /api/track`, and real workers to cover month end, exact close and just after, out-of-order processing, and exact idempotent retry. It verifies owner detail and persisted snapshot evidence.
+- [x] Migration adds late-arrival evidence to new snapshots. Rollback disables its application view while retaining populated tables, snapshots, and source evidence for recovery; ingestion rules remain unchanged.
+- [x] Create a dedicated branch before editing; limit the commit to this ticket, run its acceptance check and relevant regression checks, then commit, push, and open a draft PR. Report any checks that could not run.
+
+## Comments
+
+- Implemented on `codex/customer-draft-05-late-arrivals`; draft PR: https://github.com/jatin-awankar/UsageFlow/pull/60.
