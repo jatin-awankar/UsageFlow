@@ -59,8 +59,10 @@ export async function POST(req: NextRequest) {
       if (existing) return matches(existing) ? originalResult(existing) : conflict();
     }
     // The override is used only by the disposable PostgreSQL integration suite.
-    const receivedAt = process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_RECEIPT_TIME
-      ? new Date(process.env.LEDGER_TEST_RECEIPT_TIME)
+    const testReceipt = process.env.NODE_ENV !== "production" && process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true"
+      ? req.headers.get("x-ledger-test-received-at") ?? process.env.LEDGER_TEST_RECEIPT_TIME : null;
+    const receivedAt = testReceipt
+      ? new Date(testReceipt)
       : new Date();
     if (customerLinkedIngestion && timestamp) {
       const monthClose = Date.UTC(timestamp.getUTCFullYear(), timestamp.getUTCMonth() + 1, 1) + 72 * 60 * 60 * 1000;

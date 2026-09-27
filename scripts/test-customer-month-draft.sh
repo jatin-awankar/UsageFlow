@@ -19,7 +19,7 @@ INSERT INTO "Membership" (id, role, "userId", "orgId") VALUES ('draft-owner-a', 
 INSERT INTO "ApiKey" (id, name, "hashedKey", "orgId") VALUES ('draft-key', 'Key', :'key_hash', 'draft-a'), ('draft-key-b', 'Key', :'other_key_hash', 'draft-b');
 INSERT INTO "Plan" (id, name, "basePrice", "billingPeriod", "orgId") VALUES ('draft-plan', 'Plan', 0, 'MONTHLY', 'draft-a'), ('draft-plan-b', 'Plan', 0, 'MONTHLY', 'draft-b');
 INSERT INTO "Subscription" (id, status, "periodStart", "orgId", "planId") VALUES ('draft-sub', 'ACTIVE', '2024-02-01', 'draft-a', 'draft-plan'), ('draft-sub-b', 'ACTIVE', '2024-02-01', 'draft-b', 'draft-plan-b');
-INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('draft-metric', 'Calls', 'CALLS', 'calls', 'draft-a'), ('draft-metric-b', 'Calls', 'CALLS', 'calls', 'draft-b');
+INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('draft-metric', 'Calls', 'CALLS', 'calls', 'draft-a'), ('draft-overflow', 'Large', 'LARGE', 'calls', 'draft-a'), ('draft-unpriced', 'Unpriced', 'UNPRICED', 'calls', 'draft-a'), ('draft-metric-b', 'Calls', 'CALLS', 'calls', 'draft-b');
 INSERT INTO "Invoice" (id, amount, status, "periodStart", "periodEnd", "orgId", "subscriptionId") VALUES ('legacy-invoice', 999, 'PENDING', '2024-02-01', '2024-03-01', 'draft-a', 'draft-sub');
 SQL
 set_customer_test_environment
