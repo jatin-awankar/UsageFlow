@@ -170,6 +170,74 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       expect(buckets.reduce((sum: number, item: { count: number }) => sum + item.count, 0)).toBe(total.count);
       expect(buckets.reduce((sum: bigint, item: { quantity: string }) => sum + BigInt(item.quantity), 0n)).toBe(BigInt(total.quantity));
     }
+    // A late receipt belongs to its occurrence month, including the exact close instant.
+    const lateMonth = eventInstant.slice(0, 7);
+    const [lateYear, lateNumber] = lateMonth.split("-").map(Number);
+    const monthEnd = new Date(Date.UTC(lateYear, lateNumber, 1));
+    const closeInstant = new Date(monthEnd.getTime() + 72 * 60 * 60 * 1000);
+    const beforeEnd = new Date(monthEnd.getTime() - 1).toISOString();
+    const afterEnd = monthEnd.toISOString();
+    const afterEndByMillisecond = new Date(monthEnd.getTime() + 1).toISOString();
+    const atClose = closeInstant.toISOString();
+    const afterClose = new Date(closeInstant.getTime() + 1).toISOString();
+    const lateSend = async (key: string, occurrence: string, receipt: string, metric = "CALLS", quantity = 2) =>
+      request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": "secret-org-c", "idempotency-key": key,
+        "x-ledger-test-received-at": receipt }, data: { customerId: "shared", metric, amount: quantity, timestamp: occurrence } });
+    const onTimeResponse = await lateSend("late-ontime", beforeEnd, beforeEnd);
+    expect(onTimeResponse.status()).toBe(200);
+    const onTime = (await onTimeResponse.json()).eventId as string;
+    run(onTime);
+    const pendingOnTimeResponse = await lateSend("late-pending-ontime", beforeEnd, beforeEnd);
+    expect(pendingOnTimeResponse.status()).toBe(200);
+    const pendingOnTime = (await pendingOnTimeResponse.json()).eventId as string;
+    const beforeLate = await (await create(lateMonth, customerA, afterEnd)).json();
+    const firstResponse = await lateSend("late-first", beforeEnd, afterEndByMillisecond);
+    expect(firstResponse.status()).toBe(200);
+    const firstLate = (await firstResponse.json()).eventId as string;
+    const exactResponse = await lateSend("late-exact", beforeEnd, atClose);
+    expect(exactResponse.status()).toBe(200);
+    const exactLate = (await exactResponse.json()).eventId as string;
+    const unpricedResponse = await lateSend("late-unpriced", beforeEnd, atClose, "UNPRICED", 5);
+    expect(unpricedResponse.status()).toBe(200);
+    const unpricedLate = (await unpricedResponse.json()).eventId as string;
+    expect((await lateSend("late-too-late", beforeEnd, afterClose)).status()).toBe(400);
+    expect((await lateSend("late-next-month", afterEnd, afterEnd)).status()).toBe(200);
+    run(exactLate); run(unpricedLate); run(firstLate); run(pendingOnTime); // process in receipt order's reverse
+    const withLate = await (await create(lateMonth, customerA, atClose)).json();
+    expect([...withLate.snapshot.lateArrivals.events].sort((a, b) => [firstLate, exactLate, unpricedLate].indexOf(a.eventId) - [firstLate, exactLate, unpricedLate].indexOf(b.eventId))).toEqual([
+      expect.objectContaining({ eventId: firstLate, occurredAt: beforeEnd, receivedAt: afterEndByMillisecond, metric: "CALLS", quantity: 2, state: "RATED", amount: "4.000" }),
+      expect.objectContaining({ eventId: exactLate, occurredAt: beforeEnd, receivedAt: atClose, metric: "CALLS", quantity: 2, state: "RATED", amount: "4.000" }),
+      expect.objectContaining({ eventId: unpricedLate, occurredAt: beforeEnd, receivedAt: atClose, metric: "UNPRICED", quantity: 5, state: "UNRATED" }),
+    ]);
+    expect(withLate.snapshot.lateArrivals.events.find((event: { eventId: string }) => event.eventId === unpricedLate)).not.toHaveProperty("amount");
+    expect(withLate.snapshot.lateArrivals.byMetricAndState).toEqual([
+      { metric: "CALLS", state: "RATED", count: 2, quantity: "4" },
+      { metric: "UNPRICED", state: "UNRATED", count: 1, quantity: "5" },
+    ]);
+    expect(withLate.snapshot.lateArrivals.ratedContribution).toEqual({ count: 2, quantity: "4", amount: "8.000", currency: "USD" });
+    expect(BigInt(withLate.snapshot.reconciliation.rated.amount.replace(".", "")) - BigInt(beforeLate.snapshot.reconciliation.rated.amount.replace(".", ""))).toBe(12000n);
+    expect(withLate.snapshot.lines.flatMap((line: { sourceEventIds: string[] }) => line.sourceEventIds)).toEqual(expect.arrayContaining([onTime, pendingOnTime, firstLate, exactLate]));
+    expect(withLate.snapshot.reconciliation.accepted.count - beforeLate.snapshot.reconciliation.accepted.count).toBe(3);
+    expect(BigInt(withLate.snapshot.reconciliation.accepted.quantity) - BigInt(beforeLate.snapshot.reconciliation.accepted.quantity)).toBe(9n);
+    const lateRead = await (await owner.request.get(`${url}?month=${lateMonth}&billedCustomerId=${customerA}`, { headers: { "x-billing-test-now": atClose } })).json();
+    expect(lateRead.currentSnapshotId).toBe(withLate.currentSnapshotId);
+    expect(lateRead.snapshot.lateArrivals).toEqual(withLate.snapshot.lateArrivals);
+    const lateLineIds = withLate.snapshot.lines.flatMap((line: { sourceEventIds: string[] }) => line.sourceEventIds);
+    expect(lateLineIds.filter((id: string) => id === firstLate || id === exactLate).sort()).toEqual([firstLate, exactLate].sort());
+    expect(new Set(lateLineIds).size).toBe(lateLineIds.length);
+    const lateExportResponse = await owner.request.post(`${base}/api/ledger-exports`, { data: { orgId: "draft-a", period: lateMonth } });
+    expect(lateExportResponse.status()).toBe(201);
+    const lateExport = await (await owner.request.get(`${base}/api/ledger-exports/${(await lateExportResponse.json()).id}?orgId=draft-a`)).json();
+    expect(lateExport.rows.filter((row: { externalCustomerId: string }) => row.externalCustomerId === "shared")
+      .map((row: { eventId: string }) => row.eventId).sort()).toEqual(withLate.snapshot.sourceEvents.map((event: { eventId: string }) => event.eventId).sort());
+    expect((await db.query(`SELECT "lateArrivals" FROM "BillingRecordSnapshot" WHERE id = $1`, [withLate.currentSnapshotId])).rows[0].lateArrivals).toEqual(withLate.snapshot.lateArrivals);
+    expect((await db.query(`SELECT "lateArrivals" FROM "BillingRecordSnapshot" WHERE id = $1`, [beforeLate.currentSnapshotId])).rows[0].lateArrivals.events).toEqual([]);
+    const retry = await lateSend("late-exact", beforeEnd, atClose);
+    expect(retry.status()).toBe(200);
+    expect((await retry.json()).eventId).toBe(exactLate);
+    const repeated = await (await create(lateMonth, customerA, atClose)).json();
+    expect(repeated.currentSnapshotId).toBe(withLate.currentSnapshotId);
+    expect(repeated.snapshot.lateArrivals.ratedContribution.amount).toBe("8.000");
     expect(JSON.stringify(reconciled)).not.toContain("draft-rated");
     expect((await db.query(`SELECT "eventOutcomes", reconciliation FROM "BillingRecordSnapshot" WHERE id=$1`, [reconciled.currentSnapshotId])).rows[0]).toMatchObject({ eventOutcomes: outcomes, reconciliation: reconciled.snapshot.reconciliation });
     expect((await db.query(`SELECT "eventOutcomes" FROM "BillingRecordSnapshot" WHERE id=$1`, [blocked.currentSnapshotId])).rows[0].eventOutcomes).toEqual([expect.objectContaining({ eventId: feb, state: "UNRATED" })]);
