@@ -43,6 +43,7 @@ model Organization {
   ratingFailures      RatingFailure[]
   unratedEvents        UnratedEvent[]
   pricingGapCorrections PricingGapCorrection[]
+  billingRecords BillingRecord[]
 }
 
 model Customer {
@@ -56,6 +57,7 @@ model Customer {
   ratedEvents RatedEvent[]
   unratedEvents UnratedEvent[]
   pricingGapCorrections PricingGapCorrection[]
+  billingRecords BillingRecord[]
 
   @@unique([orgId, externalId])
   @@unique([orgId, id])
@@ -382,6 +384,41 @@ model Invoice {
 
   @@index([orgId, createdAt])
   @@index([subscriptionId])
+}
+
+model BillingRecord {
+  id String @id @default(uuid())
+  orgId String
+  billedCustomerId String
+  periodStart DateTime @db.Timestamptz(3)
+  periodEnd DateTime @db.Timestamptz(3)
+  closeAt DateTime @db.Timestamptz(3)
+  currentSnapshotId String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
+  snapshots BillingRecordSnapshot[] @relation("RecordSnapshots")
+  currentSnapshot BillingRecordSnapshot? @relation("CurrentSnapshot", fields: [currentSnapshotId, id], references: [id, billingRecordId], onDelete: Restrict)
+
+  @@unique([orgId, billedCustomerId, periodStart])
+  @@unique([id, orgId, billedCustomerId])
+}
+
+model BillingRecordSnapshot {
+  id String @id @default(uuid())
+  billingRecordId String
+  calculatedAt DateTime @db.Timestamptz(3)
+  state BillingRecordState
+  sourceEvents Json
+  record BillingRecord @relation("RecordSnapshots", fields: [billingRecordId], references: [id], onDelete: Restrict)
+  currentFor BillingRecord[] @relation("CurrentSnapshot")
+
+  @@unique([id, billingRecordId])
+}
+
+enum BillingRecordState {
+  OPEN
+  BLOCKED
 }
 
 model WebhookEndpoint {

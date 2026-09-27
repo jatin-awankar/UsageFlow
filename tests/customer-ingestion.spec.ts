@@ -73,7 +73,7 @@ test("Customer ingestion resolves within the API key Organization and never bill
     expect(aggregate).toEqual([{ total: 2 }]);
     await processInvoice({ subscriptionId: "subscription-a" });
     expect((await db.query(`SELECT amount FROM "Invoice" WHERE "subscriptionId" = 'subscription-a'`)).rows).toEqual([{ amount: 20 }]);
-    expect((await db.query(`SELECT to_regclass('"BillingRecord"') AS name`)).rows[0].name).toBeNull();
+    expect((await db.query(`SELECT count(*)::int AS count FROM "BillingRecord"`)).rows[0].count).toBe(0);
   } finally {
     await db.end();
   }
