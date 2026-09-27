@@ -17,3 +17,4 @@
 ## Comments
 
 - 2026-09-27: Acceptance checks and two-axis code review passed with no blocking findings. Focused application tests, typecheck, inventory, and repository test scripts passed. The first full-suite pass stopped during ledger-acceptance startup; both ledger-acceptance runs passed on retry, then the remaining scripts passed. No migration or ingestion-gate change was made. Draft PR #52 is open against `main`.
+- 2026-09-27: Follow-up review identified that the preview test seeded events and pricing directly. The test now configures currency and publishes the PriceVersion through the owner pages, accepts events through `POST /api/track`, runs the real ledger/rating worker, and previews the resulting outcomes. The focused PostgreSQL suite and typecheck pass.
