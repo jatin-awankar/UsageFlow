@@ -68,6 +68,9 @@ export default async function BillingPage({
             <Button asChild variant="outline" size="sm">
               <Link href={`/app/${orgId}/billing/invoices`}>View invoices</Link>
             </Button>
+            {membership.role === Role.OWNER && <Button asChild variant="outline" size="sm">
+              <Link href={`/app/${orgId}/billing/legacy-exclusions`}>Excluded legacy usage</Link>
+            </Button>}
             <Button asChild size="sm">
               <Link href={`/app/${orgId}/analytics`}>
                 Usage analytics
