@@ -4,10 +4,16 @@
 
 **Blocked by:** 05: Show late arrivals separately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] History exposes calculation times, prior totals, exact total differences, and source explanations without treating all changes as late-arrival effects.
-- [ ] Each published snapshot contains mutually consistent lines, source evidence, late detail, and reconciliation; failure leaves the prior current pointer and evidence intact.
-- [ ] A disposable PostgreSQL application-level acceptance test uses owner paths, `POST /api/track`, and real workers to calculate before and after late acceptance and rating recovery, inspect persisted snapshots and comparison evidence, and verify failure preservation.
-- [ ] Migration adds comparison evidence or indexes only as needed to the append-only snapshot model established in ticket 01; no migration of earlier calculations into a new snapshot model is required. Rollback disables history comparison while retaining populated snapshots and source evidence for recovery.
-- [ ] Create a dedicated branch before editing; limit the commit to this ticket, run its acceptance check and relevant regression checks, then commit, push, and open a draft PR. Report any checks that could not run.
+- [x] History exposes calculation times, prior totals, exact total differences, and source explanations without treating all changes as late-arrival effects.
+- [x] Each published snapshot contains mutually consistent lines, source evidence, late detail, and reconciliation; failure leaves the prior current pointer and evidence intact.
+- [x] A disposable PostgreSQL application-level acceptance test uses owner paths, `POST /api/track`, and real workers to calculate before and after late acceptance and rating recovery, inspect persisted snapshots and comparison evidence, and verify failure preservation.
+- [x] Migration adds comparison evidence or indexes only as needed to the append-only snapshot model established in ticket 01; no migration of earlier calculations into a new snapshot model is required. Rollback disables history comparison while retaining populated snapshots and source evidence for recovery.
+- [x] Create a dedicated branch before editing; limit the commit to this ticket, run its acceptance check and relevant regression checks, then commit, push, and open a draft PR. Report any checks that could not run.
+
+## Implementation
+
+Draft PR: https://github.com/jatin-awankar/UsageFlow/pull/61 (open).
+
+Checks passed: `npm run test:customer-month-draft`, `npx tsc --noEmit`, all existing test scripts once, `git diff --check`, and standards/spec code review. No checks were blocked.

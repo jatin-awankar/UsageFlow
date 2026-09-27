@@ -10,12 +10,19 @@ export function persistedRatedAmount(amount: Prisma.Decimal): string {
   return amount.toFixed(STORED_SCALE);
 }
 
+export function persistedRatedAmountUnits(amount: string): bigint {
+  const parts = STORED_AMOUNT_PATTERN.exec(amount);
+  if (!parts) throw new RangeError("Invalid persisted rated amount");
+  const [, whole, fraction] = parts;
+  return BigInt(whole) * STORED_FACTOR + BigInt(fraction);
+}
+
+export function signedPersistedRatedAmount(units: bigint): string {
+  const magnitude = units < 0n ? -units : units;
+  return `${units < 0n ? "-" : "+"}${magnitude / STORED_FACTOR}.${(magnitude % STORED_FACTOR).toString().padStart(STORED_SCALE, "0")}`;
+}
+
 export function sumPersistedRatedAmounts(amounts: readonly string[]): string {
-  const total = amounts.reduce((sum, amount) => {
-    const parts = STORED_AMOUNT_PATTERN.exec(amount);
-    if (!parts) throw new RangeError("Invalid persisted rated amount");
-    const [, whole, fraction] = parts;
-    return sum + BigInt(whole) * STORED_FACTOR + BigInt(fraction);
-  }, 0n);
+  const total = amounts.reduce((sum, amount) => sum + persistedRatedAmountUnits(amount), 0n);
   return `${total / STORED_FACTOR}.${(total % STORED_FACTOR).toString().padStart(STORED_SCALE, "0")}`;
 }
