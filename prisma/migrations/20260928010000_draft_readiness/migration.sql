@@ -1,0 +1,1 @@
+ALTER TYPE "BillingRecordState" ADD VALUE 'READY_FOR_REVIEW';

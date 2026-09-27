@@ -83,9 +83,13 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await db.query(`SELECT amount FROM "Invoice" WHERE id = 'legacy-invoice'`)).rows[0].amount).toBe(999);
     expect((await db.query(`SELECT "billingTreatment" FROM "UsageEvent" WHERE id = 'legacy-linked'`)).rows[0].billingTreatment).toBe("LEGACY");
     expect((await db.query(`SELECT "currentSnapshotId" FROM "BillingRecord" WHERE id = $1`, [open.id])).rows[0].currentSnapshotId).toBe(blocked.currentSnapshotId);
-    expect((await create("2024-12")).status()).toBe(200);
+    const [decemberFirst, decemberSecond] = await Promise.all([create("2024-12"), create("2024-12")]);
+    expect(decemberFirst.status()).toBe(200);
+    expect(decemberSecond.status()).toBe(200);
+    expect((await decemberFirst.json()).currentSnapshotId).toBe((await decemberSecond.json()).currentSnapshotId);
     const december = await (await owner.request.get(`${url}?month=2024-12&billedCustomerId=${customerA}`)).json();
     expect(december.periodEnd).toBe("2025-01-01T00:00:00.000Z");
+    expect(december.snapshot.state).toBe("READY_FOR_REVIEW");
 
     worker.kill("SIGTERM");
     await new Promise<void>((resolve) => worker!.once("exit", () => resolve()));
@@ -123,6 +127,34 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       return (await response.json()).eventId as string;
     };
     const rated = await send("draft-rated"); run(rated);
+    await owner.goto(`${base}/app/draft-a/customers`);
+    await owner.getByLabel("External customer ID").fill("recovery");
+    await owner.getByRole("button", { name: "Create customer" }).click();
+    await expect(owner.getByRole("status")).toHaveText("Customer created.");
+    const recoveryCustomer = (await db.query(`SELECT id FROM "Customer" WHERE "orgId"='draft-a' AND "externalId"='recovery'`)).rows[0].id as string;
+    const recoveryResponse = await request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": "secret-org-c", "idempotency-key": "draft-recovery",
+      "x-ledger-test-received-at": eventInstant }, data: { customerId: "recovery", metric: "CALLS", amount: 2, timestamp: eventInstant } });
+    expect(recoveryResponse.status()).toBe(200);
+    const recoveryEvent = (await recoveryResponse.json()).eventId as string;
+    const recoveryAfterClose = new Date(Date.UTC(Number(reconciliationMonth.slice(0, 4)), Number(reconciliationMonth.slice(5)), 4, 0, 0, 0, 1)).toISOString();
+    const recoveryDraft = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
+    expect(recoveryDraft.snapshot.state).toBe("BLOCKED");
+    expect(recoveryDraft.snapshot.eventOutcomes).toEqual([expect.objectContaining({ eventId: recoveryEvent, state: "LEDGER_PENDING" })]);
+    run(recoveryEvent);
+    const [recoveredFirst, recoveredSecond] = await Promise.all([
+      create(reconciliationMonth, recoveryCustomer, recoveryAfterClose),
+      create(reconciliationMonth, recoveryCustomer, recoveryAfterClose),
+    ]);
+    expect(recoveredFirst.status()).toBe(200);
+    expect(recoveredSecond.status()).toBe(200);
+    const readyRecovery = await recoveredFirst.json();
+    expect((await recoveredSecond.json()).currentSnapshotId).toBe(readyRecovery.currentSnapshotId);
+    expect(readyRecovery.snapshot.state).toBe("READY_FOR_REVIEW");
+    expect(readyRecovery.currentSnapshotId).not.toBe(recoveryDraft.currentSnapshotId);
+    expect(readyRecovery.snapshot.reconciliation).toMatchObject({ accepted: { count: 1, quantity: "2" }, rated: { count: 1, quantity: "2", amount: "4.000" }, balanced: true });
+    expect(readyRecovery.snapshot.lines.flatMap((line: { sourceEventIds: string[] }) => line.sourceEventIds)).toEqual([recoveryEvent]);
+    expect((await db.query(`SELECT count(*)::int AS count FROM "BillingRecordSnapshot" WHERE "billingRecordId"=$1`, [readyRecovery.id])).rows[0].count).toBe(2);
+    expect((await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose).then((response) => response.json())).currentSnapshotId).toBe(readyRecovery.currentSnapshotId);
     const pending = await send("draft-pending");
     const processing = await send("draft-processing"); run(processing, "LEDGER_TEST_EXIT_AFTER_CLAIM");
     const ledgerFailed = await send("draft-ledger-failed"); run(ledgerFailed, "LEDGER_TEST_FAIL_PROJECTION");
@@ -268,15 +300,60 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(recoveredPublication.snapshot.comparison).toMatchObject({ previousSnapshotId: withLate.currentSnapshotId,
       amountDifference: "+4.000", lateArrivalContribution: "+4.000", ratingRecoveryContribution: "+0.000" });
     expect(recoveredPublication.snapshot.comparison.changes).toContainEqual(expect.objectContaining({ eventId: failureEvent, kind: "ADDED" }));
-    const retry = await lateSend("late-exact", beforeEnd, atClose);
+    const retry = await lateSend("late-exact", beforeEnd, afterClose);
     expect(retry.status()).toBe(200);
     expect((await retry.json()).eventId).toBe(exactLate);
-    const repeated = await (await create(lateMonth, customerA, atClose)).json();
-    expect(repeated.currentSnapshotId).toBe(recoveredPublication.currentSnapshotId);
+    const repeated = await (await create(lateMonth, customerA, afterClose)).json();
+    expect(repeated.snapshot.state).toBe("BLOCKED");
+    expect(repeated.snapshot.sourceEvents).toEqual(recoveredPublication.snapshot.sourceEvents);
+    expect((await create(lateMonth, customerA, afterClose).then((response) => response.json())).currentSnapshotId).toBe(repeated.currentSnapshotId);
     expect(repeated.snapshot.lateArrivals.ratedContribution.amount).toBe("12.000");
     expect(JSON.stringify(reconciled)).not.toContain("draft-rated");
     expect((await db.query(`SELECT "eventOutcomes", reconciliation FROM "BillingRecordSnapshot" WHERE id=$1`, [reconciled.currentSnapshotId])).rows[0]).toMatchObject({ eventOutcomes: outcomes, reconciliation: reconciled.snapshot.reconciliation });
     expect((await db.query(`SELECT "eventOutcomes" FROM "BillingRecordSnapshot" WHERE id=$1`, [blocked.currentSnapshotId])).rows[0].eventOutcomes).toEqual([expect.objectContaining({ eventId: feb, state: "UNRATED" })]);
+    const secondRecoveryResponse = await request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": "secret-org-c", "idempotency-key": "draft-recovery-second",
+      "x-ledger-test-received-at": eventInstant }, data: { customerId: "recovery", metric: "CALLS", amount: 2, timestamp: eventInstant } });
+    expect(secondRecoveryResponse.status()).toBe(200);
+    const secondRecoveryEvent = (await secondRecoveryResponse.json()).eventId as string;
+    run(secondRecoveryEvent);
+    const completeBeforeMismatch = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
+    expect(completeBeforeMismatch.snapshot.state).toBe("READY_FOR_REVIEW");
+    const existingPrice = (await db.query(`SELECT "orgId", "metricId", "unitPriceMicros", "createdById", "effectiveFrom" FROM "PriceVersion" WHERE id=$1`,
+      [completeBeforeMismatch.snapshot.ratedSources[0].priceVersionId])).rows[0];
+    await db.query(`INSERT INTO "PriceVersion" (id, "orgId", "metricId", currency, "unitPriceMicros", "createdById", "effectiveFrom")
+      VALUES ('draft-mismatched-eur', $1, $2, 'EUR', $3, $4, $5::timestamptz + interval '1 millisecond')`,
+    [existingPrice.orgId, existingPrice.metricId, existingPrice.unitPriceMicros, existingPrice.createdById, existingPrice.effectiveFrom]);
+    await db.query(`ALTER TABLE "RatedEvent" DISABLE TRIGGER USER`);
+    try {
+      await db.query(`UPDATE "RatedEvent" SET "priceVersionId"='draft-mismatched-eur', currency='EUR' WHERE "eventId"=$1`, [secondRecoveryEvent]);
+    } finally {
+      await db.query(`ALTER TABLE "RatedEvent" ENABLE TRIGGER USER`);
+    }
+    const mismatchResponse = await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose);
+    expect(mismatchResponse.status()).toBe(200);
+    const mismatch = await mismatchResponse.json();
+    expect(mismatch.snapshot.state).toBe("BLOCKED");
+    expect(mismatch.snapshot.reconciliation).toMatchObject({ balanced: false, rated: { amount: null, currency: null } });
+    expect(mismatch.snapshot.reconciliation.rated.byCurrency).toEqual([
+      { currency: "EUR", amount: "4.000" }, { currency: "USD", amount: "4.000" },
+    ]);
+    expect(mismatch.snapshot.comparison).toMatchObject({ previousSnapshotId: completeBeforeMismatch.currentSnapshotId,
+      amountDifference: null, unavailableReason: "MIXED_CURRENCY" });
+    expect(mismatch.snapshot.lines.map((line: { currency: string }) => line.currency).sort()).toEqual(["EUR", "USD"]);
+    expect(mismatch.currentSnapshotId).not.toBe(completeBeforeMismatch.currentSnapshotId);
+    expect(mismatch.history.find((snapshot: { id: string }) => snapshot.id === completeBeforeMismatch.currentSnapshotId).state).toBe("READY_FOR_REVIEW");
+    await db.query(`ALTER TABLE "RatedEvent" DISABLE TRIGGER USER`);
+    try {
+      await db.query(`UPDATE "RatedEvent" SET "priceVersionId"=$1, currency='USD' WHERE "eventId"=$2`,
+        [completeBeforeMismatch.snapshot.ratedSources[0].priceVersionId, secondRecoveryEvent]);
+    } finally {
+      await db.query(`ALTER TABLE "RatedEvent" ENABLE TRIGGER USER`);
+    }
+    const correctedEvidence = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
+    expect(correctedEvidence.snapshot.state).toBe("READY_FOR_REVIEW");
+    expect(correctedEvidence.snapshot.reconciliation.rated).toMatchObject({ amount: "8.000", currency: "USD" });
+    expect(correctedEvidence.snapshot.comparison).toMatchObject({ previousSnapshotId: mismatch.currentSnapshotId,
+      amountDifference: null, unavailableReason: "MIXED_CURRENCY" });
   } finally {
     worker?.kill("SIGTERM");
     await owner.close(); await viewer.close(); await db.end();

@@ -8,10 +8,10 @@ trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
 # No port, volume, environment URL, or project database is used.
 docker run --rm -d --name "$container" -e POSTGRES_PASSWORD=synthetic-only postgres:17.6-alpine >/dev/null
 for _ in $(seq 1 40); do
-  if docker exec "$container" psql -X -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then break; fi
+  if docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then break; fi
   sleep 0.5
 done
-docker exec "$container" pg_isready -U postgres >/dev/null
+docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null
 
 for file in prisma/migrations/*/migration.sql; do
   docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$file" >/dev/null
@@ -22,7 +22,7 @@ docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres <
 # proposal after the original migrations, since the proposal is not a migration.
 docker exec "$container" createdb -U postgres customer_proposal
 for file in prisma/migrations/*/migration.sql; do
-  [[ "$file" == *20260926000000_add_customer_identity* || "$file" == *20260926010000_protect_legacy_billing_treatment* || "$file" == *20260926120000_ledger_export_snapshot* || "$file" == *20260926150000_rate_customer_events* || "$file" == *20260927100000_lock_ledger_occurrence_time* || "$file" == *20260927120000_unrated_recovery* || "$file" == *20260927150000_pricing_gap_correction* || "$file" == *20260927200000_customer_month_draft* || "$file" == *20260927210000_draft_rated_lines* || "$file" == *20260927220000_draft_reconciliation* || "$file" == *20260927230000_draft_late_arrivals* ]] && continue
+  [[ "$file" == *20260926000000_add_customer_identity* || "$file" == *20260926010000_protect_legacy_billing_treatment* || "$file" == *20260926120000_ledger_export_snapshot* || "$file" == *20260926150000_rate_customer_events* || "$file" == *20260927100000_lock_ledger_occurrence_time* || "$file" == *20260927120000_unrated_recovery* || "$file" == *20260927150000_pricing_gap_correction* || "$file" == *20260927200000_customer_month_draft* || "$file" == *20260927210000_draft_rated_lines* || "$file" == *20260927220000_draft_reconciliation* || "$file" == *20260927230000_draft_late_arrivals* || "$file" == *20260928000000_draft_calculation_history* || "$file" == *20260928010000_draft_readiness* ]] && continue
   docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d customer_proposal < "$file" >/dev/null
 done
 docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d customer_proposal < scripts/customer-schema-proposal.sql >/dev/null

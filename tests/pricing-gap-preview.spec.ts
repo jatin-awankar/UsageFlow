@@ -85,8 +85,9 @@ test("owner previews only exact Customer, metric, Organization and half-open UTC
       reviewedAt: preview.reviewedAt, reviewToken: preview.reviewToken, eligibleEventIds: [inStart, inLast], unitPrice: "1.234567",
       currency: "USD", reason: "Documented historical gap", evidence: "review-case-07" };
     const draftUrl = `${base}/api/organizations/gap-a/billing-records`;
-    const beforeCorrection = await (await page.request.post(draftUrl, { headers: { "x-billing-test-now": "2026-10-04T00:00:00.000Z" }, data: { month: "2026-09", billedCustomerId: "gap-customer-a" } })).json();
+    const beforeCorrection = await (await page.request.post(draftUrl, { headers: { "x-billing-test-now": "2026-10-04T00:00:00.001Z" }, data: { month: "2026-09", billedCustomerId: "gap-customer-a" } })).json();
     expect(beforeCorrection.snapshot.lines).toEqual([]);
+    expect(beforeCorrection.snapshot.state).toBe("BLOCKED");
     const approve = (changes: Record<string, unknown> = {}) => page.request.post(`${base}/api/organizations/gap-a/pricing-gap-corrections`, { data: { ...approval, ...changes } });
     expect((await request.post(`${base}/api/organizations/gap-a/pricing-gap-corrections`, { data: approval })).status()).toBe(401);
     for (const ids of [[inStart], [inStart, inLast, "missing"], [inStart, inLast, "gap-linked-legacy"], [inStart, inLast, outCustomer],
@@ -128,10 +129,11 @@ test("owner previews only exact Customer, metric, Organization and half-open UTC
     expect(correction.approvedAt).toBeInstanceOf(Date);
     const ratings = (await db.query(`SELECT "eventId", amount::text, "priceVersionId", "correctionId", "unitPriceMicros"::text FROM "RatedEvent" WHERE "correctionId"=$1 ORDER BY "eventId"`, [correctionId])).rows;
     expect(ratings).toEqual([inStart, inLast].sort().map((eventId) => ({ eventId, amount: "2.470", priceVersionId: null, correctionId, unitPriceMicros: "1234567" })));
-    const septemberResponse = await page.request.post(draftUrl, { headers: { "x-billing-test-now": "2026-10-04T00:00:00.000Z" }, data: { month: "2026-09", billedCustomerId: "gap-customer-a" } });
+    const septemberResponse = await page.request.post(draftUrl, { headers: { "x-billing-test-now": "2026-10-04T00:00:00.001Z" }, data: { month: "2026-09", billedCustomerId: "gap-customer-a" } });
     expect(septemberResponse.status()).toBe(200);
     const september = await septemberResponse.json();
     expect(september.id).toBe(beforeCorrection.id);
+    expect(september.snapshot.state).toBe("BLOCKED");
     expect(september.currentSnapshotId).not.toBe(beforeCorrection.currentSnapshotId);
     expect((await db.query(`SELECT lines FROM "BillingRecordSnapshot" WHERE id=$1`, [beforeCorrection.currentSnapshotId])).rows[0].lines).toEqual([]);
     expect(september.snapshot.lines).toEqual([{
@@ -166,6 +168,30 @@ test("owner previews only exact Customer, metric, Organization and half-open UTC
     expect((await db.query(`SELECT id, "billingTreatment", "billedCustomerId" FROM "UsageEvent" WHERE id='gap-linked-legacy'`)).rows)
       .toEqual([{ id: "gap-linked-legacy", billingTreatment: "LEGACY", billedCustomerId: "gap-customer-a" }]);
     expect((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId"='gap-linked-legacy'`)).rows[0].n).toBe(0);
+    await page.goto(`${base}/app/gap-a/customers`);
+    await page.getByLabel("External customer ID").fill("correction-recovery");
+    await page.getByRole("button", { name: "Create customer" }).click();
+    await expect(page.getByRole("status")).toHaveText("Customer created.");
+    const correctionCustomer = (await db.query(`SELECT id FROM "Customer" WHERE "orgId"='gap-a' AND "externalId"='correction-recovery'`)).rows[0].id as string;
+    const correctionEvent = await send("correction-recovery", "calls", "correction-recovery", start);
+    await expect.poll(async () => (await reconciliation()).find((row) => row.eventId === correctionEvent)?.ratingState).toBe("UNRATED");
+    const correctedDraft = () => page.request.post(draftUrl, { headers: { "x-billing-test-now": "2026-10-04T00:00:00.001Z" },
+      data: { month: "2026-09", billedCustomerId: correctionCustomer } });
+    const blockedCorrection = await (await correctedDraft()).json();
+    expect(blockedCorrection.snapshot.state).toBe("BLOCKED");
+    const correctionPreview = await (await page.request.get(url({ customerId: correctionCustomer }))).json();
+    expect(correctionPreview.eligibleEventIds).toEqual([correctionEvent]);
+    const corrected = await page.request.post(`${base}/api/organizations/gap-a/pricing-gap-corrections`, { data: {
+      metricId: "gap-metric-a", customerId: correctionCustomer, start, end,
+      reviewedAt: correctionPreview.reviewedAt, reviewToken: correctionPreview.reviewToken,
+      eligibleEventIds: [correctionEvent], unitPrice: "1.234567", currency: "USD",
+      reason: "Documented historical gap", evidence: "review-case-07-recovery",
+    } });
+    expect(corrected.status()).toBe(201);
+    const readyCorrection = await (await correctedDraft()).json();
+    expect(readyCorrection.snapshot.state).toBe("READY_FOR_REVIEW");
+    expect(readyCorrection.currentSnapshotId).not.toBe(blockedCorrection.currentSnapshotId);
+    expect(readyCorrection.snapshot.lines.flatMap((line: { sourceEventIds: string[] }) => line.sourceEventIds)).toEqual([correctionEvent]);
   } finally { await db.end(); }
 });
 

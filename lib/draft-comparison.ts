@@ -9,12 +9,30 @@ function changeUnits(change: { amountDifference: string }): bigint {
 }
 
 export function compareDrafts(previous: { id: string; calculatedAt: Date; ratedSources: unknown; sourceEvents: unknown; reconciliation: unknown } | null,
-  current: { ratedSources: Source[]; sourceEvents: Event[]; total: string; currency: string | null; periodEnd: Date; closeAt: Date }) {
+  current: { ratedSources: Source[]; sourceEvents: Event[]; total: string | null; currency: string | null; periodEnd: Date; closeAt: Date }) {
   if (!previous) return null;
   const oldSources = previous.ratedSources as Source[];
   const oldEvents = previous.sourceEvents as Event[];
-  const oldRated = (previous.reconciliation as { rated: { amount: string; currency: string | null } }).rated;
+  const oldRated = (previous.reconciliation as { rated: { amount: string | null; currency: string | null } }).rated;
   const oldTotal = oldRated.amount;
+  if (oldTotal === null || current.total === null) {
+    const oldById = new Map(oldSources.map((source) => [source.eventId, source]));
+    const newById = new Map(current.ratedSources.map((source) => [source.eventId, source]));
+    const oldEventIds = new Set(oldEvents.map((event) => event.eventId));
+    const newEvents = new Map(current.sourceEvents.map((event) => [event.eventId, event]));
+    const changes = [...new Set([...oldEventIds, ...newEvents.keys()])].sort().flatMap((eventId) => {
+      const before = oldById.get(eventId), after = newById.get(eventId);
+      if (oldEventIds.has(eventId) && newEvents.has(eventId) && JSON.stringify(before) === JSON.stringify(after)) return [];
+      const event = newEvents.get(eventId);
+      const lateArrival = !!event?.receivedAt && new Date(event.receivedAt) > current.periodEnd && new Date(event.receivedAt) <= current.closeAt;
+      const kind = !newEvents.has(eventId) ? "REMOVED" : !oldEventIds.has(eventId) ? "ADDED" : !before && after ? "NEWLY_RATED" : "RATING_CHANGED";
+      return [{ eventId, kind, lateArrival, previous: before ?? null, current: after ?? null, amountDifference: null }];
+    });
+    return { previousSnapshotId: previous.id, previousCalculatedAt: previous.calculatedAt.toISOString(),
+      previousTotal: oldTotal, currentTotal: current.total, amountDifference: null, currency: null,
+      lateArrivalContribution: null, ratingRecoveryContribution: null,
+      unavailableReason: "MIXED_CURRENCY", changes };
+  }
   if (oldRated.currency && current.currency && oldRated.currency !== current.currency) {
     throw new Error("Cannot compare draft totals in different currencies");
   }
