@@ -59,6 +59,9 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(otherDraft.snapshot.sourceEvents.map((event: { eventId: string }) => event.eventId)).toEqual([other]);
     const repeat = await (await create("2024-02", customerA, "2024-03-04T00:00:00.000Z")).json();
     expect(repeat.currentSnapshotId).toBe(open.currentSnapshotId);
+    const closeRead = await (await owner.request.get(`${url}?month=2024-02&billedCustomerId=${customerA}`, { headers: { "x-billing-test-now": "2024-03-04T00:00:00.001Z" } })).json();
+    expect(closeRead.snapshot.state).toBe("BLOCKED");
+    expect(closeRead.currentSnapshotId).not.toBe(open.currentSnapshotId);
     const [blockedResponse, concurrentResponse] = await Promise.all([create("2024-02", customerA, "2024-03-04T00:00:00.001Z"), create("2024-02", customerA, "2024-03-04T00:00:00.001Z")]);
     expect(blockedResponse.status()).toBe(200);
     expect(concurrentResponse.status()).toBe(200);
@@ -66,6 +69,7 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(blocked.id).toBe(open.id);
     expect(blocked.snapshot.state).toBe("BLOCKED");
     expect(blocked.currentSnapshotId).not.toBe(open.currentSnapshotId);
+    expect(blocked.currentSnapshotId).toBe(closeRead.currentSnapshotId);
     expect((await concurrentResponse.json()).currentSnapshotId).toBe(blocked.currentSnapshotId);
     const read = await (await owner.request.get(`${url}?month=2024-02&billedCustomerId=${customerA}`)).json();
     expect(read.currentSnapshotId).toBe(blocked.currentSnapshotId);
