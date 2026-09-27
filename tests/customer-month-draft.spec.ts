@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const base = process.env.CUSTOMER_TEST_BASE_URL!;
 async function signIn(page: Page, email: string) {
@@ -86,6 +86,93 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await create("2024-12")).status()).toBe(200);
     const december = await (await owner.request.get(`${url}?month=2024-12&billedCustomerId=${customerA}`)).json();
     expect(december.periodEnd).toBe("2025-01-01T00:00:00.000Z");
+
+    worker.kill("SIGTERM");
+    await new Promise<void>((resolve) => worker!.once("exit", () => resolve()));
+    worker = undefined;
+    await expect.poll(async () => (await db.query(`SELECT count(*)::int AS n FROM "UnratedEvent" WHERE "eventId"=$1`, [feb])).rows[0].n).toBe(1);
+    await owner.goto(`${base}/app/draft-a/settings`);
+    await owner.getByLabel("ISO 4217 currency").fill("USD");
+    await owner.getByRole("button", { name: "Set currency" }).click();
+    const priceInstant = new Date(Date.now() + 10 * 60_000);
+    const eventInstant = new Date(priceInstant.getTime() + 60_000).toISOString();
+    const reconciliationMonth = eventInstant.slice(0, 7);
+    await owner.goto(`${base}/app/draft-a/metrics/draft-metric/pricing`);
+    await owner.getByLabel("Unit price").fill("2");
+    await owner.getByLabel("Currency").fill("USD");
+    await owner.getByLabel("Effective from (UTC, ISO 8601)").fill(priceInstant.toISOString());
+    await owner.getByRole("button", { name: /Publish (first|scheduled) price/ }).click();
+    await expect(owner.getByRole("status")).toContainText("Price version published.");
+    await owner.goto(`${base}/app/draft-a/metrics/draft-overflow/pricing`);
+    await owner.getByLabel("Unit price").fill("999999.999999");
+    await owner.getByLabel("Currency").fill("USD");
+    await owner.getByLabel("Effective from (UTC, ISO 8601)").fill(priceInstant.toISOString());
+    await owner.getByRole("button", { name: /Publish (first|scheduled) price/ }).click();
+    await expect(owner.getByRole("status")).toContainText("Price version published.");
+    const run = (eventId: string, flag?: string) => {
+      const result = spawnSync("./node_modules/.bin/tsx", ["tests/fixtures/process-ledger-once.ts", eventId], {
+        env: { ...process.env, ...(flag ? { [flag]: "true" } : {}) }, encoding: "utf8", timeout: 20_000,
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(flag === "LEDGER_TEST_EXIT_AFTER_CLAIM" ? 91 : flag === "LEDGER_TEST_EXIT_BEFORE_RATING" ? 92 : 0);
+    };
+    const send = async (key: string, metric = "CALLS", amount = 3) => {
+      const response = await request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": "secret-org-c", "idempotency-key": key,
+        "x-ledger-test-received-at": eventInstant }, data: { customerId: "shared", metric, amount, timestamp: eventInstant } });
+      expect(response.status()).toBe(200);
+      return (await response.json()).eventId as string;
+    };
+    const rated = await send("draft-rated"); run(rated);
+    const pending = await send("draft-pending");
+    const processing = await send("draft-processing"); run(processing, "LEDGER_TEST_EXIT_AFTER_CLAIM");
+    const ledgerFailed = await send("draft-ledger-failed"); run(ledgerFailed, "LEDGER_TEST_FAIL_PROJECTION");
+    const ratingPending = await send("draft-rating-pending"); run(ratingPending, "LEDGER_TEST_EXIT_BEFORE_RATING");
+    const ratingRetry = await send("draft-rating-retry"); run(ratingRetry, "RATING_TEST_FAIL_ATTEMPT");
+    const unrated = await send("draft-unrated", "UNPRICED"); run(unrated);
+    const failureResponse = await request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": "secret-org-c", "idempotency-key": "draft-rating-failed", "x-ledger-test-received-at": eventInstant },
+      data: { customerId: "shared", metric: "LARGE", amount: 1_000_000_000, timestamp: eventInstant } });
+    expect(failureResponse.status()).toBe(200);
+    const ratingFailed = (await failureResponse.json()).eventId as string;
+    run(ratingFailed);
+    const stableExport = await owner.request.post(`${base}/api/ledger-exports`, { data: { orgId: "draft-a", period: reconciliationMonth } });
+    expect(stableExport.status()).toBe(201);
+    const exportId = (await stableExport.json()).id;
+    const frozen = await (await owner.request.get(`${base}/api/ledger-exports/${exportId}?orgId=draft-a`)).json();
+    const reconciled = await (await create(reconciliationMonth, customerA, eventInstant)).json();
+    const outcomes = reconciled.snapshot.eventOutcomes;
+    expect(outcomes.map((item: { eventId: string }) => item.eventId).sort()).toEqual([unrated, rated, pending, processing, ledgerFailed, ratingPending, ratingRetry, ratingFailed].sort());
+    expect(outcomes.map((item: { state: string }) => item.state).sort()).toEqual([
+      "UNRATED", "RATED", "LEDGER_PENDING", "LEDGER_PROCESSING", "LEDGER_FAILED", "RATING_PENDING", "RATING_RETRY", "RATING_FAILED",
+    ].sort());
+    expect(outcomes.find((item: { eventId: string }) => item.eventId === ledgerFailed)).toMatchObject({ reason: "LEDGER_PROJECTION_FAILED" });
+    expect(outcomes.find((item: { eventId: string }) => item.eventId === ratingRetry)).toMatchObject({ reason: "RATING_WORKER_FAILED" });
+    expect(outcomes.find((item: { eventId: string }) => item.eventId === ratingFailed)).toMatchObject({ reason: "AMOUNT_OVERFLOW" });
+    expect(outcomes.find((item: { eventId: string }) => item.eventId === unrated)).toMatchObject({ reason: "NO_APPLICABLE_PRICE" });
+    for (const outcome of outcomes.filter((item: { state: string }) => item.state !== "RATED")) expect(outcome).not.toHaveProperty("amount");
+    expect(reconciled.snapshot.reconciliation).toMatchObject({ accepted: { count: 8, quantity: "1000000021" }, rated: { count: 1, quantity: "3", amount: "6.000", currency: "USD" }, balanced: true });
+    expect(reconciled.snapshot.reconciliation.byMetricAndState).toEqual([
+      { metric: "CALLS", state: "LEDGER_FAILED", count: 1, quantity: "3" },
+      { metric: "CALLS", state: "LEDGER_PENDING", count: 1, quantity: "3" },
+      { metric: "CALLS", state: "LEDGER_PROCESSING", count: 1, quantity: "3" },
+      { metric: "CALLS", state: "RATED", count: 1, quantity: "3" },
+      { metric: "CALLS", state: "RATING_PENDING", count: 1, quantity: "3" },
+      { metric: "CALLS", state: "RATING_RETRY", count: 1, quantity: "3" },
+      { metric: "LARGE", state: "RATING_FAILED", count: 1, quantity: "1000000000" },
+      { metric: "UNPRICED", state: "UNRATED", count: 1, quantity: "3" },
+    ]);
+    expect(reconciled.snapshot.lines).toEqual([expect.objectContaining({ amount: "6.000", quantity: "3", sourceEventIds: [rated] })]);
+    expect(frozen.rows.filter((row: { externalCustomerId: string }) => row.externalCustomerId === "shared").map((row: { eventId: string }) => row.eventId).sort()).toEqual(outcomes.map((item: { eventId: string }) => item.eventId).sort());
+    expect(frozen.totals).toContainEqual(expect.objectContaining({ externalCustomerId: "shared", metric: "CALLS", count: 6, quantity: 18 }));
+    expect(frozen.totals).toContainEqual(expect.objectContaining({ externalCustomerId: "shared", metric: "UNPRICED", count: 1, quantity: 3 }));
+    expect(frozen.totals).toContainEqual(expect.objectContaining({ externalCustomerId: "shared", metric: "LARGE", count: 1, quantity: 1_000_000_000 }));
+    for (const total of frozen.totals.filter((item: { externalCustomerId: string }) => item.externalCustomerId === "shared")) {
+      const buckets = reconciled.snapshot.reconciliation.byMetricAndState.filter((item: { metric: string }) => item.metric === total.metric);
+      expect(buckets.reduce((sum: number, item: { count: number }) => sum + item.count, 0)).toBe(total.count);
+      expect(buckets.reduce((sum: bigint, item: { quantity: string }) => sum + BigInt(item.quantity), 0n)).toBe(BigInt(total.quantity));
+    }
+    expect(JSON.stringify(reconciled)).not.toContain("draft-rated");
+    expect((await db.query(`SELECT "eventOutcomes", reconciliation FROM "BillingRecordSnapshot" WHERE id=$1`, [reconciled.currentSnapshotId])).rows[0]).toMatchObject({ eventOutcomes: outcomes, reconciliation: reconciled.snapshot.reconciliation });
+    expect((await db.query(`SELECT "eventOutcomes" FROM "BillingRecordSnapshot" WHERE id=$1`, [blocked.currentSnapshotId])).rows[0].eventOutcomes).toEqual([expect.objectContaining({ eventId: feb, state: "UNRATED" })]);
   } finally {
     worker?.kill("SIGTERM");
     await owner.close(); await viewer.close(); await db.end();

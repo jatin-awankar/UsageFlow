@@ -58,6 +58,7 @@ export async function processLedgerEvent(eventId: string) {
       await tx.usageEvent.update({ where: { id: eventId }, data: { processingState: "PROCESSED" } });
       await tx.ledgerProcessingIntent.update({ where: { eventId }, data: { leaseToken: null, leaseUntil: null, failureReason: null } });
     });
+    if (process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_EXIT_BEFORE_RATING === "true") process.exit(92);
     await attemptCustomerRating(eventId);
   } catch (error) {
     console.error("Ledger projection failed", { eventId, error });
