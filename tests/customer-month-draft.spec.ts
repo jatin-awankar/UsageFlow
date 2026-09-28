@@ -494,6 +494,52 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       "periodStart", "periodEnd", "closeAt", "sourceEvents", "ratedSources", "eventOutcomes", lines, reconciliation, "lateArrivals", comparison, currency, amount
       FROM "BillingRecordVersion" WHERE id=$1`, [final.versionId])).rejects.toThrow();
     expect((await db.query(`SELECT amount FROM "Invoice" WHERE id='legacy-invoice'`)).rows[0].amount).toBe(999);
+    const revision = (headers: Record<string, string> = {}, overrides: Record<string, unknown> = {}) => owner.request.post(url, {
+      headers, data: { action: "revise", month: reconciliationMonth, billedCustomerId: recoveryCustomer,
+        expectedVersionId: final.versionId, requestId: "revision-one", reason: "Correct supported comparison amount",
+        evidenceRef: "https://evidence.example.test/corrections/one", currency: "USD", signedDelta: "1.000", revisedAmount: "9.000",
+        affectedLines: [{ lineIndex: 0, sourceEventIds: version.lines[0].sourceEventIds,
+          signedDelta: "1.000", revisedAmount: "9.000" }], ...overrides } });
+    expect((await viewer.request.post(url, { data: { action: "revise", month: reconciliationMonth, billedCustomerId: recoveryCustomer } })).status()).toBe(403);
+    expect((await revision({}, { billedCustomerId: customerB })).status()).toBe(404);
+    expect((await revision({}, { evidenceRef: "ambiguous" })).status()).toBe(400);
+    expect((await revision({}, { currency: "EUR" })).status()).toBe(409);
+    expect((await revision({}, { affectedLines: [{ lineIndex: 0, sourceEventIds: ["unrelated"], signedDelta: "1.000", revisedAmount: "9.000" }] })).status()).toBe(409);
+    for (const failure of ["before-adjustment", "before-version", "before-pointer", "before-event"]) {
+      expect((await revision({ "x-billing-test-fail-revision": failure })).status()).toBe(500);
+      expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBe(final.versionId);
+      expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(1);
+      expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordAdjustment" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(0);
+      expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.revised' AND "orgId"='draft-a'`)).rows[0].n).toBe(0);
+    }
+    const revisedResponse = await revision();
+    expect(revisedResponse.status()).toBe(200);
+    const revised = await revisedResponse.json();
+    const adjustment = (await db.query(`SELECT * FROM "BillingRecordAdjustment" WHERE id=$1`, [revised.adjustmentId])).rows[0];
+    expect(adjustment).toMatchObject({ billingRecordId: correctedEvidence.id, previousVersionId: final.versionId,
+      actorId: "draft-owner", requestId: "revision-one", reason: "Correct supported comparison amount",
+      evidenceRef: "https://evidence.example.test/corrections/one", currency: "USD", previousAmount: "8.000",
+      signedDelta: "1.000", revisedAmount: "9.000" });
+    expect(adjustment.createdAt).toBeTruthy();
+    const revisedVersion = (await db.query(`SELECT * FROM "BillingRecordVersion" WHERE id=$1`, [revised.versionId])).rows[0];
+    expect(revisedVersion).toMatchObject({ predecessorId: final.versionId, adjustmentId: revised.adjustmentId,
+      version: 2, approvedById: "draft-owner", amount: "9.000", currency: "USD", sourceEvents: version.sourceEvents,
+      ratedSources: version.ratedSources });
+    expect(revisedVersion.lines[0].amount).toBe("9.000");
+    expect(revisedVersion.lines[0]).toMatchObject({ ratedAmount: "8.000", adjustmentAmount: "1.000",
+      sourceEventIds: version.lines[0].sourceEventIds, unitPriceMicros: version.lines[0].unitPriceMicros });
+    expect(revisedVersion.reconciliation).toMatchObject({ rated: { amount: "8.000", currency: "USD" },
+      revised: { ratedAmount: "8.000", adjustmentAmount: "1.000", amount: "9.000", currency: "USD", balanced: true },
+      adjustments: [{ previousAmount: "8.000", signedDelta: "1.000", revisedAmount: "9.000", adjustmentId: revised.adjustmentId }] });
+    expect((await db.query(`SELECT lines, amount FROM "BillingRecordVersion" WHERE id=$1`, [final.versionId])).rows[0]).toEqual({ lines: version.lines, amount: "8.000" });
+    expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBe(revised.versionId);
+    expect((await db.query(`SELECT type, payload, "billingRecordVersionId" FROM "WebhookEvent" WHERE id=$1`, [revised.eventId])).rows[0]).toMatchObject({
+      type: "invoice.revised", billingRecordVersionId: revised.versionId,
+      payload: { organizationId: "draft-a", billingRecordId: correctedEvidence.id, customerId: recoveryCustomer,
+        versionId: revised.versionId, predecessorVersionId: final.versionId, adjustmentId: revised.adjustmentId,
+        currency: "USD", previousAmount: "8.000", amount: "9.000" } });
+    expect((await revision()).status()).toBe(409);
+    expect((await db.query(`SELECT amount FROM "Invoice" WHERE id='legacy-invoice'`)).rows[0].amount).toBe(999);
   } finally {
     worker?.kill("SIGTERM");
     await owner.close(); await viewer.close(); await db.end();

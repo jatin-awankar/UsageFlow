@@ -13,10 +13,15 @@ test("deployed finalization gate keeps the owner action closed", async ({ page }
     data: { action: "finalize", month: "2024-02", billedCustomerId: "gate-customer" },
   });
   expect(response.status()).toBe(404);
+  const revision = await page.request.post(`${base}/api/organizations/gate-org/billing-records`, {
+    data: { action: "revise", month: "2024-02", billedCustomerId: "gate-customer" },
+  });
+  expect(revision.status()).toBe(404);
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
   try {
     expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion"`)).rows[0].n).toBe(0);
     expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent"`)).rows[0].n).toBe(0);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordAdjustment"`)).rows[0].n).toBe(0);
   } finally { await db.end(); }
 });
