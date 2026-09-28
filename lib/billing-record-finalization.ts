@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { calculateInTransaction, requestTime, type Month } from "@/lib/billing-record-calculation";
+import { billingEventTargets } from "@/lib/webhooks/billing-targets";
 
 export async function finalizeBillingRecord(request: NextRequest, orgId: string, actorId: string, customerId: string, period: Month, requestId: string) {
   const failAt = request.headers.get("x-billing-test-fail-finalization");
@@ -54,7 +55,8 @@ export async function finalizeBillingRecord(request: NextRequest, orgId: string,
     if (failAt === "before-pointer") throw new Error("Injected finalization failure");
     await tx.billingRecord.update({ where: { id: record.id }, data: { currentFinalVersionId: versionId } });
     if (failAt === "before-event") throw new Error("Injected finalization failure");
-    await tx.webhookEvent.create({ data: { id: eventId, orgId, type: "invoice.finalized", billingRecordVersionId: versionId,
+    const targets = await billingEventTargets(tx, orgId, "invoice.finalized");
+    await tx.webhookEvent.create({ data: { id: eventId, orgId, type: "invoice.finalized", billingRecordVersionId: versionId, ...targets,
       payload: { organizationId: orgId, billingRecordId: record.id, customerId,
         periodStart: period.start.toISOString(), periodEnd: period.end.toISOString(), versionId, version: 1,
         currency: reconciliation.rated.currency!, amount: reconciliation.rated.amount! } } });

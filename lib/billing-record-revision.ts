@@ -3,6 +3,7 @@ import { Prisma, type BillingRecordVersion } from "@prisma/client";
 import { createHash, randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { requestTime, type Month } from "@/lib/billing-record-calculation";
+import { billingEventTargets } from "@/lib/webhooks/billing-targets";
 
 type Line = { amount: string; ratedAmount?: string; adjustmentAmount?: string; currency: string; sourceEventIds: string[]; [key: string]: unknown };
 type Change = { lineIndex: number; sourceEventIds: string[]; signedDelta: string; revisedAmount: string };
@@ -110,7 +111,8 @@ export async function reviseBillingRecord(request: NextRequest, orgId: string, a
     if (failAt === "before-pointer") throw new Error("Injected revision failure");
     await tx.billingRecord.update({ where: { id: record.id }, data: { currentFinalVersionId: versionId } });
     if (failAt === "before-event") throw new Error("Injected revision failure");
-    await tx.webhookEvent.create({ data: { id: eventId, orgId, type: "invoice.revised", billingRecordVersionId: versionId,
+    const targets = await billingEventTargets(tx, orgId, "invoice.revised");
+    await tx.webhookEvent.create({ data: { id: eventId, orgId, type: "invoice.revised", billingRecordVersionId: versionId, ...targets,
       payload: { organizationId: orgId, billingRecordId: record.id, customerId, periodStart: period.start.toISOString(),
         periodEnd: period.end.toISOString(), versionId, predecessorVersionId: previous.id, version: previous.version + 1,
         currency: previous.currency, previousAmount: previous.amount.toFixed(3), amount: input.revisedAmount, adjustmentId } } });
