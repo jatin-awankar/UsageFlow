@@ -18,6 +18,7 @@ for file in prisma/migrations/*/migration.sql; do
 done
 export DATABASE_URL="postgresql://postgres:synthetic-only@127.0.0.1:$(docker port "$container" 5432/tcp | sed 's/.*://')/postgres"
 export REDIS_URL="redis://127.0.0.1:$(docker port "$redis_container" 6379/tcp | sed 's/.*://')"
+node --import tsx --test scripts/billing-delivery-view.test.tsx
 npx tsx scripts/billing-webhook-recovery.integration.ts
 cleanup
 trap - EXIT

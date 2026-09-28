@@ -8,7 +8,7 @@ import { Client } from "pg";
 import prisma from "../lib/prisma";
 import { refreshBillingStatus } from "../lib/webhooks/billing-status";
 import { replayBillingWebhookForActor } from "../lib/webhooks/replay-billing";
-import { listBillingWebhookEventsForOwner, listWebhookDeliveryLogs } from "../lib/webhooks/views";
+import { listBillingWebhookEventsForOwner, listWebhookDeliveryLogs, listWebhookDeliveryLogsForActor } from "../lib/webhooks/views";
 import { rotateEndpointSecretForOwner } from "../lib/webhooks/rotate-secret";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
@@ -350,6 +350,8 @@ try {
   assert(replayView);
   assert.deepEqual(replayView.targetEndpointIds, ["recover-endpoint", "recover-second"]);
   assert(replayView.deliveries.some((attempt) => attempt.endpointId === "recover-endpoint" && attempt.cycle === 2));
+  assert(replayView.deliveries.some((attempt) => attempt.endpointId === "recover-endpoint" &&
+    attempt.cycle === 1 && attempt.responseCode === 500 && attempt.durationMs !== null));
   assert(replayView.billingWebhookReplays.some((replay) => replay.endpointId === "recover-endpoint" && replay.cycle === 2));
   assert(!JSON.stringify(ownerEvents).includes("foreign-secret"));
   assert(!JSON.stringify(ownerEvents).includes("synthetic-secret"));
@@ -357,6 +359,11 @@ try {
   assert(!JSON.stringify(ownerEvents).includes("query-secret-marker"));
   assert(!JSON.stringify(await listWebhookDeliveryLogs("recover-org")).includes("responseBody"));
   assert(!JSON.stringify(await listWebhookDeliveryLogs("recover-org")).includes("path-secret-marker"));
+  await db.query(`INSERT INTO "User" (id,email) VALUES ('recover-admin','admin@example.test')`);
+  await db.query(`INSERT INTO "Membership" (id,"userId","orgId",role)
+    VALUES ('recover-admin-membership','recover-admin','recover-org','ADMIN')`);
+  assert((await listWebhookDeliveryLogsForActor("recover-org", "recover-user")).length > 0);
+  assert.deepEqual(await listWebhookDeliveryLogsForActor("recover-org", "recover-admin"), []);
   await assert.rejects(listBillingWebhookEventsForOwner("foreign-org", "recover-user"), /OWNER_REQUIRED/);
   assert(!ownerEvents.some((event) => event.id === "foreign-event"));
   await assert.rejects(rotateEndpointSecretForOwner("recover-org", "foreign-endpoint", "recover-user"), /ENDPOINT_NOT_FOUND/);
