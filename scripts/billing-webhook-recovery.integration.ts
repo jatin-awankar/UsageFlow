@@ -272,6 +272,29 @@ try {
   await assert.rejects(replayBillingWebhookForActor({ ...replayInput, endpointId: "recover-second" }, "recover-user"), /INVALID_REPLAY_STATE/);
   await assert.rejects(replayBillingWebhookForActor({ ...replayInput, endpointId: "forged-endpoint" }, "recover-user"), /INVALID_REPLAY_TARGET/);
   await assert.rejects(replayBillingWebhookForActor({ ...replayInput, eventId: "forged-event" }, "recover-user"), /INVALID_REPLAY_TARGET/);
+  await db.query(`INSERT INTO "Organization" (id,name) VALUES ('foreign-org','Other Organization')`);
+  await db.query(`INSERT INTO "Customer" (id,"orgId","externalId") VALUES ('foreign-customer','foreign-org','foreign-1')`);
+  await db.query("BEGIN");
+  await db.query(`INSERT INTO "BillingRecord" (id,"orgId","billedCustomerId","periodStart","periodEnd","closeAt")
+    VALUES ('foreign-record','foreign-org','foreign-customer','2026-07-01','2026-08-01','2026-08-04')`);
+  await db.query(`INSERT INTO "BillingRecordSnapshot" (id,"billingRecordId","calculatedAt",state,"sourceEvents")
+    VALUES ('foreign-snapshot','foreign-record',now(),'OPEN','[]')`);
+  await db.query(`UPDATE "BillingRecord" SET "currentSnapshotId"='foreign-snapshot' WHERE id='foreign-record'`);
+  await db.query("COMMIT");
+  await db.query(`INSERT INTO "BillingRecordVersion" (id,"billingRecordId","snapshotId",version,"approvedById","finalizedAt",
+    "periodStart","periodEnd","closeAt","sourceEvents","ratedSources","eventOutcomes",lines,reconciliation,
+    "lateArrivals",comparison,currency,amount) VALUES ('foreign-version','foreign-record','foreign-snapshot',1,
+    'recover-user',now(),'2026-07-01','2026-08-01','2026-08-04','[]','[]','[]','[]','{}','[]','{}','USD',0)`);
+  await db.query(`INSERT INTO "WebhookEndpoint" (id,url,secret,active,"orgId",events)
+    VALUES ('foreign-endpoint',$1,'foreign-secret',true,'foreign-org',ARRAY['invoice.finalized'])`, [`http://127.0.0.1:${address.port}/foreign`]);
+  await db.query(`INSERT INTO "WebhookEvent" (id,type,payload,status,"orgId","billingRecordVersionId",
+    "targetEndpointIds","targetSelectionRecordedAt") VALUES ('foreign-event','invoice.finalized',
+    '{"amount":"0","version":1}','FAILED','foreign-org','foreign-version',ARRAY['foreign-endpoint'],now())`);
+  await db.query(`INSERT INTO "BillingWebhookWork" ("webhookEventId","endpointId","attemptCount","failedAttempts",terminal)
+    VALUES ('foreign-event','foreign-endpoint',5,5,true)`);
+  await assert.rejects(replayBillingWebhookForActor({ ...replayInput, eventId: "foreign-event",
+    endpointId: "foreign-endpoint", idempotencyKey: "foreign-probe" }, "recover-user"), /INVALID_REPLAY_TARGET/);
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingWebhookReplay" WHERE "webhookEventId"='foreign-event'`)).rows[0].n, 0);
   await kill(restarted);
   await queue.obliterate({ force: true });
   const replay = await replayBillingWebhookForActor(replayInput, "recover-user");
