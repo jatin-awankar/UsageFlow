@@ -1,0 +1,5 @@
+# Billing webhook exact request: ticket 03
+
+Deploy the receiver's timestamped `v1=` verifier before routing billing events to it. Rehearse with disposable PostgreSQL and Redis using `npm run test:billing-webhook-recovery`; it exercises the real worker and loopback receiver. Confirm captured raw bytes and headers for finalized and revised events, tampering and five-minute boundaries, stable event facts across retries, the legacy path, and the closed deployed finalization gate. No historical event, target, or customer mapping backfill is required.
+
+If sender compatibility rollback is needed, coordinate with receiver operators first. A receiver that accepts only `v1=` will reject the prior billing sender's bare-hex signature. Keep the prior billing verifier available during the rollback window, scoped by endpoint subscription or path. Stop billing workers before restoring the old sender; keep committed `WebhookEvent`, target selections, work rows, and attempt history. Resume outstanding deliveries after receiver compatibility is confirmed. Keep the deployed owner finalization gate closed.

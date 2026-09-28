@@ -2,7 +2,7 @@ import axios from "axios";
 import { randomUUID } from "node:crypto";
 import { WebhookDeliveryStatus, WebhookEventStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { sendBareHmacWebhook } from "@/worker/processors/sendBareHmacWebhook";
+import { sendBillingWebhook } from "@/worker/processors/sendBillingWebhook";
 
 const LEASE_MS = 30_000;
 const RETRY_MINUTES = [1, 2, 4, 8];
@@ -49,7 +49,7 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
         createdAt: context.event.createdAt.toISOString(), organizationId: context.event.orgId,
         billingRecordVersionId: context.event.billingRecordVersionId, payload: context.event.payload });
       try {
-        const response = await sendBareHmacWebhook(endpoint.url, endpoint.secret, body);
+        const response = await sendBillingWebhook(endpoint.url, endpoint.secret, Buffer.from(body, "utf8"));
         responseCode = response.status;
       } catch (error) {
         status = WebhookDeliveryStatus.FAILED;

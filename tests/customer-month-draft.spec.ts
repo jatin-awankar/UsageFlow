@@ -3,6 +3,7 @@ import { Client } from "pg";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer, type ServerResponse } from "node:http";
 import { Queue } from "bullmq";
+import { verifyBillingRequest } from "../webhook-receiver/billing-verifier.js";
 
 const base = process.env.CUSTOMER_TEST_BASE_URL!;
 async function signIn(page: Page, email: string) {
@@ -469,7 +470,10 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     worker = spawn("./node_modules/.bin/tsx", ["worker/index.ts"], { env: process.env, stdio: "ignore" });
     await expect.poll(async () => received.filter(({ body }) => JSON.parse(body).id === final.eventId).length,
       { timeout: 20_000 }).toBe(1);
-    expect(JSON.parse(received.find(({ body }) => JSON.parse(body).id === final.eventId)!.body)).toMatchObject({
+    const finalRequest = received.find(({ body }) => JSON.parse(body).id === final.eventId)!;
+    expect(verifyBillingRequest(Buffer.from(finalRequest.body), finalRequest.headers["x-usageflow-timestamp"],
+      finalRequest.headers["x-usageflow-signature"], "local-secret")?.id).toBe(final.eventId);
+    expect(JSON.parse(finalRequest.body)).toMatchObject({
       id: final.eventId, type: "invoice.finalized", organizationId: "draft-a", billingRecordVersionId: final.versionId,
       payload: { amount: "8.000" },
     });
@@ -607,7 +611,15 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     await expect.poll(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id=$1`, [revised.eventId])).rows[0].status).toBe("DELIVERED");
     await db.query(`UPDATE "WebhookEndpoint" SET active=true WHERE id='billing-target-a'`);
     expect(received.filter(({ body }) => JSON.parse(body).id === revised.eventId)).toHaveLength(2);
-    expect(JSON.parse(received.find(({ body }) => JSON.parse(body).id === revised.eventId)!.body)).toMatchObject({
+    const revisedRequests = received.filter(({ body }) => JSON.parse(body).id === revised.eventId);
+    expect(Buffer.from(revisedRequests[0].body).equals(Buffer.from(revisedRequests[1].body))).toBe(true);
+    for (const request of revisedRequests) {
+      const valid = ["local-secret", "second-secret"].some((secret) =>
+        verifyBillingRequest(Buffer.from(request.body), request.headers["x-usageflow-timestamp"],
+          request.headers["x-usageflow-signature"], secret)?.id === revised.eventId);
+      expect(valid).toBe(true);
+    }
+    expect(JSON.parse(revisedRequests[0].body)).toMatchObject({
       id: revised.eventId, type: "invoice.revised", billingRecordVersionId: revised.versionId,
       payload: { amount: "9.000", predecessorVersionId: final.versionId },
     });

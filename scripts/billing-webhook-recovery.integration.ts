@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { createHmac } from "node:crypto";
+import { verifyBillingRequest } from "../webhook-receiver/billing-verifier.js";
 import { spawn, type ChildProcess } from "node:child_process";
 import { Queue } from "bullmq";
 import { Client } from "pg";
@@ -7,13 +9,17 @@ import { Client } from "pg";
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
 const workers: ChildProcess[] = [];
-const received: Array<{ body: string; id: string }> = [];
+const received: Array<{ body: Buffer; id: string; timestamp: string; signature: string }> = [];
 let receiverStatus = 200;
 const receiver = createServer(async (request, response) => {
   const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
-  const body = Buffer.concat(chunks).toString();
-  received.push({ body, id: JSON.parse(body).id });
+  const body = Buffer.concat(chunks);
+  const timestamp = request.headers["x-usageflow-timestamp"];
+  const signature = request.headers["x-usageflow-signature"];
+  const event = verifyBillingRequest(body, timestamp, signature, "synthetic-secret");
+  if (!event) { response.writeHead(401).end("invalid"); return; }
+  received.push({ body, id: event.id, timestamp: String(timestamp), signature: String(signature) });
   response.writeHead(receiverStatus).end("ok");
 });
 
@@ -90,7 +96,32 @@ try {
     throw error;
   });
   assert.equal(received.length, 2);
-  assert.equal(received[0].body, received[1].body, "recovery must retain original event and billing facts");
+  assert.deepEqual(received[0].body, received[1].body, "recovery must retain original event and billing facts");
+  const firstRequest = received[0];
+  const eventRow = (await db.query(`SELECT id,type,to_char("createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",payload,"orgId","billingRecordVersionId" FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0];
+  const expectedBody = Buffer.from(JSON.stringify({ id: eventRow.id, type: eventRow.type,
+    createdAt: eventRow.createdAt, organizationId: eventRow.orgId,
+    billingRecordVersionId: eventRow.billingRecordVersionId, payload: eventRow.payload }));
+  assert.deepEqual(firstRequest.body, expectedBody, "request bytes must encode stored event facts");
+  const signed = (timestamp: string, body = firstRequest.body) => `v1=${createHmac("sha256", "synthetic-secret").update(timestamp).update(".").update(body).digest("hex")}`;
+  assert.equal(firstRequest.signature, signed(firstRequest.timestamp));
+  const loopback = async (body: Buffer, timestamp: string, signature: string) =>
+    fetch(`http://127.0.0.1:${address.port}/receive`, { method: "POST", body: Uint8Array.from(body),
+      headers: { "Content-Type": "application/json", "X-UsageFlow-Timestamp": timestamp,
+        "X-UsageFlow-Signature": signature } }).then((result) => result.status);
+  assert.equal(await loopback(firstRequest.body, firstRequest.timestamp, firstRequest.signature), 200);
+  received.pop();
+  assert.equal(await loopback(Buffer.concat([firstRequest.body, Buffer.from(" ")]), firstRequest.timestamp, firstRequest.signature), 401);
+  assert.equal(await loopback(firstRequest.body, String(Number(firstRequest.timestamp) - 1), firstRequest.signature), 401);
+  assert.equal(await loopback(firstRequest.body, firstRequest.timestamp, `v1=${"0".repeat(64)}`), 401);
+  const now = Number(firstRequest.timestamp);
+  assert.equal(verifyBillingRequest(firstRequest.body, firstRequest.timestamp, firstRequest.signature, "synthetic-secret", now)?.id, "recover-event");
+  assert.equal(verifyBillingRequest(Buffer.concat([firstRequest.body, Buffer.from(" ")]), firstRequest.timestamp, firstRequest.signature, "synthetic-secret", now), null);
+  assert.equal(verifyBillingRequest(firstRequest.body, String(now - 1), firstRequest.signature, "synthetic-secret", now), null);
+  assert.equal(verifyBillingRequest(firstRequest.body, firstRequest.timestamp, `v1=${"0".repeat(64)}`, "synthetic-secret", now), null);
+  assert.equal(verifyBillingRequest(firstRequest.body, String(now - 300), signed(String(now - 300)), "synthetic-secret", now)?.id, "recover-event");
+  assert.equal(verifyBillingRequest(firstRequest.body, String(now - 301), signed(String(now - 301)), "synthetic-secret", now), null);
+  assert.equal(verifyBillingRequest(firstRequest.body, String(now + 1), signed(String(now + 1)), "synthetic-secret", now), null);
   const attempts = await db.query(`SELECT attempt,status FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event' ORDER BY attempt`);
   assert.deepEqual(attempts.rows, [{ attempt: 1, status: "FAILED" }, { attempt: 2, status: "SUCCESS" }]);
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE id='recover-version'`)).rows[0].n, 1);
@@ -102,7 +133,7 @@ try {
   await db.query(`UPDATE "WebhookEvent" SET status='PENDING' WHERE id='recover-event'`);
   await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0].status === "DELIVERED"
     && received.length === 3, "fifth uncertain retry");
-  assert.equal(received[2].body, received[0].body);
+  assert.deepEqual(received[2].body, received[0].body);
   assert.equal((await db.query(`SELECT status FROM "WebhookDelivery" WHERE id='uncertain-fifth'`)).rows[0].status, "FAILED");
   // Definite HTTP failures use the five-response budget and then stop.
   receiverStatus = 500;
