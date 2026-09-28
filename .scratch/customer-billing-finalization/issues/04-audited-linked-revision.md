@@ -13,3 +13,7 @@
 - [x] Application-level acceptance tests on disposable PostgreSQL revise through the owner action with the test gate enabled, inspect persisted versions, pointer, audit evidence, and event rows, and inject errors before adjustment, version, pointer, and event writes complete. Aborted transactions retain the original current version and create no partial adjustment or event. Verify tenant isolation and unchanged legacy Invoice data.
 - [x] Use additive migration and constraints. Application rollback closes the gate and retains all prior and revised versions, adjustments, audit evidence, and outbound events. Keep the deployed owner gate off.
 - [x] Create a dedicated branch for this ticket before edits. Run relevant acceptance checks, keep the commit limited to this ticket, then commit, push, and open a draft PR. Report checks that could not run.
+
+## Comments
+
+- Implemented in draft PR [#67](https://github.com/jatin-awankar/UsageFlow/pull/67). Focused owner revision and closed-gate acceptance tests on disposable PostgreSQL, typecheck, targeted lint, the full scripted suite, two-axis code review, and `git diff --check` passed. The deployed gate remains closed until webhook delivery and recovery are verified. Evidence-preserving rollback is documented in `docs/atomic-finalization-rollout.md` and the PR.
