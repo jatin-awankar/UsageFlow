@@ -1,6 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:http";
+import { Queue } from "bullmq";
 
 const base = process.env.CUSTOMER_TEST_BASE_URL!;
 async function signIn(page: Page, email: string) {
@@ -12,11 +14,23 @@ async function signIn(page: Page, email: string) {
 }
 
 test("owner drafts use verified Customer ledger events and immutable monthly snapshots", async ({ browser, request }) => {
+  test.setTimeout(120_000);
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
   const owner = await browser.newPage();
   const viewer = await browser.newPage();
   let worker: ReturnType<typeof spawn> | undefined;
+  const received: Array<{ body: string; headers: Record<string, string | string[] | undefined> }> = [];
+  const receiver = createServer((request, response) => {
+    const chunks: Buffer[] = [];
+    request.on("data", (chunk: Buffer) => chunks.push(chunk));
+    request.on("end", () => {
+      received.push({ body: Buffer.concat(chunks).toString("utf8"), headers: request.headers });
+      response.writeHead(204).end();
+    });
+  });
+  await new Promise<void>((resolve) => receiver.listen(0, "127.0.0.1", resolve));
+  const receiverPort = (receiver.address() as { port: number }).port;
   try {
     await signIn(owner, "owner@example.test");
     await signIn(viewer, "viewer@example.test");
@@ -392,6 +406,9 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       await db.query(`ALTER TABLE "RatedEvent" ENABLE TRIGGER USER`);
     }
     const correctedEvidence = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
+    await db.query(`INSERT INTO "WebhookEndpoint" (id, url, secret, events, "orgId") VALUES
+      ('billing-target-a', $1, 'local-secret', ARRAY['invoice.finalized','invoice.revised'], 'draft-a'),
+      ('billing-foreign', $1, 'foreign-secret', ARRAY['invoice.finalized','invoice.revised'], 'draft-b')`, [`http://127.0.0.1:${receiverPort}/billing`]);
     expect(correctedEvidence.snapshot.state).toBe("READY_FOR_REVIEW");
     expect((await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).ready).toBe(true);
     expect((await db.query(`SELECT count(*)::int AS count FROM "WebhookEvent"`)).rows[0].count).toBe(0);
@@ -428,6 +445,31 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest" WHERE "requestId"='approval-recovery'`)).rows[0].n).toBe(1);
     const winnerId = "approval-recovery";
     const final = await (await finalize({}, winnerId)).json();
+    expect((await db.query(`SELECT status, "targetEndpointIds" FROM "WebhookEvent" WHERE id=$1`, [final.eventId])).rows[0])
+      .toEqual({ status: "PENDING", targetEndpointIds: ["billing-target-a"] });
+    await expect(db.query(`UPDATE "WebhookEndpoint" SET url='http://127.0.0.1:1/redirect' WHERE id='billing-target-a'`)).rejects.toThrow();
+    await expect(db.query(`DELETE FROM "WebhookEndpoint" WHERE id='billing-target-a'`)).rejects.toThrow();
+    await db.query(`INSERT INTO "WebhookEndpoint" (id, url, secret, events, "orgId") VALUES
+      ('billing-added-later', $1, 'later-secret', ARRAY['invoice.finalized'], 'draft-a')`, [`http://127.0.0.1:${receiverPort}/late`]);
+    const webhookQueue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
+    const queued = await webhookQueue.getJobs(["waiting", "delayed", "active"]);
+    expect(queued.filter((job) => job.name === "DELIVER_WEBHOOK" && job.data.webhookEventId === final.eventId)).toHaveLength(1);
+    await webhookQueue.add("DELIVER_WEBHOOK", { webhookEventId: final.eventId, endpointId: "billing-target-a", attempt: 1 },
+      { jobId: `duplicate-billing-${final.eventId}`, removeOnComplete: true });
+    await webhookQueue.close();
+    worker = spawn("./node_modules/.bin/tsx", ["worker/index.ts"], { env: process.env, stdio: "ignore" });
+    await expect.poll(async () => received.filter(({ body }) => JSON.parse(body).id === final.eventId).length,
+      { timeout: 20_000 }).toBe(1);
+    expect(JSON.parse(received.find(({ body }) => JSON.parse(body).id === final.eventId)!.body)).toMatchObject({
+      id: final.eventId, type: "invoice.finalized", organizationId: "draft-a", billingRecordVersionId: final.versionId,
+      payload: { amount: "8.000" },
+    });
+    await expect.poll(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id=$1`, [final.eventId])).rows[0].status).toBe("DELIVERED");
+    expect(received.filter(({ body }) => JSON.parse(body).id === final.eventId)).toHaveLength(1);
+    await db.query(`DELETE FROM "WebhookEndpoint" WHERE id='billing-added-later'`);
+    worker.kill("SIGTERM");
+    await new Promise<void>((resolve) => worker!.once("exit", () => resolve()));
+    worker = undefined;
     const competingResponse = await finalize({}, "competing-approval");
     expect(competingResponse.status()).toBe(409);
     expect(await competingResponse.json()).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: final.versionId }] });
@@ -473,9 +515,13 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(nextDraft.snapshot.state).toBe("READY_FOR_REVIEW");
     const nextApproval = (requestId: string) => owner.request.post(url, { headers: { "x-billing-test-now": nextMonthAfterClose },
       data: { action: "finalize", month: nextMonth, billedCustomerId: recoveryCustomer, requestId } });
+    await db.query(`UPDATE "WebhookEndpoint" SET active=false WHERE id='billing-target-a'`);
     const [nextFirst, nextSecond] = await Promise.all([nextApproval("next-first"), nextApproval("next-second")]);
     expect([nextFirst.status(), nextSecond.status()].sort()).toEqual([200, 409]);
     const nextFinal = await (nextFirst.status() === 200 ? nextFirst : nextSecond).json();
+    expect((await db.query(`SELECT status, "targetEndpointIds" FROM "WebhookEvent" WHERE id=$1`, [nextFinal.eventId])).rows[0])
+      .toEqual({ status: "NO_TARGET", targetEndpointIds: [] });
+    await db.query(`UPDATE "WebhookEndpoint" SET active=true WHERE id='billing-target-a'`);
     const nextConflict = await (nextFirst.status() === 409 ? nextFirst : nextSecond).json();
     expect(nextConflict).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: nextFinal.versionId }] });
     expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [nextDraft.id])).rows[0].n).toBe(1);
@@ -518,6 +564,17 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const revisedResponse = await revision();
     expect(revisedResponse.status()).toBe(200);
     const revised = await revisedResponse.json();
+    expect((await db.query(`SELECT "targetEndpointIds" FROM "WebhookEvent" WHERE id=$1`, [revised.eventId])).rows[0].targetEndpointIds)
+      .toEqual(["billing-target-a"]);
+    worker = spawn("./node_modules/.bin/tsx", ["worker/index.ts"], { env: process.env, stdio: "ignore" });
+    await expect.poll(async () => received.filter(({ body }) => JSON.parse(body).id === revised.eventId).length).toBe(1);
+    expect(JSON.parse(received.find(({ body }) => JSON.parse(body).id === revised.eventId)!.body)).toMatchObject({
+      id: revised.eventId, type: "invoice.revised", billingRecordVersionId: revised.versionId,
+      payload: { amount: "9.000", predecessorVersionId: final.versionId },
+    });
+    worker.kill("SIGTERM");
+    await new Promise<void>((resolve) => worker!.once("exit", () => resolve()));
+    worker = undefined;
     const adjustment = (await db.query(`SELECT * FROM "BillingRecordAdjustment" WHERE id=$1`, [revised.adjustmentId])).rows[0];
     expect(adjustment).toMatchObject({ billingRecordId: correctedEvidence.id, previousVersionId: final.versionId,
       actorId: "draft-owner", requestId: "revision-one", reason: "Correct supported comparison amount",
@@ -563,6 +620,13 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const winnerRequestId = raceA.status() === 200 ? "revision-race-a" : "revision-race-b";
     const loserRequestId = raceA.status() === 409 ? "revision-race-a" : "revision-race-b";
     const raceWinner = await (raceA.status() === 200 ? raceA : raceB).json();
+    await db.query(`UPDATE "WebhookEndpoint" SET active=false WHERE id='billing-target-a'`);
+    worker = spawn("./node_modules/.bin/tsx", ["worker/index.ts"], { env: process.env, stdio: "ignore" });
+    await expect.poll(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id=$1`, [raceWinner.eventId])).rows[0].status,
+      { timeout: 20_000 }).toBe("FAILED");
+    expect((await db.query(`SELECT status, "responseBody" FROM "WebhookDelivery" WHERE "webhookEventId"=$1`, [raceWinner.eventId])).rows[0])
+      .toEqual({ status: "SKIPPED", responseBody: "Endpoint disabled" });
+    expect(received.filter(({ body }) => JSON.parse(body).id === raceWinner.eventId)).toHaveLength(0);
     expect(await (await competing(winnerRequestId)).json()).toEqual(raceWinner);
     const staleRevision = await competing(loserRequestId);
     expect(staleRevision.status()).toBe(409);
@@ -576,6 +640,7 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await db.query(`SELECT amount FROM "Invoice" WHERE id='legacy-invoice'`)).rows[0].amount).toBe(999);
   } finally {
     worker?.kill("SIGTERM");
+    await new Promise<void>((resolve) => receiver.close(() => resolve()));
     await owner.close(); await viewer.close(); await db.end();
   }
 });

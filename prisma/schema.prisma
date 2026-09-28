@@ -634,10 +634,12 @@ enum WebhookEventStatus {
   PENDING
   DELIVERED
   FAILED
+  NO_TARGET
 }
 
 enum WebhookDeliveryStatus {
   PENDING
   SUCCESS
   FAILED
+  SKIPPED
 }

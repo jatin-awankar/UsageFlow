@@ -6,6 +6,13 @@ import { getMembership } from "@/lib/authz/getMembership";
 import { month, requestTime, calculateRecord } from "@/lib/billing-record-calculation";
 import { finalizeBillingRecord } from "@/lib/billing-record-finalization";
 import { reviseBillingRecord, validRevisionInput } from "@/lib/billing-record-revision";
+import { dispatchCommittedBillingEvent } from "@/lib/webhooks/billing-dispatch";
+
+async function wakeBillingDelivery(result: { eventId?: string; blocked?: unknown }) {
+  if (!result.eventId || result.blocked) return;
+  try { await dispatchCommittedBillingEvent(result.eventId); }
+  catch (error) { console.error("Committed billing webhook dispatch failed", error); }
+}
 
 async function authorized(orgId: string) {
   const user = await getCurrentUser();
@@ -39,6 +46,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     if (!validRevisionInput(body)) return NextResponse.json({ error: "Invalid revision request" }, { status: 400 });
     try {
       const result = await reviseBillingRecord(request, orgId, actorId, customer.id, period, body);
+      await wakeBillingDelivery(result);
       if (request.headers.get("x-billing-test-fail-revision") === "after-commit") throw new Error("Injected response loss");
       return "blocked" in result ? NextResponse.json({ error: "Revision blocked", blockingReasons: result.blocked }, { status: 409 }) : NextResponse.json(result);
     } catch (error) {
@@ -55,6 +63,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
       return NextResponse.json({ error: "Invalid finalization request identity" }, { status: 400 });
     try {
       const result = await finalizeBillingRecord(request, orgId, actorId, customer.id, period, body.requestId);
+      await wakeBillingDelivery(result);
       // A test-only post-commit failure models a lost response. The transaction
       // has completed; retrying this identity reads its durable binding.
       if (request.headers.get("x-billing-test-fail-finalization") === "after-commit") throw new Error("Injected response loss");

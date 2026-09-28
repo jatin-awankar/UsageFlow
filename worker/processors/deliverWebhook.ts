@@ -8,6 +8,8 @@ import {
   refreshWebhookEventStatus,
 } from "@/lib/webhooks/events";
 import { MAX_WEBHOOK_ATTEMPTS } from "@/lib/webhooks/retryConfig";
+import { deliverBillingWebhook } from "@/worker/processors/deliverBillingWebhook";
+import { isBillingDeliveryEvent } from "@/lib/webhooks/billing-targets";
 
 function getErrorStatusCode(error: unknown) {
   if (
@@ -211,6 +213,12 @@ export async function processWebhook(
   endpointId?: string,
   attempt = 1
 ) {
+  const event = await prisma.webhookEvent.findUnique({ where: { id: webhookEventId },
+    select: { type: true, billingRecordVersionId: true } });
+  if (event && isBillingDeliveryEvent(event.type, event.billingRecordVersionId)) {
+    if (endpointId) await deliverBillingWebhook(webhookEventId, endpointId);
+    return;
+  }
   if (!endpointId) {
     await enqueueWebhookDeliveriesForEvent(webhookEventId);
     return;
