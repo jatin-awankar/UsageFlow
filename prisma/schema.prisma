@@ -507,6 +507,7 @@ model WebhookEndpoint {
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   webhookDeliveries WebhookDelivery[]
+  billingWebhookWork BillingWebhookWork[]
 }
 
 model AuditLog {
@@ -530,6 +531,8 @@ model WebhookEvent {
   payload      Json
   status       WebhookEventStatus @default(PENDING)
   targetEndpointIds String[]      @default([])
+  targetSelectionRecordedAt DateTime? @db.Timestamp(3)
+  billingWebhookWork BillingWebhookWork[]
   orgId        String
   billingRecordVersionId String? @unique
   createdAt    DateTime           @default(now())
@@ -571,6 +574,22 @@ model BillingRevisionRequest {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@id([orgId, requestId])
+}
+
+model BillingWebhookWork {
+  webhookEventId String
+  endpointId String
+  dueAt DateTime @default(now()) @db.Timestamp(3)
+  leaseUntil DateTime? @db.Timestamp(3)
+  claimToken String?
+  attemptCount Int @default(0)
+  failedAttempts Int @default(0)
+  completedAt DateTime? @db.Timestamp(3)
+  terminal Boolean @default(false)
+  event WebhookEvent @relation(fields: [webhookEventId], references: [id], onDelete: Restrict)
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Restrict)
+
+  @@id([webhookEventId, endpointId])
 }
 
 model WebhookDelivery {

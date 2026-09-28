@@ -1,0 +1,13 @@
+# Billing webhook recovery: ticket 02
+
+The worker scans PostgreSQL at startup and each second in batches of 100. It records target selection once for committed billing events that lack it, creates durable endpoint work for selected targets, and wakes due or expired work through Redis. PostgreSQL claims, due times, and attempt rows remain authoritative when Redis jobs disappear. A claim lasts 30 seconds; the sender has a five-second HTTP timeout. A lost response can cause a duplicate request with the same event ID and billing facts. Receivers should deduplicate on the event ID.
+
+Five recorded failed responses end automatic delivery. Failed responses one through four become due after 1, 2, 4, and 8 minutes. An unrecorded outcome after a worker crash stays retryable, including after the fifth send; this can produce more than five network requests when responses are lost. Each request has a distinct attempt row, while every retry retains the original event ID and billing facts. A selected endpoint disabled before claim is recorded as skipped. This ticket does not add manual replay or change the legacy webhook path. The owner finalization gate remains closed for deployed traffic.
+
+## Migration and verification
+
+Apply `20260928070000_billing_webhook_recovery` to disposable PostgreSQL first. It adds the one-time selection marker, a durable endpoint work table, and indexes for unselected events and due or leased work. The migration marks already selected billing events without changing their target IDs; pending events with an empty target list remain eligible for selection. It does not map customers or backfill billing facts. Run `bash scripts/test-billing-webhook-recovery.sh` with local Docker before wider deployment. The harness applies every migration, runs PostgreSQL and Redis, the real app and worker, and a loopback receiver. It removes queue jobs, crashes before selection and after receiver acceptance, checks concurrent claims, and confirms the retry retains the original event and version. It also runs owner finalization and revision through the nonproduction gate, removes their queued jobs, and verifies both committed events reach their selected receivers after worker startup.
+
+## Application rollback
+
+Stop all scanner and claiming workers before deploying the previous application and worker. Keep the additive database migration and all committed events, selected targets, work rows, leases, due times, and attempt history in place for forward recovery. Do not delete or reselect events or infer a successful send from an uncertain attempt. Resume unfinished work only after deploying a reviewed recovery worker. Keep the deployed owner finalization gate closed throughout rollback.

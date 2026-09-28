@@ -9,6 +9,7 @@ import {
   type UsageFlowJobName,
 } from "@/lib/jobs/processQueueJob";
 import { recoverLedgerWork } from "@/worker/recoverLedgerWork";
+import { recoverBillingWebhooks } from "@/worker/recoverBillingWebhooks";
 
 const DEFAULT_CONCURRENCY = 5;
 
@@ -51,7 +52,7 @@ let recoveryRunning = false;
 const recoveryTimer = setInterval(() => {
   if (recoveryRunning || isShuttingDown) return;
   recoveryRunning = true;
-  void recoverLedgerWork().catch((error) => console.error("Ledger recovery scan failed", error)).finally(() => { recoveryRunning = false; });
+  void Promise.all([recoverLedgerWork(), recoverBillingWebhooks()]).catch((error) => console.error("Recovery scan failed", error)).finally(() => { recoveryRunning = false; });
 }, 1_000);
 
 async function shutdown(signal: string) {
@@ -82,7 +83,7 @@ process.on("SIGTERM", () => {
 });
 
 await worker.waitUntilReady();
-await recoverLedgerWork().catch((error) => console.error("Initial ledger recovery scan failed", error));
+await Promise.all([recoverLedgerWork(), recoverBillingWebhooks()]).catch((error) => console.error("Initial recovery scan failed", error));
 
 console.log("UsageFlow worker started", {
   queue: usageFlowQueueName,
