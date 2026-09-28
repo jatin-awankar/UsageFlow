@@ -1,0 +1,11 @@
+# Billing webhook attempts and bounded retries: ticket 04
+
+Each selected endpoint has durable work and one attempt row per claimed network send. A claim consumes one of five slots before HTTP begins. An expired claim is recorded as an uncertain failed attempt; the same event ID and immutable billing facts are retained for any remaining retry. A fifth uncertain attempt is terminal. Successful endpoints never retry because another endpoint fails.
+
+Attempt `startedAt` is set when the endpoint lock is held and the HTTP send is about to begin. A claimed attempt that never reached that point or a disabled target can have no start time; its claim and safe outcome remain in history. Event outcomes use the immutable selected target IDs, so missing work stays pending for recovery rather than appearing as no target.
+
+Requests time out after five seconds. Failed HTTP responses, timeouts, and connection failures retry from the stored `dueAt` after 1, 2, 4, and 8 minutes. The worker scans PostgreSQL for due work every second, so Redis queue loss does not discard the retry. The event status is pending while any endpoint can retry; it is delivered if all selected endpoints succeed, failed if all are terminal failures or disabled, mixed if success and terminal failure coexist, and no target if none were selected. A disabled selected endpoint is recorded as skipped in attempt history.
+
+The additive migration adds a cycle start, attempt start, and the mixed status. It converts work clock fields to timezone-aware timestamps, interpreting existing values as UTC. Apply it first to disposable PostgreSQL and run `npm run test:billing-webhook-recovery`; the harness runs the real worker and loopback receiver against disposable PostgreSQL and Redis. Check migration and status counts before production rollout.
+
+For application rollback, stop the new workers before deploying the previous build. Leave this migration and all attempt, cycle, due-work, and terminal rows in place. Disable retry workers during rollback, then resume only with a reviewed worker that understands the five-attempt bound. Do not delete or reset evidence, and keep the deployed owner finalization gate closed.

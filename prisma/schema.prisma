@@ -579,12 +579,13 @@ model BillingRevisionRequest {
 model BillingWebhookWork {
   webhookEventId String
   endpointId String
-  dueAt DateTime @default(now()) @db.Timestamp(3)
-  leaseUntil DateTime? @db.Timestamp(3)
+  dueAt DateTime @default(now()) @db.Timestamptz(3)
+  leaseUntil DateTime? @db.Timestamptz(3)
   claimToken String?
   attemptCount Int @default(0)
   failedAttempts Int @default(0)
-  completedAt DateTime? @db.Timestamp(3)
+  cycleStartedAt DateTime @default(now()) @db.Timestamptz(3)
+  completedAt DateTime? @db.Timestamptz(3)
   terminal Boolean @default(false)
   event WebhookEvent @relation(fields: [webhookEventId], references: [id], onDelete: Restrict)
   endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Restrict)
@@ -601,6 +602,7 @@ model WebhookDelivery {
   responseBody   String?
   attempt        Int                   @default(1)
   durationMs     Int?
+  startedAt      DateTime?             @db.Timestamptz(3)
   createdAt      DateTime              @default(now())
 
   webhookEvent WebhookEvent    @relation(fields: [webhookEventId], references: [id], onDelete: Cascade)
@@ -653,6 +655,7 @@ enum WebhookEventStatus {
   PENDING
   DELIVERED
   FAILED
+  MIXED
   NO_TARGET
 }
 
