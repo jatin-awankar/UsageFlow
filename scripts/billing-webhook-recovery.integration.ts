@@ -9,6 +9,7 @@ import prisma from "../lib/prisma";
 import { refreshBillingStatus } from "../worker/processors/deliverBillingWebhook";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
+const lockDb = new Client({ connectionString: process.env.DATABASE_URL });
 const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
 const workers: ChildProcess[] = [];
 const received: Array<{ body: Buffer; id: string; timestamp: string; signature: string }> = [];
@@ -189,6 +190,28 @@ try {
     assert.equal(row.responseBody, scenario.outcome);
     if (scenario.mode === "timeout") assert(row.durationMs >= 4_900 && row.durationMs < 6_000);
   }
+  // The claim can wait on endpoint deactivation. Attempt start is HTTP start,
+  // not the earlier durable claim time.
+  await lockDb.connect();
+  await lockDb.query("BEGIN");
+  await lockDb.query(`SELECT id FROM "WebhookEndpoint" WHERE id='recover-endpoint' FOR NO KEY UPDATE`);
+  await db.query(`DELETE FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event'`);
+  await db.query(`UPDATE "BillingWebhookWork" SET "completedAt"=NULL,terminal=false,"failedAttempts"=0,
+    "attemptCount"=0,"dueAt"=now() WHERE "webhookEventId"='recover-event'`);
+  await db.query(`UPDATE "WebhookEvent" SET status='PENDING' WHERE id='recover-event'`);
+  receiverMode = "respond";
+  receiverStatus = 200;
+  const beforeLockedSend = received.length;
+  await waitFor(async () => (await db.query(`SELECT "attemptCount" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].attemptCount === 1,
+    "claimed send waiting on endpoint lock");
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  assert.equal(received.length, beforeLockedSend, "endpoint lock prevents the network send");
+  const unlockedAt = Date.now();
+  await lockDb.query("COMMIT");
+  await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0].status === "DELIVERED",
+    "send after endpoint lock");
+  const startedAt = (await db.query(`SELECT "startedAt" FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event' AND attempt=1`)).rows[0].startedAt as Date;
+  assert(startedAt.getTime() >= unlockedAt - 100, "attempt start follows endpoint lock release");
   await db.query(`INSERT INTO "WebhookEndpoint" (id,url,secret,active,"orgId",events)
     VALUES ('recover-second','http://127.0.0.1/unused','synthetic-secret',true,'recover-org',ARRAY['invoice.finalized'])`);
   await db.query(`INSERT INTO "WebhookEvent" (id,type,payload,status,"orgId","targetEndpointIds","targetSelectionRecordedAt")
@@ -207,7 +230,10 @@ try {
   assert.equal(await eventStatus(), "DELIVERED");
   await db.query(`DELETE FROM "BillingWebhookWork" WHERE "webhookEventId"='status-only'`);
   await refresh();
-  assert.equal(await eventStatus(), "NO_TARGET");
+  assert.equal(await eventStatus(), "PENDING", "selected targets with missing work remain pending for recovery");
+  await db.query(`UPDATE "WebhookEvent" SET "targetEndpointIds"=ARRAY[]::text[] WHERE id='status-only'`);
+  await refresh();
+  assert.equal(await eventStatus(), "NO_TARGET", "an empty selected target set has no target");
   await kill(restarted);
   console.log("Billing webhook recovery acceptance passed");
 } finally {
@@ -216,5 +242,6 @@ try {
   await new Promise<void>((resolve) => receiver.close(() => resolve()));
   await queue.close();
   await prisma.$disconnect();
+  await lockDb.end();
   await db.end();
 }

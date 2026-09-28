@@ -602,7 +602,7 @@ model WebhookDelivery {
   responseBody   String?
   attempt        Int                   @default(1)
   durationMs     Int?
-  startedAt      DateTime              @default(now()) @db.Timestamptz(3)
+  startedAt      DateTime?             @db.Timestamptz(3)
   createdAt      DateTime              @default(now())
 
   webhookEvent WebhookEvent    @relation(fields: [webhookEventId], references: [id], onDelete: Cascade)

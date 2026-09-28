@@ -4,7 +4,7 @@ ALTER TABLE "BillingWebhookWork"
   ALTER COLUMN "leaseUntil" TYPE TIMESTAMPTZ(3) USING "leaseUntil" AT TIME ZONE 'UTC',
   ALTER COLUMN "completedAt" TYPE TIMESTAMPTZ(3) USING "completedAt" AT TIME ZONE 'UTC';
 ALTER TABLE "BillingWebhookWork" ADD COLUMN "cycleStartedAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE "WebhookDelivery" ADD COLUMN "startedAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "WebhookDelivery" ADD COLUMN "startedAt" TIMESTAMPTZ(3);
 UPDATE "WebhookDelivery" SET "startedAt" = "createdAt";
 UPDATE "BillingWebhookWork" SET "cycleStartedAt" = e."createdAt"
 FROM "WebhookEvent" e WHERE e.id = "BillingWebhookWork"."webhookEventId";

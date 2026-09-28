@@ -9,6 +9,14 @@ import WebhookLogsEmptyState from "@/components/webhooks/WebhookLogsEmptyState";
 import WebhookLogsOverview from "@/components/webhooks/WebhookLogsOverview";
 import WebhookLogsList from "@/components/webhooks/WebhookLogsList";
 import { ArrowRight } from "lucide-react";
+import { billingEndpointOutcome } from "@/lib/webhooks/billing-outcome";
+
+function endpointOutcomeLabel(work: { terminal: boolean; completedAt: Date | null; attemptCount: number; dueAt: Date }) {
+  const outcome = billingEndpointOutcome(work);
+  if (outcome === "PENDING") return `Pending attempt ${work.attemptCount + 1} after ${work.dueAt.toISOString()}`;
+  if (outcome === "DISABLED") return "Disabled target";
+  return outcome === "DELIVERED" ? "Delivered" : "Failed";
+}
 
 export default async function WebhookLogsPage({
   params,
@@ -52,7 +60,7 @@ export default async function WebhookLogsPage({
               {events.map((event) => <article key={event.id} className="rounded border border-slate-200 p-3 text-sm">
                 <p className="font-mono text-xs">{event.id} · {event.type} · {event.status === "NO_TARGET" ? "No target" : event.status === "MIXED" ? "Mixed endpoint outcomes" : event.status}</p>
                 {event.billingWebhookWork.map((work) => <p key={work.endpointId} className="mt-1 break-all text-slate-600">
-                  {new URL(work.endpoint.url).origin}: {work.terminal ? work.completedAt ? "Disabled target" : "Failed" : work.completedAt ? "Delivered" : `Pending attempt ${work.attemptCount + 1} after ${work.dueAt.toISOString()}`}
+                  {new URL(work.endpoint.url).origin}: {endpointOutcomeLabel(work)}
                 </p>)}
               </article>)}
             </div>

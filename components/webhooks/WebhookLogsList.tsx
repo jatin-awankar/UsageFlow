@@ -31,7 +31,7 @@ export default function WebhookLogsList({
     responseBody: string | null;
     attempt: number;
     durationMs: number | null;
-    startedAt: Date;
+    startedAt: Date | null;
     webhookEvent: { type: string };
     endpoint: { url: string };
   }[];
@@ -65,7 +65,7 @@ export default function WebhookLogsList({
                   {toSentenceCase(log.webhookEvent.type)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {dateFormatter.format(new Date(log.startedAt))}
+                  {log.startedAt ? dateFormatter.format(new Date(log.startedAt)) : "Not sent"}
                 </p>
               </div>
               <WebhookDeliveryStatusBadge status={log.status} />
@@ -120,7 +120,7 @@ export default function WebhookLogsList({
                 }}
               >
                 <td className="px-4 py-3 text-slate-700">
-                  {dateFormatter.format(new Date(log.startedAt))}
+                  {log.startedAt ? dateFormatter.format(new Date(log.startedAt)) : "Not sent"}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-800">
                   {log.webhookEvent.type}

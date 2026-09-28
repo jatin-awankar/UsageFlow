@@ -3,16 +3,22 @@ import { randomUUID } from "node:crypto";
 import { Prisma, WebhookDeliveryStatus, WebhookEventStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendBillingWebhook } from "@/worker/processors/sendBillingWebhook";
+import { billingEndpointOutcome } from "@/lib/webhooks/billing-outcome";
 
 const LEASE_MS = 30_000;
 const RETRY_MINUTES = [1, 2, 4, 8];
 
 export async function refreshBillingStatus(tx: Prisma.TransactionClient, eventId: string) {
+  const event = await tx.webhookEvent.findUniqueOrThrow({ where: { id: eventId },
+    select: { targetEndpointIds: true } });
   const work = await tx.billingWebhookWork.findMany({ where: { webhookEventId: eventId },
-    select: { terminal: true, completedAt: true } });
-  const pending = work.some((item) => !item.terminal && !item.completedAt);
-  const failed = work.some((item) => item.terminal);
-  const delivered = work.some((item) => !!item.completedAt && !item.terminal);
+    select: { endpointId: true, terminal: true, completedAt: true } });
+  const selected = new Set(event.targetEndpointIds);
+  const selectedWork = work.filter((item) => selected.has(item.endpointId));
+  const outcomes = selectedWork.map(billingEndpointOutcome);
+  const pending = selectedWork.length < selected.size || outcomes.includes("PENDING");
+  const failed = outcomes.includes("FAILED") || outcomes.includes("DISABLED");
+  const delivered = outcomes.includes("DELIVERED");
   await tx.webhookEvent.update({ where: { id: eventId }, data: { status: pending ? WebhookEventStatus.PENDING :
     failed && delivered ? WebhookEventStatus.MIXED : failed ? WebhookEventStatus.FAILED :
       delivered ? WebhookEventStatus.DELIVERED : WebhookEventStatus.NO_TARGET } });
@@ -41,7 +47,7 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
       responseBody: "Outcome uncertain after worker interruption" } });
     await tx.webhookDelivery.create({ data: { webhookEventId: eventId, endpointId,
       attempt: work.attemptCount, status: endpoint.active ? WebhookDeliveryStatus.PENDING : WebhookDeliveryStatus.SKIPPED,
-      responseBody: endpoint.active ? undefined : "Endpoint disabled", startedAt: now } });
+      responseBody: endpoint.active ? undefined : "Endpoint disabled" } });
     return { event, endpoint, attempt: work.attemptCount };
   });
   if (!context) return;
@@ -51,7 +57,7 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
     await tx.$queryRaw`SELECT id FROM "WebhookEndpoint" WHERE id=${endpointId} AND "orgId"=${context.event.orgId} FOR UPDATE`;
     const endpoint = await tx.webhookEndpoint.findFirstOrThrow({ where: { id: endpointId, orgId: context.event.orgId },
       select: { url: true, secret: true, active: true } });
-    const started = Date.now();
+    let started = Date.now();
     let status: WebhookDeliveryStatus = endpoint.active ? WebhookDeliveryStatus.SUCCESS : WebhookDeliveryStatus.SKIPPED;
     let responseCode: number | undefined;
     let responseBody: string | undefined;
@@ -59,6 +65,10 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
       const body = JSON.stringify({ id: context.event.id, type: context.event.type,
         createdAt: context.event.createdAt.toISOString(), organizationId: context.event.orgId,
         billingRecordVersionId: context.event.billingRecordVersionId, payload: context.event.payload });
+      await prisma.webhookDelivery.update({ where: { webhookEventId_endpointId_attempt:
+        { webhookEventId: eventId, endpointId, attempt: context.attempt } },
+        data: { startedAt: new Date() } });
+      started = Date.now();
       try {
         const response = await sendBillingWebhook(endpoint.url, endpoint.secret, Buffer.from(body, "utf8"));
         responseCode = response.status;
