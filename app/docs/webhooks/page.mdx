@@ -41,7 +41,7 @@ This allows your application to react immediately to billing events.
 
 ## Supported Webhook Events
 
-UsageFlow currently emits the following events:
+Legacy integrations may receive these events:
 
 ```
 invoice.created
@@ -50,7 +50,7 @@ invoice.failed
 subscription.suspended
 ```
 
-Each event represents a change in billing state.
+BillingRecord comparison calculations emit `invoice.finalized` and `invoice.revised` after an owner action in the nonproduction acceptance environment. The deployed owner finalization gate remains closed. These records are not tax invoices or payment requests.
 
 ---
 
@@ -175,16 +175,17 @@ Each webhook attempt is recorded in the Webhook Logs section of the dashboard.
 
 ## Retry Mechanism
 
-Webhook delivery includes a retry system.
+Webhook delivery includes a retry system. For BillingRecord `invoice.finalized` and `invoice.revised` events, five recorded failed responses exhaust automatic delivery. Failed responses one through four are retried after 1, 2, 4, and 8 minutes. An uncertain response after a worker crash remains retryable. Legacy events retain their existing schedule and bare-hex signature.
 
 If your endpoint does not respond successfully, UsageFlow will retry the request using exponential backoff.
 
-Example retry schedule:
+Billing event retry schedule:
 
 - Attempt 1 → immediately
 - Attempt 2 → after 1 minute
-- Attempt 3 → after 5 minutes
-- Attempt 4 → after 30 minutes
+- Attempt 3 → after 2 additional minutes
+- Attempt 4 → after 4 additional minutes
+- Attempt 5 → after 8 additional minutes
 
 If all attempts fail, the webhook event is marked as failed.
 
@@ -195,6 +196,16 @@ Dashboard → Webhooks → Logs
 ```
 
 ---
+
+## Billing event signature and migration
+
+For `invoice.finalized` and `invoice.revised` only, the body is one UTF-8 JSON byte sequence with `id`, `type`, `createdAt` (UTC ISO 8601), `organizationId`, `billingRecordVersionId`, and the stored `payload`. Its serialized bytes and billing facts remain the same across attempts; the timestamp and signature are refreshed for each request. Use `id` to deduplicate. Verify the signature against the exact received bytes before parsing JSON; do not reserialize the parsed body.
+
+`X-UsageFlow-Timestamp` is Unix seconds. `X-UsageFlow-Signature` is `v1=` followed by 64 lowercase hex characters. The signed bytes are the UTF-8 decimal timestamp, a period, then the raw body bytes. The key is that endpoint's secret and the algorithm is HMAC-SHA256. Reject timestamps more than 300 seconds old or even one second in the future. A request exactly 300 seconds old is valid. Compare decoded 32-byte digests in constant time.
+
+A runnable Express receiver is in `webhook-receiver/index.js`; run `cd webhook-receiver && npm ci && WEBHOOK_SECRET=your-endpoint-secret node index.js`. Send billing events to `/billing-webhook`. Its `billing-verifier.js` uses `express.raw` so it verifies before parsing. Its in-memory event-ID Set only demonstrates deduplication; production receivers should commit the event ID under a unique constraint together with their processing result, then return 2xx for duplicates.
+
+Existing `/webhook` integrations that receive legacy events still use the bare-hex `X-UsageFlow-Signature` over the raw body and have no timestamp header. To migrate a receiver that also subscribes to billing events, route by the configured endpoint path or event subscription, accept the new `v1=` protocol for billing events, and retain the legacy verifier for legacy events. Do not choose a verifier based solely on untrusted body fields before authentication. Coordinate receiver deployment before switching billing subscriptions.
 
 ## Best Practices
 
