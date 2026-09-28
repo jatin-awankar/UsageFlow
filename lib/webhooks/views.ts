@@ -1,5 +1,9 @@
 import prisma from "@/lib/prisma";
 
+const deliveryLogFields = { id: true, status: true, createdAt: true, responseCode: true,
+  attempt: true, cycle: true, durationMs: true, startedAt: true,
+  webhookEvent: { select: { type: true } }, endpoint: { select: { id: true } } } as const;
+
 export function listWebhookEndpoints(orgId: string) {
   return prisma.webhookEndpoint.findMany({
     where: { orgId },
@@ -11,9 +15,7 @@ export function listWebhookEndpoints(orgId: string) {
 export function listWebhookDeliveryLogs(orgId: string) {
   return prisma.webhookDelivery.findMany({
     where: { endpoint: { orgId } },
-    select: { id: true, status: true, createdAt: true, responseCode: true,
-      attempt: true, cycle: true, durationMs: true, startedAt: true,
-      webhookEvent: { select: { type: true } }, endpoint: { select: { id: true } } },
+    select: deliveryLogFields,
     orderBy: { createdAt: "desc" },
     take: 100,
   });
@@ -29,9 +31,7 @@ export async function listWebhookDeliveryLogsForActor(orgId: string, actorId: st
     where: { endpoint: { orgId }, webhookEvent: {
       orgId, ...(membership.role === "OWNER" ? {} : { billingRecordVersionId: null }),
     } },
-    select: { id: true, status: true, createdAt: true, responseCode: true,
-      attempt: true, cycle: true, durationMs: true, startedAt: true,
-      webhookEvent: { select: { type: true } }, endpoint: { select: { id: true } } },
+    select: deliveryLogFields,
     orderBy: { createdAt: "desc" }, take: 100,
   });
 }

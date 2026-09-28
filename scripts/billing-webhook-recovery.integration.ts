@@ -10,6 +10,9 @@ import { refreshBillingStatus } from "../lib/webhooks/billing-status";
 import { replayBillingWebhookForActor } from "../lib/webhooks/replay-billing";
 import { listBillingWebhookEventsForOwner, listWebhookDeliveryLogs, listWebhookDeliveryLogsForActor } from "../lib/webhooks/views";
 import { rotateEndpointSecretForOwner } from "../lib/webhooks/rotate-secret";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import BillingDeliveryEvents from "../components/webhooks/BillingDeliveryEvents";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 const lockDb = new Client({ connectionString: process.env.DATABASE_URL });
@@ -280,6 +283,12 @@ try {
   }
   await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='replay-event'`)).rows[0].status === "MIXED",
     "failed and successful replay targets");
+  const mixedView = renderToStaticMarkup(createElement(BillingDeliveryEvents, {
+    events: await listBillingWebhookEventsForOwner("recover-org", "recover-user"),
+  }));
+  assert.match(mixedView, /Mixed endpoint outcomes/);
+  assert.match(mixedView, /recover-endpoint: Terminal failure/);
+  assert.match(mixedView, /recover-second: Delivered/);
   receiverStatus = 200;
   const replayInput = { orgId: "recover-org", eventId: "replay-event", endpointId: "recover-endpoint",
     idempotencyKey: "repair-1", reason: "Receiver repaired" };
@@ -366,6 +375,9 @@ try {
   assert.deepEqual(await listWebhookDeliveryLogsForActor("recover-org", "recover-admin"), []);
   await assert.rejects(listBillingWebhookEventsForOwner("foreign-org", "recover-user"), /OWNER_REQUIRED/);
   assert(!ownerEvents.some((event) => event.id === "foreign-event"));
+  const ownerView = renderToStaticMarkup(createElement(BillingDeliveryEvents, { events: ownerEvents }));
+  assert.match(ownerView, /replay-event/);
+  assert.doesNotMatch(ownerView, /foreign-event|path-secret-marker|query-secret-marker/);
   await assert.rejects(rotateEndpointSecretForOwner("recover-org", "foreign-endpoint", "recover-user"), /ENDPOINT_NOT_FOUND/);
   const rotated = await rotateEndpointSecretForOwner("recover-org", "recover-endpoint", "recover-user");
   assert(rotated.secret && rotated.secret !== "synthetic-secret");
