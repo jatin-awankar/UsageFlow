@@ -1,24 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/customer-test-harness.sh
+repo_dir="$PWD"
 
-container="usageflow-webhook-upgrade-$$"
 rollback_dir="$(mktemp -d)"
 rollback_log="$(mktemp)"
 cleanup() {
-  if [[ -n "${rollback_pid:-}" ]]; then kill "$rollback_pid" 2>/dev/null || true; fi
+  if [[ -n "${rollback_pid:-}" ]]; then
+    kill "$rollback_pid" 2>/dev/null || true
+    wait "$rollback_pid" 2>/dev/null || true
+  fi
   docker rm -f "$container" >/dev/null 2>&1 || true
   rm -rf "$rollback_dir"
   rm -f "$rollback_log"
+  rm -f "$app_log"
 }
 trap cleanup EXIT
-docker run --rm -d --name "$container" -p 127.0.0.1::5432 \
-  -e POSTGRES_PASSWORD=synthetic-only postgres:17.6-alpine >/dev/null
-for _ in $(seq 1 40); do
-  if docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then break; fi
-  sleep 0.5
-done
-docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null
+start_customer_test_postgres webhook-upgrade
 
 run_sql() {
   docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres "$@"
@@ -118,14 +117,32 @@ echo "PASS synthetic webhook migrations preserve versions, events, targets, atte
 rollback_ref="${BILLING_WEBHOOK_ROLLBACK_REF:-c9fab7ed59b7880874fb3c404334925e673d7163}"
 git cat-file -e "${rollback_ref}^{commit}"
 git archive "$rollback_ref" | tar -x -C "$rollback_dir"
-ln -s "$PWD/node_modules" "$rollback_dir/node_modules"
-export DATABASE_URL="postgresql://postgres:synthetic-only@127.0.0.1:$(docker port "$container" 5432/tcp | sed 's/.*://')/postgres"
+# The archived pre-delivery source predates the current Next.js PageProps
+# constraint. Apply the reviewed type-only compatibility patch before build.
+(cd "$rollback_dir" && git apply "$repo_dir/scripts/billing-webhook-rollback-next16.patch")
+mkdir -p "$rollback_dir/node_modules/@prisma" "$rollback_dir/node_modules/.prisma"
+for dependency in "$PWD"/node_modules/* "$PWD"/node_modules/.[!.]*; do
+  case "$(basename "$dependency")" in @prisma|.prisma) continue ;; esac
+  ln -s "$dependency" "$rollback_dir/node_modules/$(basename "$dependency")"
+done
+for dependency in "$PWD"/node_modules/@prisma/*; do
+  case "$(basename "$dependency")" in client) continue ;; esac
+  ln -s "$dependency" "$rollback_dir/node_modules/@prisma/$(basename "$dependency")"
+done
+cp -R "$PWD/node_modules/@prisma/client" "$rollback_dir/node_modules/@prisma/client"
+(cd "$rollback_dir" && ./node_modules/.bin/prisma generate --schema prisma/schema.prisma) >"$rollback_log" 2>&1 || {
+  cat "$rollback_log" >&2
+  echo "Pre-delivery Prisma client generation failed" >&2
+  exit 1
+}
 export NEXTAUTH_SECRET="synthetic-webhook-rollback-only"
 export NEXTAUTH_URL="http://127.0.0.1:3104"
 export CUSTOMER_TEST_BASE_URL="$NEXTAUTH_URL"
 export CUSTOMER_LINKED_INGESTION_ENABLED=true
 export CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED=true
 export REDIS_URL="redis://127.0.0.1:1"
+export QSTASH_CURRENT_SIGNING_KEY="synthetic-rollback-current-key"
+export QSTASH_NEXT_SIGNING_KEY="synthetic-rollback-next-key"
 (cd "$rollback_dir" && NODE_ENV=production ./node_modules/.bin/next build --webpack) >"$rollback_log" 2>&1 || {
   cat "$rollback_log" >&2
   echo "Pre-delivery application build failed" >&2
