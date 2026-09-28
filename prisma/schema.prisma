@@ -8,6 +8,7 @@ datasource db {
 
 model User {
   approvedBillingRecordVersions BillingRecordVersion[]
+  billingRecordAdjustments BillingRecordAdjustment[]
   id          String       @id @default(uuid())
   email       String       @unique
   name        String?
@@ -403,6 +404,7 @@ model BillingRecord {
   currentSnapshot BillingRecordSnapshot? @relation("CurrentSnapshot", fields: [currentSnapshotId, id], references: [id, billingRecordId], onDelete: Restrict)
   finalVersions BillingRecordVersion[] @relation("RecordFinalVersions")
   finalizationRequests BillingFinalizationRequest[]
+  adjustments BillingRecordAdjustment[]
   currentFinalVersion BillingRecordVersion? @relation("CurrentFinalVersion", fields: [currentFinalVersionId, id], references: [id, billingRecordId], onDelete: Restrict)
 
   @@unique([orgId, billedCustomerId, periodStart])
@@ -429,15 +431,43 @@ model BillingRecordVersion {
   comparison Json
   currency String
   amount Decimal @db.Decimal(38, 3)
+  predecessorId String?
+  adjustmentId String? @unique
   record BillingRecord @relation("RecordFinalVersions", fields: [billingRecordId], references: [id], onDelete: Restrict)
   snapshot BillingRecordSnapshot @relation(fields: [snapshotId, billingRecordId], references: [id, billingRecordId], onDelete: Restrict)
   approvedBy User @relation(fields: [approvedById], references: [id], onDelete: Restrict)
   currentFor BillingRecord[] @relation("CurrentFinalVersion")
   outboundEvent WebhookEvent?
   finalizationRequests BillingFinalizationRequest[]
+  predecessor BillingRecordVersion? @relation("VersionChain", fields: [predecessorId, billingRecordId], references: [id, billingRecordId], onDelete: Restrict)
+  successors BillingRecordVersion[] @relation("VersionChain")
+  adjustment BillingRecordAdjustment? @relation("RevisionAdjustment", fields: [adjustmentId], references: [id], onDelete: Restrict)
+  adjustmentsFrom BillingRecordAdjustment[] @relation("AdjustmentPredecessor")
 
   @@unique([id, billingRecordId])
   @@unique([billingRecordId, version])
+}
+
+model BillingRecordAdjustment {
+  id String @id @default(uuid())
+  billingRecordId String
+  previousVersionId String
+  actorId String
+  requestId String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  reason String
+  evidenceRef String
+  affectedLines Json
+  currency String
+  previousAmount Decimal @db.Decimal(38, 3)
+  signedDelta Decimal @db.Decimal(38, 3)
+  revisedAmount Decimal @db.Decimal(38, 3)
+  record BillingRecord @relation(fields: [billingRecordId], references: [id], onDelete: Restrict)
+  previousVersion BillingRecordVersion @relation("AdjustmentPredecessor", fields: [previousVersionId], references: [id], onDelete: Restrict)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  revisedVersion BillingRecordVersion? @relation("RevisionAdjustment")
+
+  @@unique([id, billingRecordId, previousVersionId])
 }
 
 model BillingRecordSnapshot {

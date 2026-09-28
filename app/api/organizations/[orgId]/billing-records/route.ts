@@ -5,10 +5,16 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getMembership } from "@/lib/authz/getMembership";
 import { month, requestTime, calculateRecord } from "@/lib/billing-record-calculation";
 import { finalizeBillingRecord } from "@/lib/billing-record-finalization";
+import { reviseBillingRecord, validRevisionInput } from "@/lib/billing-record-revision";
 
 async function authorized(orgId: string) {
   const user = await getCurrentUser();
   return user?.id && (await getMembership(user.id, orgId))?.role === "OWNER" ? user.id : null;
+}
+
+function ownerActionsEnabled() {
+  return process.env.NODE_ENV !== "production" && process.env.CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED === "true" &&
+    process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true";
 }
 
 async function recordResponse(record: Awaited<ReturnType<typeof calculateRecord>>) {
@@ -27,9 +33,22 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
   if (!period || typeof body?.billedCustomerId !== "string") return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   const customer = await prisma.customer.findFirst({ where: { id: body.billedCustomerId, orgId }, select: { id: true } });
   if (!customer) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (body.action === "revise") {
+    if (!ownerActionsEnabled())
+      return NextResponse.json({ error: "Revision unavailable" }, { status: 404 });
+    if (!validRevisionInput(body)) return NextResponse.json({ error: "Invalid revision request" }, { status: 400 });
+    try {
+      const result = await reviseBillingRecord(request, orgId, actorId, customer.id, period, body);
+      return "blocked" in result ? NextResponse.json({ error: "Revision blocked", blockingReasons: result.blocked }, { status: 409 }) : NextResponse.json(result);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ["P2002", "P2034"].includes(error.code))
+        return NextResponse.json({ error: "Revision conflict" }, { status: 409 });
+      throw error;
+    }
+  }
   if (body.action === "finalize") {
     // Delivery and recovery are not yet deployed. Only disposable acceptance runs can open this gate.
-    if (process.env.NODE_ENV === "production" || process.env.CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED !== "true" || process.env.CUSTOMER_LINKED_INGESTION_ENABLED !== "true")
+    if (!ownerActionsEnabled())
       return NextResponse.json({ error: "Finalization unavailable" }, { status: 404 });
     if (typeof body.requestId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(body.requestId))
       return NextResponse.json({ error: "Invalid finalization request identity" }, { status: 400 });
