@@ -20,6 +20,14 @@ const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL!
 const workers: ChildProcess[] = [];
 const received: Array<{ body: Buffer; id: string; timestamp: string; signature: string }> = [];
 const foreignReceived: string[] = [];
+const legacyReceived: Array<{ body: Buffer; signature: string | string[] | undefined; timestamp: string | string[] | undefined }> = [];
+const legacyReceiver = createServer(async (request, response) => {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) chunks.push(Buffer.from(chunk));
+  legacyReceived.push({ body: Buffer.concat(chunks), signature: request.headers["x-usageflow-signature"],
+    timestamp: request.headers["x-usageflow-timestamp"] });
+  response.writeHead(200).end("ok");
+});
 const foreignReceiver = createServer(async (request, response) => {
   const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
@@ -92,10 +100,13 @@ try {
   await db.connect();
   await new Promise<void>((resolve) => receiver.listen(0, "127.0.0.1", resolve));
   await new Promise<void>((resolve) => foreignReceiver.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => legacyReceiver.listen(0, "127.0.0.1", resolve));
   const address = receiver.address();
   const foreignAddress = foreignReceiver.address();
+  const legacyAddress = legacyReceiver.address();
   assert(address && typeof address !== "string");
   assert(foreignAddress && typeof foreignAddress !== "string");
+  assert(legacyAddress && typeof legacyAddress !== "string");
   await seed(`http://127.0.0.1:${address.port}/path-secret-marker?token=query-secret-marker`);
   await queue.obliterate({ force: true });
   const beforeSelection = startWorker({ BILLING_TEST_EXIT_BEFORE_SELECTION: "true" });
@@ -114,7 +125,7 @@ try {
   await kill(second);
   await db.query(`UPDATE "BillingWebhookWork" SET "leaseUntil"=now()-interval '1 second' WHERE "webhookEventId"='recover-event'`);
   await queue.obliterate({ force: true });
-  const restarted = startWorker();
+  let restarted = startWorker();
   await waitFor(async () => (await db.query(`SELECT "failedAttempts" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].failedAttempts === 1,
     "uncertain attempt reconciliation");
   const firstDue = (await db.query(`SELECT "dueAt" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].dueAt as Date;
@@ -225,11 +236,20 @@ try {
     "claimed send waiting on endpoint lock");
   await new Promise((resolve) => setTimeout(resolve, 1100));
   assert.equal(received.length, beforeLockedSend, "endpoint lock prevents the network send");
+  await kill(restarted);
   const unlockedAt = Date.now();
   await lockDb.query("COMMIT");
+  await db.query(`UPDATE "BillingWebhookWork" SET "leaseUntil"=now()-interval '1 second' WHERE "webhookEventId"='recover-event'`);
+  await queue.obliterate({ force: true });
+  restarted = startWorker();
+  await waitFor(async () => (await db.query(`SELECT "failedAttempts" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].failedAttempts === 1,
+    "pre-send crash reconciliation");
+  assert.equal(received.length, beforeLockedSend, "crash before HTTP start made no request");
+  await db.query(`UPDATE "BillingWebhookWork" SET "dueAt"=now()-interval '1 second' WHERE "webhookEventId"='recover-event'`);
   await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0].status === "DELIVERED",
-    "send after endpoint lock");
-  const startedAt = (await db.query(`SELECT "startedAt" FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event' AND attempt=1`)).rows[0].startedAt as Date;
+    "send after pre-HTTP crash");
+  assert.equal(received.length, beforeLockedSend + 1);
+  const startedAt = (await db.query(`SELECT "startedAt" FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event' AND attempt=2`)).rows[0].startedAt as Date;
   assert(startedAt.getTime() >= unlockedAt - 100, "attempt start follows endpoint lock release");
   await db.query(`INSERT INTO "WebhookEndpoint" (id,url,secret,active,"orgId",events)
     VALUES ('recover-second','http://127.0.0.1/unused','synthetic-secret',true,'recover-org',ARRAY['invoice.finalized'])`);
@@ -387,14 +407,30 @@ try {
   await assert.rejects(replayBillingWebhookForActor(replayInput, "recover-user"), /OWNER_REQUIRED/);
   await assert.rejects(rotateEndpointSecretForOwner("recover-org", "recover-endpoint", "recover-user"), /OWNER_REQUIRED/);
   await assert.rejects(listBillingWebhookEventsForOwner("recover-org", "recover-user"), /OWNER_REQUIRED/);
+  // The legacy worker path still uses its original bare-body HMAC protocol.
+  await db.query(`INSERT INTO "WebhookEndpoint" (id,url,secret,active,"orgId",events)
+    VALUES ('legacy-endpoint',$1,'legacy-secret',true,'recover-org',ARRAY['invoice.created'])`,
+    [`http://127.0.0.1:${legacyAddress.port}/legacy`]);
+  await db.query(`INSERT INTO "WebhookEvent" (id,type,payload,status,"orgId","targetEndpointIds")
+    VALUES ('legacy-event','invoice.created','{"legacy":true}','PENDING','recover-org',ARRAY['legacy-endpoint'])`);
+  await queue.add("DELIVER_WEBHOOK", { webhookEventId: "legacy-event", endpointId: "legacy-endpoint", attempt: 1 });
+  await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='legacy-event'`)).rows[0].status === "DELIVERED",
+    "legacy delivery");
+  assert.equal(legacyReceived.length, 1);
+  assert.equal(legacyReceived[0].body.toString(), '{"legacy":true}');
+  assert.equal(legacyReceived[0].timestamp, undefined);
+  assert.equal(legacyReceived[0].signature,
+    createHmac("sha256", "legacy-secret").update(legacyReceived[0].body).digest("hex"));
   await kill(replayWorker);
   console.log("Billing webhook recovery acceptance passed");
 } finally {
   for (const child of workers) if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
   receiver.closeAllConnections();
   foreignReceiver.closeAllConnections();
+  legacyReceiver.closeAllConnections();
   await new Promise<void>((resolve) => receiver.close(() => resolve()));
   await new Promise<void>((resolve) => foreignReceiver.close(() => resolve()));
+  await new Promise<void>((resolve) => legacyReceiver.close(() => resolve()));
   await queue.close();
   await prisma.$disconnect();
   await lockDb.end();
