@@ -23,7 +23,7 @@ INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('draft-metric', 'Cal
 INSERT INTO "Invoice" (id, amount, status, "periodStart", "periodEnd", "orgId", "subscriptionId") VALUES ('legacy-invoice', 999, 'PENDING', '2024-02-01', '2024-03-01', 'draft-a', 'draft-sub');
 SQL
 set_customer_test_environment
-export TZ=UTC CUSTOMER_LINKED_INGESTION_ENABLED=true BILLING_RECORD_TEST_CLOCK_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2024-03-03T00:00:00.000Z"
+export TZ=UTC CUSTOMER_LINKED_INGESTION_ENABLED=true BILLING_RECORD_TEST_CLOCK_ENABLED=true CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2024-03-03T00:00:00.000Z"
 export REDIS_URL="redis://127.0.0.1:${redis_port}"
 start_customer_test_app
 npx playwright test tests/customer-month-draft.spec.ts --workers=1

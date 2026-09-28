@@ -7,6 +7,7 @@ datasource db {
 }
 
 model User {
+  approvedBillingRecordVersions BillingRecordVersion[]
   id          String       @id @default(uuid())
   email       String       @unique
   name        String?
@@ -394,14 +395,46 @@ model BillingRecord {
   periodEnd DateTime @db.Timestamptz(3)
   closeAt DateTime @db.Timestamptz(3)
   currentSnapshotId String?
+  currentFinalVersionId String?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   customer Customer @relation(fields: [orgId, billedCustomerId], references: [orgId, id], onDelete: Restrict)
   snapshots BillingRecordSnapshot[] @relation("RecordSnapshots")
   currentSnapshot BillingRecordSnapshot? @relation("CurrentSnapshot", fields: [currentSnapshotId, id], references: [id, billingRecordId], onDelete: Restrict)
+  finalVersions BillingRecordVersion[] @relation("RecordFinalVersions")
+  currentFinalVersion BillingRecordVersion? @relation("CurrentFinalVersion", fields: [currentFinalVersionId, id], references: [id, billingRecordId], onDelete: Restrict)
 
   @@unique([orgId, billedCustomerId, periodStart])
   @@unique([id, orgId, billedCustomerId])
+}
+
+model BillingRecordVersion {
+  id String @id @default(uuid())
+  billingRecordId String
+  snapshotId String
+  version Int
+  approvedById String
+  finalizedAt DateTime @db.Timestamptz(3)
+  periodStart DateTime @db.Timestamptz(3)
+  periodEnd DateTime @db.Timestamptz(3)
+  closeAt DateTime @db.Timestamptz(3)
+  sourceEvents Json
+  ratedSources Json
+  eventOutcomes Json
+  lines Json
+  reconciliation Json
+  lateArrivals Json
+  comparison Json
+  currency String
+  amount Decimal @db.Decimal(38, 3)
+  record BillingRecord @relation("RecordFinalVersions", fields: [billingRecordId], references: [id], onDelete: Restrict)
+  snapshot BillingRecordSnapshot @relation(fields: [snapshotId, billingRecordId], references: [id, billingRecordId], onDelete: Restrict)
+  approvedBy User @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  currentFor BillingRecord[] @relation("CurrentFinalVersion")
+  outboundEvent WebhookEvent?
+
+  @@unique([id, billingRecordId])
+  @@unique([billingRecordId, version])
 }
 
 model BillingRecordSnapshot {
@@ -418,6 +451,7 @@ model BillingRecordSnapshot {
   comparison Json @default("{}")
   record BillingRecord @relation("RecordSnapshots", fields: [billingRecordId], references: [id], onDelete: Restrict)
   currentFor BillingRecord[] @relation("CurrentSnapshot")
+  finalVersions BillingRecordVersion[]
 
   @@unique([id, billingRecordId])
   @@index([billingRecordId, calculatedAt, id])
@@ -464,9 +498,11 @@ model WebhookEvent {
   status       WebhookEventStatus @default(PENDING)
   targetEndpointIds String[]      @default([])
   orgId        String
+  billingRecordVersionId String? @unique
   createdAt    DateTime           @default(now())
   deliveries   WebhookDelivery[]
   organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  billingRecordVersion BillingRecordVersion? @relation(fields: [billingRecordVersionId], references: [id], onDelete: Restrict)
 
   @@index([orgId, createdAt])
 }
