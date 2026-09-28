@@ -4,11 +4,15 @@
 
 **Blocked by:** 01: Deliver a committed BillingRecord event to selected endpoints.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] For `invoice.finalized` and `invoice.revised`, send immutable event ID, type, creation time, and stored billing payload as one deterministic JSON byte sequence. Repeated attempts and replay keep the event ID and billing facts.
-- [ ] Send Unix seconds in `X-UsageFlow-Timestamp` and `v1=<lowercase hex HMAC-SHA256>` in `X-UsageFlow-Signature`, signing UTF-8 bytes of `<timestamp>.<raw request body>` with the endpoint secret.
-- [ ] Publish a runnable receiver verification example that checks raw bytes before JSON parsing, rejects malformed inputs and timestamps more than 300 seconds old or in the future, compares decoded digests in constant time, and deduplicates by event ID.
-- [ ] Loopback receiver acceptance tests capture exact bytes and headers; independently alter body, timestamp, and signature, test both five-minute boundaries, and confirm valid requests and stable facts. Document this event-specific change and receiver migration from the legacy bare-hex signature without changing legacy events.
-- [ ] If a compatibility rollback is needed, document receiver coordination before restoring the old sender; preserve the durable event and target state. Keep the deployed gate closed.
-- [ ] Use a dedicated implementation branch, run acceptance checks, commit only this ticket, push, and open a draft PR.
+- [x] For `invoice.finalized` and `invoice.revised`, send immutable event ID, type, creation time, and stored billing payload as one deterministic JSON byte sequence. Repeated attempts and replay keep the event ID and billing facts.
+- [x] Send Unix seconds in `X-UsageFlow-Timestamp` and `v1=<lowercase hex HMAC-SHA256>` in `X-UsageFlow-Signature`, signing UTF-8 bytes of `<timestamp>.<raw request body>` with the endpoint secret.
+- [x] Publish a runnable receiver verification example that checks raw bytes before JSON parsing, rejects malformed inputs and timestamps more than 300 seconds old or in the future, compares decoded digests in constant time, and deduplicates by event ID.
+- [x] Loopback receiver acceptance tests capture exact bytes and headers; independently alter body, timestamp, and signature, test both five-minute boundaries, and confirm valid requests and stable facts. Document this event-specific change and receiver migration from the legacy bare-hex signature without changing legacy events.
+- [x] If a compatibility rollback is needed, document receiver coordination before restoring the old sender; preserve the durable event and target state. Keep the deployed gate closed.
+- [x] Use a dedicated implementation branch, run acceptance checks, commit only this ticket, push, and open a draft PR.
+
+## Comments
+
+- 2026-09-28: Implemented in draft PR [#72](https://github.com/jatin-awankar/UsageFlow/pull/72), which remains open. The billing recovery acceptance harness, TypeScript check, ESLint, and diff check passed. Two-axis code review found no blocking findings; it noted an optional unused timestamp injection parameter and that the revised-event test captures its body as a string before byte comparison.
