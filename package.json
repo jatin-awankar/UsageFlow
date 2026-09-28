@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:billing-webhook-recovery": "bash scripts/test-billing-webhook-recovery.sh",
     "test:inventory": "node --experimental-strip-types --test scripts/inventory-customer-model.test.ts",
     "test:customer-owner": "bash scripts/test-customer-owner.sh",
     "test:customer-ingestion": "bash scripts/test-customer-ingestion.sh",
