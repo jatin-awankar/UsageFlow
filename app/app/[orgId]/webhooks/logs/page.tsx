@@ -10,6 +10,8 @@ import WebhookLogsOverview from "@/components/webhooks/WebhookLogsOverview";
 import WebhookLogsList from "@/components/webhooks/WebhookLogsList";
 import { ArrowRight } from "lucide-react";
 import { billingEndpointOutcome } from "@/lib/webhooks/billing-outcome";
+import { getMembership } from "@/lib/authz/getMembership";
+import ReplayBillingWebhookButton from "@/components/webhooks/ReplayBillingWebhookButton";
 
 function endpointOutcomeLabel(work: { terminal: boolean; completedAt: Date | null; attemptCount: number; dueAt: Date }) {
   const outcome = billingEndpointOutcome(work);
@@ -29,6 +31,7 @@ export default async function WebhookLogsPage({
   const { orgId } = await params;
   const logs = await getWebhookLogs(user.id, orgId);
   const events = await getBillingWebhookEvents(orgId);
+  const membership = await getMembership(user.id, orgId);
 
   return (
     <>
@@ -59,9 +62,11 @@ export default async function WebhookLogsPage({
             <div className="space-y-3">
               {events.map((event) => <article key={event.id} className="rounded border border-slate-200 p-3 text-sm">
                 <p className="font-mono text-xs">{event.id} · {event.type} · {event.status === "NO_TARGET" ? "No target" : event.status === "MIXED" ? "Mixed endpoint outcomes" : event.status}</p>
-                {event.billingWebhookWork.map((work) => <p key={work.endpointId} className="mt-1 break-all text-slate-600">
+                {event.billingWebhookWork.map((work) => <div key={work.endpointId} className="mt-1 break-all text-slate-600">
                   {new URL(work.endpoint.url).origin}: {endpointOutcomeLabel(work)}
-                </p>)}
+                  {membership?.role === "OWNER" && work.terminal && !work.completedAt && work.attemptCount >= 5 &&
+                    <ReplayBillingWebhookButton orgId={orgId} eventId={event.id} endpointId={work.endpointId} />}
+                </div>)}
               </article>)}
             </div>
           </section>}

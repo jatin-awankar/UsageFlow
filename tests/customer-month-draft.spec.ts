@@ -693,6 +693,27 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.revised' AND "billingRecordVersionId" IN ($1,$2)`,
       [revised.versionId, raceWinner.versionId])).rows[0].n).toBe(2);
     expect((await db.query(`SELECT amount FROM "Invoice" WHERE id='legacy-invoice'`)).rows[0].amount).toBe(999);
+    // Exercise the authenticated owner action through its visible control.
+    await db.query(`UPDATE "WebhookEndpoint" SET active=true WHERE id='billing-target-a'`);
+    await db.query(`UPDATE "BillingWebhookWork" SET "attemptCount"=5,"failedAttempts"=5,
+      "completedAt"=NULL,terminal=true,"claimToken"=NULL,"leaseUntil"=NULL
+      WHERE "webhookEventId"=$1 AND "endpointId"='billing-target-a'`, [final.eventId]);
+    await db.query(`UPDATE "WebhookEvent" SET status='FAILED' WHERE id=$1`, [final.eventId]);
+    const beforeManualReplay = received.filter(({ body }) => JSON.parse(body).id === final.eventId).length;
+    await owner.goto(`${base}/app/draft-a/webhooks/logs`);
+    await owner.getByLabel("Replay reason").fill("Receiver repaired");
+    await owner.getByRole("button", { name: "Replay failed endpoint" }).click();
+    await expect(owner.getByRole("status")).toHaveText("Replay queued for this endpoint.");
+    await owner.getByRole("button", { name: "Replay failed endpoint" }).click();
+    await expect(owner.getByRole("status")).toHaveText("Replay queued for this endpoint.");
+    await expect.poll(async () => received.filter(({ body }) => JSON.parse(body).id === final.eventId).length).toBe(beforeManualReplay + 1);
+    const replayRequest = received.filter(({ body }) => JSON.parse(body).id === final.eventId).at(-1)!;
+    expect(replayRequest.body).toBe(finalRequest.body);
+    expect((await db.query(`SELECT "actorId",reason,cycle FROM "BillingWebhookReplay" WHERE "webhookEventId"=$1`, [final.eventId])).rows[0])
+      .toEqual({ actorId: "draft-owner", reason: "Receiver repaired", cycle: 2 });
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingWebhookReplay" WHERE "webhookEventId"=$1`, [final.eventId])).rows[0].n).toBe(1);
+    await viewer.goto(`${base}/app/draft-a/webhooks/logs`);
+    await expect(viewer.getByRole("button", { name: "Replay failed endpoint" })).toHaveCount(0);
   } finally {
     for (const response of heldResponses.values()) response.writeHead(204).end();
     worker?.kill("SIGTERM");

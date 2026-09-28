@@ -37,6 +37,7 @@ model Organization {
   usageEvents         UsageEvent[]
   webhookEndpoints    WebhookEndpoint[]
   webhookEvents       WebhookEvent[]
+  billingWebhookReplays BillingWebhookReplay[]
   organizationInvites OrganizationInvite[]
   customers           Customer[]
   ledgerExports       LedgerExport[]
@@ -508,6 +509,7 @@ model WebhookEndpoint {
 
   webhookDeliveries WebhookDelivery[]
   billingWebhookWork BillingWebhookWork[]
+  billingWebhookReplays BillingWebhookReplay[]
 }
 
 model AuditLog {
@@ -533,6 +535,7 @@ model WebhookEvent {
   targetEndpointIds String[]      @default([])
   targetSelectionRecordedAt DateTime? @db.Timestamp(3)
   billingWebhookWork BillingWebhookWork[]
+  billingWebhookReplays BillingWebhookReplay[]
   orgId        String
   billingRecordVersionId String? @unique
   createdAt    DateTime           @default(now())
@@ -585,6 +588,7 @@ model BillingWebhookWork {
   attemptCount Int @default(0)
   failedAttempts Int @default(0)
   cycleStartedAt DateTime @default(now()) @db.Timestamptz(3)
+  cycle Int @default(1)
   completedAt DateTime? @db.Timestamptz(3)
   terminal Boolean @default(false)
   event WebhookEvent @relation(fields: [webhookEventId], references: [id], onDelete: Restrict)
@@ -601,6 +605,7 @@ model WebhookDelivery {
   responseCode   Int?
   responseBody   String?
   attempt        Int                   @default(1)
+  cycle          Int                   @default(1)
   durationMs     Int?
   startedAt      DateTime?             @db.Timestamptz(3)
   createdAt      DateTime              @default(now())
@@ -608,7 +613,25 @@ model WebhookDelivery {
   webhookEvent WebhookEvent    @relation(fields: [webhookEventId], references: [id], onDelete: Cascade)
   endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
 
-  @@unique([webhookEventId, endpointId, attempt])
+  @@unique([webhookEventId, endpointId, cycle, attempt])
+}
+
+model BillingWebhookReplay {
+  id String @id @default(uuid())
+  orgId String
+  webhookEventId String
+  endpointId String
+  actorId String
+  idempotencyKey String
+  reason String
+  cycle Int
+  replayedAt DateTime @default(now()) @db.Timestamptz(3)
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  event WebhookEvent @relation(fields: [webhookEventId], references: [id], onDelete: Restrict)
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Restrict)
+
+  @@unique([orgId, idempotencyKey])
+  @@unique([webhookEventId, endpointId, cycle])
 }
 
 model OrganizationInvite {

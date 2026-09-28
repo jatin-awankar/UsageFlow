@@ -6,7 +6,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { Queue } from "bullmq";
 import { Client } from "pg";
 import prisma from "../lib/prisma";
-import { refreshBillingStatus } from "../worker/processors/deliverBillingWebhook";
+import { refreshBillingStatus } from "../lib/webhooks/billing-status";
+import { replayBillingWebhookForActor } from "../lib/webhooks/replay-billing";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 const lockDb = new Client({ connectionString: process.env.DATABASE_URL });
@@ -26,7 +27,7 @@ const receiver = createServer(async (request, response) => {
   received.push({ body, id: event.id, timestamp: String(timestamp), signature: String(signature) });
   if (receiverMode === "close") { response.destroy(); return; }
   if (receiverMode === "timeout") { setTimeout(() => response.end(), 6_000); return; }
-  response.writeHead(receiverStatus).end("ok");
+  response.writeHead(request.url === "/second" ? 200 : receiverStatus).end("ok");
 });
 
 async function waitFor(check: () => Promise<boolean> | boolean, label: string, timeout = 15_000) {
@@ -234,7 +235,76 @@ try {
   await db.query(`UPDATE "WebhookEvent" SET "targetEndpointIds"=ARRAY[]::text[] WHERE id='status-only'`);
   await refresh();
   assert.equal(await eventStatus(), "NO_TARGET", "an empty selected target set has no target");
+  // Owner replay targets only the failed endpoint and leaves a successful
+  // selected endpoint and the underlying BillingRecord unchanged.
+  await db.query(`INSERT INTO "Membership" (id,"userId","orgId",role) VALUES ('replay-owner','recover-user','recover-org','OWNER')`);
+  await db.query("BEGIN");
+  await db.query(`INSERT INTO "BillingRecord" (id,"orgId","billedCustomerId","periodStart","periodEnd","closeAt")
+    VALUES ('replay-record','recover-org','recover-customer','2026-07-01','2026-08-01','2026-08-04')`);
+  await db.query(`INSERT INTO "BillingRecordSnapshot" (id,"billingRecordId","calculatedAt",state,"sourceEvents")
+    VALUES ('replay-snapshot','replay-record',now(),'OPEN','[]')`);
+  await db.query(`UPDATE "BillingRecord" SET "currentSnapshotId"='replay-snapshot' WHERE id='replay-record'`);
+  await db.query("COMMIT");
+  await db.query(`INSERT INTO "BillingRecordVersion" (id,"billingRecordId","snapshotId",version,"approvedById","finalizedAt",
+    "periodStart","periodEnd","closeAt","sourceEvents","ratedSources","eventOutcomes",lines,reconciliation,
+    "lateArrivals",comparison,currency,amount) VALUES ('replay-version','replay-record','replay-snapshot',1,
+    'recover-user',now(),'2026-07-01','2026-08-01','2026-08-04','[]','[]','[]','[]','{}','[]','{}','USD',0)`);
+  await db.query(`UPDATE "WebhookEndpoint" SET url=$1 WHERE id='recover-second'`, [`http://127.0.0.1:${address.port}/second`]);
+  receiverStatus = 500;
+  await db.query(`INSERT INTO "WebhookEvent" (id,type,payload,status,"orgId","billingRecordVersionId",
+    "targetEndpointIds","targetSelectionRecordedAt") VALUES ('replay-event','invoice.finalized',
+    '{"amount":"0","version":1}','PENDING','recover-org','replay-version',ARRAY['recover-endpoint','recover-second'],now())`);
+  await db.query(`INSERT INTO "BillingWebhookWork" ("webhookEventId","endpointId")
+    VALUES ('replay-event','recover-endpoint'),('replay-event','recover-second')`);
+  for (let failures = 1; failures <= 5; failures++) {
+    await waitFor(async () => (await db.query(`SELECT "failedAttempts" FROM "BillingWebhookWork"
+      WHERE "webhookEventId"='replay-event' AND "endpointId"='recover-endpoint'`)).rows[0].failedAttempts === failures,
+      `replay fixture failure ${failures}`);
+    if (failures < 5) await db.query(`UPDATE "BillingWebhookWork" SET "dueAt"=now()-interval '1 second'
+      WHERE "webhookEventId"='replay-event' AND "endpointId"='recover-endpoint'`);
+  }
+  await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='replay-event'`)).rows[0].status === "MIXED",
+    "failed and successful replay targets");
+  receiverStatus = 200;
+  const replayInput = { orgId: "recover-org", eventId: "replay-event", endpointId: "recover-endpoint",
+    idempotencyKey: "repair-1", reason: "Receiver repaired" };
+  const beforeReplay = received.length;
+  await assert.rejects(replayBillingWebhookForActor({ ...replayInput, endpointId: "recover-second" }, "recover-user"), /INVALID_REPLAY_STATE/);
+  await assert.rejects(replayBillingWebhookForActor({ ...replayInput, endpointId: "forged-endpoint" }, "recover-user"), /INVALID_REPLAY_TARGET/);
+  await assert.rejects(replayBillingWebhookForActor({ ...replayInput, eventId: "forged-event" }, "recover-user"), /INVALID_REPLAY_TARGET/);
   await kill(restarted);
+  await queue.obliterate({ force: true });
+  const replay = await replayBillingWebhookForActor(replayInput, "recover-user");
+  assert.equal(replay.cycle, 2);
+  assert.deepEqual(await replayBillingWebhookForActor(replayInput, "recover-user"), replay);
+  assert.equal((await db.query(`SELECT status FROM "WebhookEvent" WHERE id='replay-event'`)).rows[0].status, "PENDING");
+  const replayWorker = startWorker();
+  await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='replay-event'`)).rows[0].status === "DELIVERED", "replayed delivery");
+  assert.equal(received.length, beforeReplay + 1);
+  assert.equal(received.at(-1)?.id, "replay-event");
+  assert.equal(JSON.parse(received.at(-1)!.body.toString()).payload.version, 1);
+  assert.equal((await db.query(`SELECT "attemptCount",cycle,"completedAt" FROM "BillingWebhookWork"
+    WHERE "webhookEventId"='replay-event' AND "endpointId"='recover-second'`)).rows[0].cycle, 1);
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM "WebhookDelivery"
+    WHERE "webhookEventId"='replay-event' AND "endpointId"='recover-second' AND status='SUCCESS'`)).rows[0].n, 1);
+  const history = (await db.query(`SELECT cycle,attempt FROM "WebhookDelivery" WHERE "webhookEventId"='replay-event'
+    AND "endpointId"='recover-endpoint' ORDER BY cycle,attempt`)).rows;
+  assert(history.some((row) => row.cycle === 1));
+  assert(history.some((row) => row.cycle === 2 && row.attempt === 1));
+  const audit = (await db.query(`SELECT "actorId",reason,"webhookEventId","endpointId","replayedAt"
+    FROM "BillingWebhookReplay" WHERE "idempotencyKey"='repair-1'`)).rows[0];
+  assert.equal(audit.actorId, "recover-user");
+  assert.equal(audit.reason, "Receiver repaired");
+  assert.equal(audit.webhookEventId, "replay-event");
+  assert.equal(audit.endpointId, "recover-endpoint");
+  assert(audit.replayedAt);
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"='replay-record'`)).rows[0].n, 1);
+  assert.equal((await db.query(`SELECT "currentSnapshotId" FROM "BillingRecord" WHERE id='replay-record'`)).rows[0].currentSnapshotId, "replay-snapshot");
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE id='recover-version'`)).rows[0].n, 1);
+  await assert.rejects(replayBillingWebhookForActor({ ...replayInput, idempotencyKey: "repair-2" }, "recover-user"), /INVALID_REPLAY_STATE/);
+  await db.query(`DELETE FROM "Membership" WHERE id='replay-owner'`);
+  await assert.rejects(replayBillingWebhookForActor(replayInput, "recover-user"), /OWNER_REQUIRED/);
+  await kill(replayWorker);
   console.log("Billing webhook recovery acceptance passed");
 } finally {
   for (const child of workers) if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");

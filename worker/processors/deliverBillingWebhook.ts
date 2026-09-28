@@ -1,28 +1,13 @@
 import axios from "axios";
 import { randomUUID } from "node:crypto";
-import { Prisma, WebhookDeliveryStatus, WebhookEventStatus } from "@prisma/client";
+import { WebhookDeliveryStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendBillingWebhook } from "@/worker/processors/sendBillingWebhook";
-import { billingEndpointOutcome } from "@/lib/webhooks/billing-outcome";
+import { refreshBillingStatus } from "@/lib/webhooks/billing-status";
 
 const LEASE_MS = 30_000;
 const RETRY_MINUTES = [1, 2, 4, 8];
 
-export async function refreshBillingStatus(tx: Prisma.TransactionClient, eventId: string) {
-  const event = await tx.webhookEvent.findUniqueOrThrow({ where: { id: eventId },
-    select: { targetEndpointIds: true } });
-  const work = await tx.billingWebhookWork.findMany({ where: { webhookEventId: eventId },
-    select: { endpointId: true, terminal: true, completedAt: true } });
-  const selected = new Set(event.targetEndpointIds);
-  const selectedWork = work.filter((item) => selected.has(item.endpointId));
-  const outcomes = selectedWork.map(billingEndpointOutcome);
-  const pending = selectedWork.length < selected.size || outcomes.includes("PENDING");
-  const failed = outcomes.includes("FAILED") || outcomes.includes("DISABLED");
-  const delivered = outcomes.includes("DELIVERED");
-  await tx.webhookEvent.update({ where: { id: eventId }, data: { status: pending ? WebhookEventStatus.PENDING :
-    failed && delivered ? WebhookEventStatus.MIXED : failed ? WebhookEventStatus.FAILED :
-      delivered ? WebhookEventStatus.DELIVERED : WebhookEventStatus.NO_TARGET } });
-}
 
 export async function deliverBillingWebhook(eventId: string, endpointId: string) {
   const token = randomUUID();
@@ -42,13 +27,13 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
         !event.targetEndpointIds.includes(endpointId)) throw new Error("Invalid billing delivery target");
     const endpoint = await tx.webhookEndpoint.findFirstOrThrow({ where: { id: endpointId, orgId: event.orgId },
       select: { url: true, secret: true, active: true } });
-    await tx.webhookDelivery.updateMany({ where: { webhookEventId: eventId, endpointId,
+    await tx.webhookDelivery.updateMany({ where: { webhookEventId: eventId, endpointId, cycle: work.cycle,
       status: WebhookDeliveryStatus.PENDING }, data: { status: WebhookDeliveryStatus.FAILED,
       responseBody: "Outcome uncertain after worker interruption" } });
     await tx.webhookDelivery.create({ data: { webhookEventId: eventId, endpointId,
-      attempt: work.attemptCount, status: endpoint.active ? WebhookDeliveryStatus.PENDING : WebhookDeliveryStatus.SKIPPED,
+      attempt: work.attemptCount, cycle: work.cycle, status: endpoint.active ? WebhookDeliveryStatus.PENDING : WebhookDeliveryStatus.SKIPPED,
       responseBody: endpoint.active ? undefined : "Endpoint disabled" } });
-    return { event, endpoint, attempt: work.attemptCount };
+    return { event, endpoint, attempt: work.attemptCount, cycle: work.cycle };
   });
   if (!context) return;
   await prisma.$transaction(async (tx) => {
@@ -65,8 +50,8 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
       const body = JSON.stringify({ id: context.event.id, type: context.event.type,
         createdAt: context.event.createdAt.toISOString(), organizationId: context.event.orgId,
         billingRecordVersionId: context.event.billingRecordVersionId, payload: context.event.payload });
-      await prisma.webhookDelivery.update({ where: { webhookEventId_endpointId_attempt:
-        { webhookEventId: eventId, endpointId, attempt: context.attempt } },
+      await prisma.webhookDelivery.update({ where: { webhookEventId_endpointId_cycle_attempt:
+        { webhookEventId: eventId, endpointId, cycle: context.cycle, attempt: context.attempt } },
         data: { startedAt: new Date() } });
       started = Date.now();
       try {
@@ -88,8 +73,8 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
     const work = await tx.billingWebhookWork.findUniqueOrThrow({ where: { webhookEventId_endpointId:
       { webhookEventId: eventId, endpointId } } });
     if (work.claimToken !== token) return; // A later claim owns the result.
-    await tx.webhookDelivery.update({ where: { webhookEventId_endpointId_attempt:
-      { webhookEventId: eventId, endpointId, attempt: context.attempt } },
+    await tx.webhookDelivery.update({ where: { webhookEventId_endpointId_cycle_attempt:
+      { webhookEventId: eventId, endpointId, cycle: context.cycle, attempt: context.attempt } },
       data: { status, responseCode, responseBody, durationMs: Date.now() - started } });
     const done = status === WebhookDeliveryStatus.SUCCESS || status === WebhookDeliveryStatus.SKIPPED;
     await tx.billingWebhookWork.update({ where: { webhookEventId_endpointId: { webhookEventId: eventId, endpointId } },
