@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, type BillingRecordVersion } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { requestTime, type Month } from "@/lib/billing-record-calculation";
@@ -24,6 +24,41 @@ export function validRevisionInput(value: unknown): value is RevisionInput {
       item.sourceEventIds.every((id: unknown) => typeof id === "string" && id.length > 0) && exact(item.signedDelta) !== null && exact(item.revisedAmount) !== null);
 }
 
+function calculateRevision(previous: BillingRecordVersion, input: RevisionInput, adjustmentId: string) {
+  const priorLines = previous.lines as Line[];
+  const lines = priorLines.map((line) => ({ ...line, ratedAmount: line.ratedAmount ?? line.amount,
+    adjustmentAmount: line.adjustmentAmount ?? "0.000" }));
+  const seen = new Set<number>();
+  let totalDelta = 0n;
+  for (const change of input.affectedLines) {
+    const line = priorLines[change.lineIndex];
+    const delta = exact(change.signedDelta), revised = exact(change.revisedAmount);
+    if (!line || seen.has(change.lineIndex) || line.currency !== previous.currency || delta === null || revised === null || delta === 0n || revised < 0n ||
+      exact(line.amount) === null || exact(line.amount)! + delta !== revised ||
+      change.sourceEventIds.length !== line.sourceEventIds.length || new Set(change.sourceEventIds).size !== line.sourceEventIds.length ||
+      !change.sourceEventIds.every((id) => line.sourceEventIds.includes(id))) return { blocked: [{ code: "INVALID_AFFECTED_LINE" }] };
+    seen.add(change.lineIndex);
+    const ratedAmount = exact(line.ratedAmount ?? line.amount);
+    if (ratedAmount === null) return { blocked: [{ code: "INVALID_AFFECTED_LINE" }] };
+    lines[change.lineIndex] = { ...line, ratedAmount: money(ratedAmount), adjustmentAmount: money(revised - ratedAmount), amount: money(revised) };
+    totalDelta += delta;
+  }
+  const priorAmount = exact(previous.amount.toFixed(3)), delta = exact(input.signedDelta), revisedAmount = exact(input.revisedAmount);
+  if (priorAmount === null || delta === null || revisedAmount === null || delta === 0n || totalDelta !== delta || revisedAmount < 0n || priorAmount + delta !== revisedAmount ||
+    lines.some((line) => exact(line.amount) === null || exact(line.ratedAmount) === null || exact(line.adjustmentAmount) === null ||
+      exact(line.ratedAmount)! + exact(line.adjustmentAmount)! !== exact(line.amount)) ||
+    lines.reduce((sum, line) => sum + exact(line.amount)!, 0n) !== revisedAmount)
+    return { blocked: [{ code: "AMOUNT_MISMATCH" }] };
+  const priorReconciliation = previous.reconciliation as { rated: { amount: string }; adjustments?: Prisma.InputJsonValue[]; [key: string]: unknown };
+  const reconciliation = { ...priorReconciliation, adjustments: [
+    ...(priorReconciliation.adjustments ?? []),
+    { previousAmount: previous.amount.toFixed(3), signedDelta: input.signedDelta, revisedAmount: input.revisedAmount, adjustmentId }],
+    revised: { ratedAmount: priorReconciliation.rated.amount,
+      adjustmentAmount: money(revisedAmount - exact(priorReconciliation.rated.amount)!),
+      amount: input.revisedAmount, currency: previous.currency, lineCount: lines.length, balanced: true } };
+  return { lines, reconciliation };
+}
+
 export async function reviseBillingRecord(request: NextRequest, orgId: string, actorId: string, customerId: string, period: Month, input: RevisionInput) {
   const failAt = request.headers.get("x-billing-test-fail-revision");
   return prisma.$transaction(async (tx) => {
@@ -38,31 +73,9 @@ export async function reviseBillingRecord(request: NextRequest, orgId: string, a
     if (input.currency !== previous.currency) return { blocked: [{ code: "CURRENCY_CHANGE" }] };
     if (await tx.billingRecordAdjustment.findFirst({ where: { billingRecordId: record.id, requestId: input.requestId } }))
       return { blocked: [{ code: "REQUEST_ID_CONFLICT" }] };
-    const priorLines = previous.lines as Line[];
-    const lines = priorLines.map((line) => ({ ...line, ratedAmount: line.ratedAmount ?? line.amount,
-      adjustmentAmount: line.adjustmentAmount ?? "0.000" }));
-    const seen = new Set<number>();
-    let totalDelta = 0n;
-    for (const change of input.affectedLines) {
-      const line = priorLines[change.lineIndex];
-      const delta = exact(change.signedDelta), revised = exact(change.revisedAmount);
-      if (!line || seen.has(change.lineIndex) || line.currency !== previous.currency || delta === null || revised === null || delta === 0n || revised < 0n ||
-        exact(line.amount) === null || exact(line.amount)! + delta !== revised ||
-        change.sourceEventIds.length !== line.sourceEventIds.length || new Set(change.sourceEventIds).size !== line.sourceEventIds.length ||
-        !change.sourceEventIds.every((id) => line.sourceEventIds.includes(id))) return { blocked: [{ code: "INVALID_AFFECTED_LINE" }] };
-      seen.add(change.lineIndex);
-      const ratedAmount = exact(line.ratedAmount ?? line.amount);
-      if (ratedAmount === null) return { blocked: [{ code: "INVALID_AFFECTED_LINE" }] };
-      lines[change.lineIndex] = { ...line, ratedAmount: money(ratedAmount), adjustmentAmount: money(revised - ratedAmount), amount: money(revised) };
-      totalDelta += delta;
-    }
-    const priorAmount = exact(previous.amount.toFixed(3)), delta = exact(input.signedDelta), revisedAmount = exact(input.revisedAmount);
-    if (priorAmount === null || delta === null || revisedAmount === null || delta === 0n || totalDelta !== delta || revisedAmount < 0n || priorAmount + delta !== revisedAmount ||
-      lines.some((line) => exact(line.amount) === null || exact(line.ratedAmount) === null || exact(line.adjustmentAmount) === null ||
-        exact(line.ratedAmount)! + exact(line.adjustmentAmount)! !== exact(line.amount)) ||
-      lines.reduce((sum, line) => sum + exact(line.amount)!, 0n) !== revisedAmount)
-      return { blocked: [{ code: "AMOUNT_MISMATCH" }] };
     const adjustmentId = randomUUID(), versionId = randomUUID(), eventId = randomUUID();
+    const calculation = calculateRevision(previous, input, adjustmentId);
+    if ("blocked" in calculation) return calculation;
     if (failAt === "before-adjustment") throw new Error("Injected revision failure");
     await tx.billingRecordAdjustment.create({ data: { id: adjustmentId, billingRecordId: record.id, previousVersionId: previous.id,
       actorId, requestId: input.requestId, createdAt: requestTime(request), reason: input.reason.trim(), evidenceRef: input.evidenceRef,
@@ -73,13 +86,8 @@ export async function reviseBillingRecord(request: NextRequest, orgId: string, a
       version: previous.version + 1, approvedById: actorId, finalizedAt: requestTime(request), predecessorId: previous.id, adjustmentId,
       periodStart: previous.periodStart, periodEnd: previous.periodEnd, closeAt: previous.closeAt,
       sourceEvents: previous.sourceEvents as Prisma.InputJsonValue, ratedSources: previous.ratedSources as Prisma.InputJsonValue,
-      eventOutcomes: previous.eventOutcomes as Prisma.InputJsonValue, lines: lines as Prisma.InputJsonValue,
-      reconciliation: { ...(previous.reconciliation as object), adjustments: [
-        ...(((previous.reconciliation as Record<string, unknown>).adjustments as Prisma.InputJsonValue[]) ?? []),
-        { previousAmount: previous.amount.toFixed(3), signedDelta: input.signedDelta, revisedAmount: input.revisedAmount, adjustmentId }],
-        revised: { ratedAmount: (previous.reconciliation as { rated: { amount: string } }).rated.amount,
-          adjustmentAmount: money(revisedAmount - exact((previous.reconciliation as { rated: { amount: string } }).rated.amount)!),
-          amount: input.revisedAmount, currency: previous.currency, lineCount: lines.length, balanced: true } },
+      eventOutcomes: previous.eventOutcomes as Prisma.InputJsonValue, lines: calculation.lines as Prisma.InputJsonValue,
+      reconciliation: calculation.reconciliation as Prisma.InputJsonValue,
       lateArrivals: previous.lateArrivals as Prisma.InputJsonValue,
       comparison: previous.comparison as Prisma.InputJsonValue, currency: previous.currency, amount: input.revisedAmount } });
     if (failAt === "before-pointer") throw new Error("Injected revision failure");
