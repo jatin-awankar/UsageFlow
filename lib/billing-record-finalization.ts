@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { calculateInTransaction, requestTime, type Month } from "@/lib/billing-record-calculation";
 
-export async function finalizeBillingRecord(request: NextRequest, orgId: string, actorId: string, customerId: string, period: Month) {
+export async function finalizeBillingRecord(request: NextRequest, orgId: string, actorId: string, customerId: string, period: Month, requestId: string) {
   const failAt = request.headers.get("x-billing-test-fail-finalization");
   return prisma.$transaction(async (tx) => {
     // Ledger and rating workers do not participate in the draft advisory lock.
@@ -14,6 +14,18 @@ export async function finalizeBillingRecord(request: NextRequest, orgId: string,
     if (membership?.role !== "OWNER") return { blocked: [{ code: "OWNER_REQUIRED" }] };
     const scopedCustomer = await tx.customer.findFirst({ where: { id: customerId, orgId }, select: { id: true } });
     if (!scopedCustomer) return { blocked: [{ code: "CUSTOMER_NOT_FOUND" }] };
+    // Use the same per-record guard as calculation. A waiting request observes
+    // the committed binding or final pointer after the first approval completes.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${orgId + ":" + customerId + ":" + period.start.toISOString()}, 0))`;
+    const binding = await tx.billingFinalizationRequest.findUnique({ where: { orgId_requestId: { orgId, requestId } } });
+    if (binding) {
+      if (binding.billedCustomerId !== customerId || binding.periodStart.getTime() !== period.start.getTime())
+        return { blocked: [{ code: "REQUEST_ID_CONFLICT" }] };
+      return { versionId: binding.versionId, eventId: binding.eventId, billingRecordId: binding.billingRecordId,
+        kind: "BILLING_RECORD_COMPARISON_CALCULATION" };
+    }
+    const existing = await tx.billingRecord.findUnique({ where: { orgId_billedCustomerId_periodStart: { orgId, billedCustomerId: customerId, periodStart: period.start } } });
+    if (existing?.currentFinalVersionId) return { blocked: [{ code: "ALREADY_FINALIZED", currentVersionId: existing.currentFinalVersionId }] };
     const approvalAt = requestTime(request);
     const record = await calculateInTransaction(tx, orgId, customerId, period, request, approvalAt, true);
     const snapshot = record.currentSnapshot!;
@@ -25,7 +37,7 @@ export async function finalizeBillingRecord(request: NextRequest, orgId: string,
       ...(!reconciliation.balanced || !reconciliation.rated.amount || !reconciliation.rated.currency ? [{ code: "RECONCILIATION_MISMATCH" }] : []),
     ];
     if (blockingReasons.length || snapshot.state !== "READY_FOR_REVIEW") return { blocked: blockingReasons };
-    if (record.currentFinalVersionId) return { blocked: [{ code: "ALREADY_FINALIZED" }] };
+    if (record.currentFinalVersionId) return { blocked: [{ code: "ALREADY_FINALIZED", currentVersionId: record.currentFinalVersionId }] };
     const versionId = randomUUID();
     const eventId = randomUUID();
     const finalizedAt = approvalAt;
@@ -46,6 +58,8 @@ export async function finalizeBillingRecord(request: NextRequest, orgId: string,
       payload: { organizationId: orgId, billingRecordId: record.id, customerId,
         periodStart: period.start.toISOString(), periodEnd: period.end.toISOString(), versionId, version: 1,
         currency: reconciliation.rated.currency!, amount: reconciliation.rated.amount! } } });
+    await tx.billingFinalizationRequest.create({ data: { orgId, requestId, billedCustomerId: customerId,
+      periodStart: period.start, billingRecordId: record.id, versionId, eventId } });
     return { versionId, eventId, billingRecordId: record.id, kind: "BILLING_RECORD_COMPARISON_CALCULATION" };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }
