@@ -7,6 +7,7 @@ import { createEndpointForOwner } from "../lib/webhooks/create-endpoint";
 import { rotateEndpointSecretForOwner } from "../lib/webhooks/rotate-secret";
 import { sendBillingWebhook } from "../worker/processors/sendBillingWebhook";
 import { deliverBillingWebhook } from "../worker/processors/deliverBillingWebhook";
+import { listBillingWebhookEvents, listWebhookDeliveryLogs, listWebhookEndpoints } from "../lib/webhooks/views";
 import { verifyRotatingBillingRequest } from "../webhook-receiver/billing-verifier.js";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
@@ -42,6 +43,10 @@ try {
   await db.query(`INSERT INTO "WebhookEndpoint" (id,url,secret,active,"orgId",events) VALUES
     ('foreign-endpoint',$1,'foreign-secret',true,'other-org',ARRAY['invoice.finalized'])`, [url]);
   await assert.rejects(rotateEndpointSecretForOwner("rotation-org", "foreign-endpoint", "rotation-owner", at), /ENDPOINT_NOT_FOUND/);
+  const endpoints = await listWebhookEndpoints("rotation-org");
+  assert.equal(endpoints.length, 1);
+  assert.deepEqual(Object.keys(endpoints[0]).sort(), ["active", "createdAt", "events", "id", "url"]);
+  assert(!JSON.stringify(endpoints).includes(created.secret));
   const first = await rotateEndpointSecretForOwner("rotation-org", created.id, "rotation-owner", at);
   const state = (await db.query(`SELECT secret,"previousSecret","previousSecretExpiresAt" FROM "WebhookEndpoint" WHERE id=$1`, [created.id])).rows[0];
   assert.equal(state.secret, first.secret);
@@ -112,6 +117,18 @@ try {
     second.secret, null, null, receiverNow));
   assert.equal(verifyRotatingBillingRequest(workerRequest.body, workerRequest.timestamp, workerRequest.signature,
     first.secret, null, null, receiverNow), null);
+  const deliveryLogs = await listWebhookDeliveryLogs("rotation-org");
+  assert.equal(deliveryLogs.length, 1);
+  assert.equal(deliveryLogs[0].status, "SUCCESS");
+  assert(!JSON.stringify(deliveryLogs).includes(created.secret));
+  assert(!JSON.stringify(deliveryLogs).includes(first.secret));
+  assert(!JSON.stringify(deliveryLogs).includes(second.secret));
+  const eventOutcomes = await listBillingWebhookEvents("rotation-org");
+  assert.equal(eventOutcomes.length, 1);
+  assert.equal(eventOutcomes[0].billingWebhookWork[0].attemptCount, 1);
+  for (const secret of [created.secret, first.secret, second.secret]) {
+    assert(!JSON.stringify(eventOutcomes).includes(secret));
+  }
   await db.query(`DELETE FROM "Membership" WHERE id='rotation-member'`);
   await assert.rejects(rotateEndpointSecretForOwner("rotation-org", created.id, "rotation-owner", at), /OWNER_REQUIRED/);
   await assert.rejects(createEndpointForOwner("rotation-org", "rotation-owner", url, ["invoice.finalized"]), /OWNER_REQUIRED/);
