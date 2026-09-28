@@ -557,6 +557,22 @@ model BillingFinalizationRequest {
   @@id([orgId, requestId])
 }
 
+model BillingRevisionRequest {
+  orgId String
+  requestId String
+  billedCustomerId String
+  periodStart DateTime @db.Timestamptz(3)
+  billingRecordId String
+  expectedVersionId String
+  requestHash String
+  adjustmentId String @unique
+  versionId String @unique
+  eventId String @unique
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@id([orgId, requestId])
+}
+
 model WebhookDelivery {
   id             String                @id @default(uuid())
   webhookEventId String
