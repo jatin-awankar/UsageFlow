@@ -1,19 +1,30 @@
 import axios from "axios";
 import { randomUUID } from "node:crypto";
-import { WebhookDeliveryStatus, WebhookEventStatus } from "@prisma/client";
+import { Prisma, WebhookDeliveryStatus, WebhookEventStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendBillingWebhook } from "@/worker/processors/sendBillingWebhook";
 
 const LEASE_MS = 30_000;
 const RETRY_MINUTES = [1, 2, 4, 8];
 
+export async function refreshBillingStatus(tx: Prisma.TransactionClient, eventId: string) {
+  const work = await tx.billingWebhookWork.findMany({ where: { webhookEventId: eventId },
+    select: { terminal: true, completedAt: true } });
+  const pending = work.some((item) => !item.terminal && !item.completedAt);
+  const failed = work.some((item) => item.terminal);
+  const delivered = work.some((item) => !!item.completedAt && !item.terminal);
+  await tx.webhookEvent.update({ where: { id: eventId }, data: { status: pending ? WebhookEventStatus.PENDING :
+    failed && delivered ? WebhookEventStatus.MIXED : failed ? WebhookEventStatus.FAILED :
+      delivered ? WebhookEventStatus.DELIVERED : WebhookEventStatus.NO_TARGET } });
+}
+
 export async function deliverBillingWebhook(eventId: string, endpointId: string) {
   const token = randomUUID();
   const now = new Date();
   const context = await prisma.$transaction(async (tx) => {
     const claimed = await tx.billingWebhookWork.updateMany({
-      where: { webhookEventId: eventId, endpointId, completedAt: null, terminal: false,
-        dueAt: { lte: now }, OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }] },
+      where: { webhookEventId: eventId, endpointId, completedAt: null, terminal: false, attemptCount: { lt: 5 },
+        dueAt: { lte: now }, claimToken: null, leaseUntil: null },
       data: { claimToken: token, leaseUntil: new Date(now.getTime() + LEASE_MS), attemptCount: { increment: 1 } },
     });
     if (!claimed.count) return null;
@@ -27,10 +38,10 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
       select: { url: true, secret: true, active: true } });
     await tx.webhookDelivery.updateMany({ where: { webhookEventId: eventId, endpointId,
       status: WebhookDeliveryStatus.PENDING }, data: { status: WebhookDeliveryStatus.FAILED,
-        responseBody: "Outcome uncertain after worker interruption" } });
+      responseBody: "Outcome uncertain after worker interruption" } });
     await tx.webhookDelivery.create({ data: { webhookEventId: eventId, endpointId,
       attempt: work.attemptCount, status: endpoint.active ? WebhookDeliveryStatus.PENDING : WebhookDeliveryStatus.SKIPPED,
-      responseBody: endpoint.active ? undefined : "Endpoint disabled" } });
+      responseBody: endpoint.active ? undefined : "Endpoint disabled", startedAt: now } });
     return { event, endpoint, attempt: work.attemptCount };
   });
   if (!context) return;
@@ -54,7 +65,9 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
       } catch (error) {
         status = WebhookDeliveryStatus.FAILED;
         responseCode = axios.isAxiosError(error) ? error.response?.status : undefined;
-        responseBody = responseCode ? `HTTP ${responseCode}` : "Delivery failed";
+        responseBody = responseCode ? `HTTP ${responseCode}` :
+          axios.isAxiosError(error) && error.code === "ECONNABORTED" ? "Request timed out" :
+          "Connection failed";
       }
     }
     if (status === WebhookDeliveryStatus.SUCCESS && process.env.BILLING_TEST_EXIT_AFTER_HTTP_ACCEPTANCE === "true" && process.env.NODE_ENV !== "production") {
@@ -74,12 +87,9 @@ export async function deliverBillingWebhook(eventId: string, endpointId: string)
         completedAt: done ? new Date() : null,
         failedAttempts: status === WebhookDeliveryStatus.FAILED ? { increment: 1 } : work.failedAttempts,
         terminal: status === WebhookDeliveryStatus.SKIPPED ||
-          (status === WebhookDeliveryStatus.FAILED && work.failedAttempts + 1 >= 5),
-        dueAt: status === WebhookDeliveryStatus.FAILED && work.failedAttempts + 1 < 5
-          ? new Date(Date.now() + RETRY_MINUTES[work.failedAttempts] * 60_000) : work.dueAt } });
-    const remaining = await tx.billingWebhookWork.count({ where: { webhookEventId: eventId, completedAt: null, terminal: false } });
-    const failed = await tx.billingWebhookWork.count({ where: { webhookEventId: eventId, terminal: true } });
-    await tx.webhookEvent.update({ where: { id: eventId }, data: { status: remaining ? WebhookEventStatus.PENDING :
-      failed ? WebhookEventStatus.FAILED : WebhookEventStatus.DELIVERED } });
+          (status === WebhookDeliveryStatus.FAILED && work.attemptCount >= 5),
+        dueAt: status === WebhookDeliveryStatus.FAILED && work.attemptCount < 5
+          ? new Date(Date.now() + RETRY_MINUTES[work.attemptCount - 1] * 60_000) : work.dueAt } });
+    await refreshBillingStatus(tx, eventId);
   }, { timeout: 7000 });
 }

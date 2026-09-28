@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/session";
-import { getWebhookLogs } from "@/actions/webhooks/getWebhookLogs";
+import { getWebhookLogs, getBillingWebhookEvents } from "@/actions/webhooks/getWebhookLogs";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -20,6 +20,7 @@ export default async function WebhookLogsPage({
 
   const { orgId } = await params;
   const logs = await getWebhookLogs(user.id, orgId);
+  const events = await getBillingWebhookEvents(orgId);
 
   return (
     <>
@@ -41,10 +42,21 @@ export default async function WebhookLogsPage({
         }
       />
 
-      {logs.length === 0 ? (
+      {logs.length === 0 && events.length === 0 ? (
         <WebhookLogsEmptyState orgId={orgId} />
       ) : (
         <section className="space-y-6">
+          {events.length > 0 && <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-3 font-semibold">Billing event outcomes</h2>
+            <div className="space-y-3">
+              {events.map((event) => <article key={event.id} className="rounded border border-slate-200 p-3 text-sm">
+                <p className="font-mono text-xs">{event.id} · {event.type} · {event.status === "NO_TARGET" ? "No target" : event.status === "MIXED" ? "Mixed endpoint outcomes" : event.status}</p>
+                {event.billingWebhookWork.map((work) => <p key={work.endpointId} className="mt-1 break-all text-slate-600">
+                  {new URL(work.endpoint.url).origin}: {work.terminal ? work.completedAt ? "Disabled target" : "Failed" : work.completedAt ? "Delivered" : `Pending attempt ${work.attemptCount + 1} after ${work.dueAt.toISOString()}`}
+                </p>)}
+              </article>)}
+            </div>
+          </section>}
           <WebhookLogsOverview logs={logs} />
           <WebhookLogsList logs={logs} />
         </section>

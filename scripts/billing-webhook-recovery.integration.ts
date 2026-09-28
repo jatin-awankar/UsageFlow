@@ -5,12 +5,15 @@ import { verifyBillingRequest } from "../webhook-receiver/billing-verifier.js";
 import { spawn, type ChildProcess } from "node:child_process";
 import { Queue } from "bullmq";
 import { Client } from "pg";
+import prisma from "../lib/prisma";
+import { refreshBillingStatus } from "../worker/processors/deliverBillingWebhook";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
 const workers: ChildProcess[] = [];
 const received: Array<{ body: Buffer; id: string; timestamp: string; signature: string }> = [];
 let receiverStatus = 200;
+let receiverMode: "respond" | "timeout" | "close" = "respond";
 const receiver = createServer(async (request, response) => {
   const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(Buffer.from(chunk));
@@ -20,6 +23,8 @@ const receiver = createServer(async (request, response) => {
   const event = verifyBillingRequest(body, timestamp, signature, "synthetic-secret");
   if (!event) { response.writeHead(401).end("invalid"); return; }
   received.push({ body, id: event.id, timestamp: String(timestamp), signature: String(signature) });
+  if (receiverMode === "close") { response.destroy(); return; }
+  if (receiverMode === "timeout") { setTimeout(() => response.end(), 6_000); return; }
   response.writeHead(receiverStatus).end("ok");
 });
 
@@ -90,6 +95,11 @@ try {
   await db.query(`UPDATE "BillingWebhookWork" SET "leaseUntil"=now()-interval '1 second' WHERE "webhookEventId"='recover-event'`);
   await queue.obliterate({ force: true });
   const restarted = startWorker();
+  await waitFor(async () => (await db.query(`SELECT "failedAttempts" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].failedAttempts === 1,
+    "uncertain attempt reconciliation");
+  const firstDue = (await db.query(`SELECT "dueAt" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].dueAt as Date;
+  assert(firstDue.getTime() > Date.now(), "uncertain attempt uses durable retry due time");
+  await db.query(`UPDATE "BillingWebhookWork" SET "dueAt"=now()-interval '1 second' WHERE "webhookEventId"='recover-event'`);
   await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0].status === "DELIVERED", "recovered delivery").catch(async (error) => {
     console.error((await db.query(`SELECT * FROM "BillingWebhookWork"`)).rows);
     console.error((await db.query(`SELECT attempt,status FROM "WebhookDelivery"`)).rows);
@@ -125,30 +135,79 @@ try {
   const attempts = await db.query(`SELECT attempt,status FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event' ORDER BY attempt`);
   assert.deepEqual(attempts.rows, [{ attempt: 1, status: "FAILED" }, { attempt: 2, status: "SUCCESS" }]);
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE id='recover-version'`)).rows[0].n, 1);
-  // An uncertain fifth send remains retryable with the same event identity.
+  // An uncertain fifth send consumes the final slot, even when no response was stored.
   await db.query(`UPDATE "BillingWebhookWork" SET "attemptCount"=5,"completedAt"=NULL,terminal=false,
     "claimToken"='lost-fifth',"leaseUntil"=now()-interval '1 second' WHERE "webhookEventId"='recover-event'`);
   await db.query(`INSERT INTO "WebhookDelivery" (id,"webhookEventId","endpointId",attempt,status)
     VALUES ('uncertain-fifth','recover-event','recover-endpoint',5,'PENDING')`);
   await db.query(`UPDATE "WebhookEvent" SET status='PENDING' WHERE id='recover-event'`);
-  await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0].status === "DELIVERED"
-    && received.length === 3, "fifth uncertain retry");
-  assert.deepEqual(received[2].body, received[0].body);
+  await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0].status === "FAILED",
+    "fifth uncertain terminal outcome");
+  assert.equal(received.length, 2, "uncertain fifth attempt must not send again");
   assert.equal((await db.query(`SELECT status FROM "WebhookDelivery" WHERE id='uncertain-fifth'`)).rows[0].status, "FAILED");
   // Definite HTTP failures use the five-response budget and then stop.
   receiverStatus = 500;
+  await db.query(`DELETE FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event'`);
   await db.query(`UPDATE "BillingWebhookWork" SET "completedAt"=NULL,terminal=false,"failedAttempts"=0,
-    "dueAt"=now() WHERE "webhookEventId"='recover-event'`);
+    "attemptCount"=0,"dueAt"=now() WHERE "webhookEventId"='recover-event'`);
   await db.query(`UPDATE "WebhookEvent" SET status='PENDING' WHERE id='recover-event'`);
   for (let failures = 1; failures <= 5; failures++) {
     await waitFor(async () => (await db.query(`SELECT "failedAttempts" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].failedAttempts === failures,
       `failure ${failures}`);
+    const attempt = (await db.query(`SELECT status,"responseCode","responseBody","durationMs","startedAt" FROM "WebhookDelivery"
+      WHERE "webhookEventId"='recover-event' AND attempt=$1`, [failures])).rows[0];
+    assert.equal(attempt.status, "FAILED");
+    assert.equal(attempt.responseCode, 500);
+    assert.equal(attempt.responseBody, "HTTP 500");
+    assert(attempt.durationMs >= 0 && attempt.startedAt);
+    if (failures < 5) {
+      const due = (await db.query(`SELECT "dueAt" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].dueAt as Date;
+      const delay = [1, 2, 4, 8][failures - 1] * 60_000;
+      assert(Math.abs(due.getTime() - Date.now() - delay) < 10_000, `retry ${failures} due offset`);
+    }
     if (failures < 5) await db.query(`UPDATE "BillingWebhookWork" SET "dueAt"=now()-interval '1 second' WHERE "webhookEventId"='recover-event'`);
   }
   assert.equal((await db.query(`SELECT status FROM "WebhookEvent" WHERE id='recover-event'`)).rows[0].status, "FAILED");
-  assert.equal(received.length, 8);
+  assert.equal(received.length, 7);
   await new Promise((resolve) => setTimeout(resolve, 1200));
-  assert.equal(received.length, 8, "terminal failure must not send again");
+  assert.equal(received.length, 7, "terminal failure must not send again");
+  for (const scenario of [{ mode: "respond" as const, code: 400, outcome: "HTTP 400" },
+    { mode: "timeout" as const, code: null, outcome: "Request timed out" },
+    { mode: "close" as const, code: null, outcome: "Connection failed" }]) {
+    await db.query(`DELETE FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event'`);
+    await db.query(`UPDATE "BillingWebhookWork" SET "completedAt"=NULL,terminal=false,"failedAttempts"=0,
+      "attemptCount"=0,"dueAt"=now() WHERE "webhookEventId"='recover-event'`);
+    await db.query(`UPDATE "WebhookEvent" SET status='PENDING' WHERE id='recover-event'`);
+    receiverMode = scenario.mode;
+    receiverStatus = scenario.code ?? 200;
+    await waitFor(async () => (await db.query(`SELECT "failedAttempts" FROM "BillingWebhookWork" WHERE "webhookEventId"='recover-event'`)).rows[0].failedAttempts === 1,
+      `${scenario.mode} failure`, 20_000);
+    const row = (await db.query(`SELECT status,"responseCode","responseBody","durationMs" FROM "WebhookDelivery"
+      WHERE "webhookEventId"='recover-event' AND attempt=1`)).rows[0];
+    assert.equal(row.status, "FAILED");
+    assert.equal(row.responseCode, scenario.code);
+    assert.equal(row.responseBody, scenario.outcome);
+    if (scenario.mode === "timeout") assert(row.durationMs >= 4_900 && row.durationMs < 6_000);
+  }
+  await db.query(`INSERT INTO "WebhookEndpoint" (id,url,secret,active,"orgId",events)
+    VALUES ('recover-second','http://127.0.0.1/unused','synthetic-secret',true,'recover-org',ARRAY['invoice.finalized'])`);
+  await db.query(`INSERT INTO "WebhookEvent" (id,type,payload,status,"orgId","targetEndpointIds","targetSelectionRecordedAt")
+    VALUES ('status-only','invoice.finalized','{}','PENDING','recover-org',ARRAY['recover-endpoint','recover-second'],now())`);
+  await db.query(`INSERT INTO "BillingWebhookWork" ("webhookEventId","endpointId","attemptCount","completedAt",terminal)
+    VALUES ('status-only','recover-endpoint',1,now(),false),('status-only','recover-second',5,NULL,true)`);
+  const refresh = () => prisma.$transaction((tx) => refreshBillingStatus(tx, "status-only"));
+  const eventStatus = async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='status-only'`)).rows[0].status;
+  await refresh();
+  assert.equal(await eventStatus(), "MIXED");
+  await db.query(`UPDATE "BillingWebhookWork" SET terminal=false,"attemptCount"=1 WHERE "endpointId"='recover-second'`);
+  await refresh();
+  assert.equal(await eventStatus(), "PENDING");
+  await db.query(`UPDATE "BillingWebhookWork" SET "completedAt"=now() WHERE "endpointId"='recover-second'`);
+  await refresh();
+  assert.equal(await eventStatus(), "DELIVERED");
+  await db.query(`DELETE FROM "BillingWebhookWork" WHERE "webhookEventId"='status-only'`);
+  await refresh();
+  assert.equal(await eventStatus(), "NO_TARGET");
   await kill(restarted);
   console.log("Billing webhook recovery acceptance passed");
 } finally {
@@ -156,5 +215,6 @@ try {
   receiver.closeAllConnections();
   await new Promise<void>((resolve) => receiver.close(() => resolve()));
   await queue.close();
+  await prisma.$disconnect();
   await db.end();
 }

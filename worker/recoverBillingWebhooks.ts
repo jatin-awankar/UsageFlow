@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { getUsageFlowQueue } from "@/lib/bullmq";
 import { WebhookEventStatus } from "@prisma/client";
+import { refreshBillingStatus } from "@/worker/processors/deliverBillingWebhook";
 
 const BATCH = 100;
 
@@ -51,9 +52,31 @@ export async function recoverBillingWebhooks() {
     })), skipDuplicates: true });
   }
 
+  // An interrupted send consumes its reserved attempt. Expired claims are
+  // reconciled before another wakeup, including the fifth (terminal) send.
+  const expired = await prisma.billingWebhookWork.findMany({ where: {
+    completedAt: null, terminal: false, leaseUntil: { lte: new Date() }, claimToken: { not: null },
+  }, select: { webhookEventId: true, endpointId: true }, take: BATCH });
+  for (const item of expired) {
+    await prisma.$transaction(async (tx) => {
+      const work = await tx.billingWebhookWork.findUnique({ where: { webhookEventId_endpointId: item } });
+      if (!work?.claimToken || !work.leaseUntil || work.leaseUntil > new Date()) return;
+      await tx.webhookDelivery.updateMany({ where: { webhookEventId: item.webhookEventId,
+        endpointId: item.endpointId, attempt: work.attemptCount, status: "PENDING" },
+        data: { status: "FAILED", responseBody: "Outcome uncertain after worker interruption" } });
+      await tx.billingWebhookWork.updateMany({ where: { webhookEventId: item.webhookEventId,
+        endpointId: item.endpointId, claimToken: work.claimToken }, data: {
+          claimToken: null, leaseUntil: null, failedAttempts: { increment: 1 },
+          terminal: work.attemptCount >= 5,
+          dueAt: work.attemptCount < 5 ? new Date(work.leaseUntil.getTime() + 60_000 * 2 ** (work.attemptCount - 1)) : work.dueAt,
+        } });
+      await refreshBillingStatus(tx, item.webhookEventId);
+    });
+  }
+
   const due = await prisma.billingWebhookWork.findMany({
     where: { completedAt: null, terminal: false, dueAt: { lte: new Date() },
-      OR: [{ leaseUntil: null }, { leaseUntil: { lte: new Date() } }] },
+      claimToken: null, leaseUntil: null, attemptCount: { lt: 5 } },
     select: { webhookEventId: true, endpointId: true }, orderBy: { dueAt: "asc" }, take: BATCH,
   });
   const queue = getUsageFlowQueue();

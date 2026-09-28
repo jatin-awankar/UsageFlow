@@ -15,6 +15,11 @@ function toSentenceCase(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function safeEndpointUrl(value: string) {
+  try { const url = new URL(value); return `${url.origin}${url.pathname}`; }
+  catch { return "Endpoint"; }
+}
+
 export default function WebhookLogsList({
   logs,
 }: {
@@ -23,8 +28,10 @@ export default function WebhookLogsList({
     status: string;
     createdAt: Date;
     responseCode: number | null;
+    responseBody: string | null;
     attempt: number;
     durationMs: number | null;
+    startedAt: Date;
     webhookEvent: { type: string };
     endpoint: { url: string };
   }[];
@@ -58,14 +65,14 @@ export default function WebhookLogsList({
                   {toSentenceCase(log.webhookEvent.type)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {dateFormatter.format(new Date(log.createdAt))}
+                  {dateFormatter.format(new Date(log.startedAt))}
                 </p>
               </div>
               <WebhookDeliveryStatusBadge status={log.status} />
             </div>
             <div className="mt-2 max-w-full overflow-x-auto rounded bg-slate-100 px-2 py-1">
               <code className="whitespace-nowrap text-xs text-slate-700">
-                {log.endpoint.url}
+                {safeEndpointUrl(log.endpoint.url)}
               </code>
             </div>
             <p className="mt-2 text-xs text-slate-500">
@@ -74,6 +81,7 @@ export default function WebhookLogsList({
               {typeof log.durationMs === "number"
                 ? ` - ${log.durationMs} ms`
                 : ""}
+              {log.responseBody ? ` - ${log.responseBody}` : ""}
             </p>
           </article>
         ))}
@@ -112,14 +120,14 @@ export default function WebhookLogsList({
                 }}
               >
                 <td className="px-4 py-3 text-slate-700">
-                  {dateFormatter.format(new Date(log.createdAt))}
+                  {dateFormatter.format(new Date(log.startedAt))}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-800">
                   {log.webhookEvent.type}
                 </td>
                 <td className="px-4 py-3">
                   <div className="max-w-full truncate font-mono text-xs text-slate-600">
-                    {log.endpoint.url}
+                    {safeEndpointUrl(log.endpoint.url)}
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -131,6 +139,7 @@ export default function WebhookLogsList({
                   {typeof log.durationMs === "number"
                     ? ` - ${log.durationMs} ms`
                     : ""}
+                  {log.responseBody ? ` - ${log.responseBody}` : ""}
                 </td>
               </tr>
             ))}
