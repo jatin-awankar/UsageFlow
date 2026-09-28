@@ -1,5 +1,3 @@
-import axios from "axios";
-import crypto from "crypto";
 import { WebhookDeliveryStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import {
@@ -10,6 +8,7 @@ import {
 import { MAX_WEBHOOK_ATTEMPTS } from "@/lib/webhooks/retryConfig";
 import { deliverBillingWebhook } from "@/worker/processors/deliverBillingWebhook";
 import { isBillingDeliveryEvent } from "@/lib/webhooks/billing-targets";
+import { sendBareHmacWebhook } from "@/worker/processors/sendBareHmacWebhook";
 
 function getErrorStatusCode(error: unknown) {
   if (
@@ -162,19 +161,9 @@ async function processWebhookEndpoint(
 
   const payload = JSON.stringify(event.payload);
   const start = Date.now();
-  const signature = crypto
-    .createHmac("sha256", endpoint.secret)
-    .update(payload)
-    .digest("hex");
 
   try {
-    const response = await axios.post(endpoint.url, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        "X-UsageFlow-Signature": signature,
-      },
-      timeout: 5000,
-    });
+    const response = await sendBareHmacWebhook(endpoint.url, endpoint.secret, payload);
 
     await upsertWebhookDelivery({
       webhookEventId,

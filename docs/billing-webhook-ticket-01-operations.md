@@ -1,6 +1,6 @@
 # Billing webhook target delivery: ticket 01
 
-This ticket selects active, subscribed Organization endpoints in the finalization or revision transaction. A billing event with no selected endpoint has `NO_TARGET` status. A selected endpoint disabled before the worker sends is recorded as `SKIPPED`. The deployed owner finalization gate stays closed.
+This ticket selects active, subscribed Organization endpoints in the finalization or revision transaction. A billing event with no selected endpoint has `NO_TARGET` status. A selected endpoint disabled before the worker claims its send is recorded as `SKIPPED`. Deactivation waits for an in-flight send to finish, so a completed send can still be recorded as successful. The deployed owner finalization gate stays closed.
 
 ## Migration
 
