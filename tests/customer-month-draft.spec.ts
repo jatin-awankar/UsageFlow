@@ -423,15 +423,14 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.finalized'`)).rows[0].n).toBe(0);
       expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest"`)).rows[0].n).toBe(0);
     }
-    const [lostResponse, competingResponse] = await Promise.all([
-      finalize({ "x-billing-test-fail-finalization": "after-commit" }), finalize({}, "competing-approval"),
-    ]);
+    const lostResponse = await finalize({ "x-billing-test-fail-finalization": "after-commit" });
     expect(lostResponse.status()).toBe(500);
-    expect([200, 409]).toContain(competingResponse.status());
-    const winnerId = competingResponse.status() === 200 ? "competing-approval" : "approval-recovery";
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest" WHERE "requestId"='approval-recovery'`)).rows[0].n).toBe(1);
+    const winnerId = "approval-recovery";
     const final = await (await finalize({}, winnerId)).json();
-    if (competingResponse.status() === 200) expect(await competingResponse.json()).toEqual(final);
-    else expect(await competingResponse.json()).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: final.versionId }] });
+    const competingResponse = await finalize({}, "competing-approval");
+    expect(competingResponse.status()).toBe(409);
+    expect(await competingResponse.json()).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: final.versionId }] });
     expect(await (await finalize({}, winnerId)).json()).toEqual(final);
     const differentIdentity = await finalize({}, "another-approval");
     expect(differentIdentity.status()).toBe(409);
@@ -468,6 +467,22 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const laterEvent = (await laterEventResponse.json()).eventId as string;
     run(laterEvent, "RATING_TEST_FAIL_ATTEMPT");
     run(laterEvent); // Worker recovery for this Customer after approval cannot change the earlier final month.
+    const nextMonth = nextMonthInstant.slice(0, 7);
+    const nextMonthAfterClose = new Date(Date.UTC(Number(nextMonth.slice(0, 4)), Number(nextMonth.slice(5)), 4, 0, 0, 0, 1)).toISOString();
+    const nextDraft = await (await create(nextMonth, recoveryCustomer, nextMonthAfterClose)).json();
+    expect(nextDraft.snapshot.state).toBe("READY_FOR_REVIEW");
+    const nextApproval = (requestId: string) => owner.request.post(url, { headers: { "x-billing-test-now": nextMonthAfterClose },
+      data: { action: "finalize", month: nextMonth, billedCustomerId: recoveryCustomer, requestId } });
+    const [nextFirst, nextSecond] = await Promise.all([nextApproval("next-first"), nextApproval("next-second")]);
+    expect([nextFirst.status(), nextSecond.status()].sort()).toEqual([200, 409]);
+    const nextFinal = await (nextFirst.status() === 200 ? nextFirst : nextSecond).json();
+    const nextConflict = await (nextFirst.status() === 409 ? nextFirst : nextSecond).json();
+    expect(nextConflict).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: nextFinal.versionId }] });
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [nextDraft.id])).rows[0].n).toBe(1);
+    expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [nextDraft.id])).rows[0].currentFinalVersionId).toBe(nextFinal.versionId);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE "billingRecordVersionId"=$1 AND type='invoice.finalized'`, [nextFinal.versionId])).rows[0].n).toBe(1);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest" WHERE "billingRecordId"=$1 AND "versionId"=$2 AND "eventId"=$3`,
+      [nextDraft.id, nextFinal.versionId, nextFinal.eventId])).rows[0].n).toBe(1);
     const afterFinalRecalculation = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
     expect(afterFinalRecalculation.finalization).toMatchObject({ kind: "BILLING_RECORD_COMPARISON_CALCULATION",
       currentVersion: { id: final.versionId, amount: "8.000", lines: version.lines } });
