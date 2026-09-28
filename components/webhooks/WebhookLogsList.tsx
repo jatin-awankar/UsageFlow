@@ -15,11 +15,6 @@ function toSentenceCase(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function safeEndpointUrl(value: string) {
-  try { const url = new URL(value); return `${url.origin}${url.pathname}`; }
-  catch { return "Endpoint"; }
-}
-
 export default function WebhookLogsList({
   logs,
 }: {
@@ -28,13 +23,12 @@ export default function WebhookLogsList({
     status: string;
     createdAt: Date;
     responseCode: number | null;
-    responseBody: string | null;
     attempt: number;
     cycle: number;
     durationMs: number | null;
     startedAt: Date | null;
     webhookEvent: { type: string };
-    endpoint: { url: string };
+    endpoint: { id: string };
   }[];
 }) {
   return (
@@ -73,7 +67,7 @@ export default function WebhookLogsList({
             </div>
             <div className="mt-2 max-w-full overflow-x-auto rounded bg-slate-100 px-2 py-1">
               <code className="whitespace-nowrap text-xs text-slate-700">
-                {safeEndpointUrl(log.endpoint.url)}
+                {log.endpoint.id}
               </code>
             </div>
             <p className="mt-2 text-xs text-slate-500">
@@ -82,7 +76,6 @@ export default function WebhookLogsList({
               {typeof log.durationMs === "number"
                 ? ` - ${log.durationMs} ms`
                 : ""}
-              {log.responseBody ? ` - ${log.responseBody}` : ""}
             </p>
           </article>
         ))}
@@ -128,7 +121,7 @@ export default function WebhookLogsList({
                 </td>
                 <td className="px-4 py-3">
                   <div className="max-w-full truncate font-mono text-xs text-slate-600">
-                    {safeEndpointUrl(log.endpoint.url)}
+                    {log.endpoint.id}
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -140,7 +133,6 @@ export default function WebhookLogsList({
                   {typeof log.durationMs === "number"
                     ? ` - ${log.durationMs} ms`
                     : ""}
-                  {log.responseBody ? ` - ${log.responseBody}` : ""}
                 </td>
               </tr>
             ))}

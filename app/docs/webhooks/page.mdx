@@ -177,6 +177,10 @@ Each webhook attempt is recorded in the Webhook Logs section of the dashboard.
 
 Webhook delivery includes a retry system. For BillingRecord `invoice.finalized` and `invoice.revised` events, five recorded failed responses exhaust automatic delivery. Failed responses one through four are retried after 1, 2, 4, and 8 minutes. An uncertain response after a worker crash remains retryable. Legacy events retain their existing schedule and bare-hex signature.
 
+Organization owners can inspect each BillingRecord comparison calculation event in Webhook Logs. The view shows selected endpoints, current outcomes, attempts, terminal failures, and replay cycles. BillingRecords are comparison calculations, not tax invoices or payment requests. The view omits endpoint secrets, replay reasons, and receiver response bodies.
+
+To roll back the owner delivery view, remove the Billing event outcomes section and its owner read action, then hide the replay and rotation controls. Keep the `WebhookEvent`, `BillingWebhookWork`, `WebhookDelivery`, and `BillingWebhookReplay` records; rollback must not delete delivery evidence. This view adds no database migration. The deployed finalization gate remains closed.
+
 If your endpoint does not respond successfully, UsageFlow will retry the request using exponential backoff.
 
 Billing event retry schedule:
