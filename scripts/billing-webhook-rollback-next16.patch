@@ -1,0 +1,186 @@
+diff --git a/app/app/[orgId]/analytics/page.tsx b/app/app/[orgId]/analytics/page.tsx
+--- a/app/app/[orgId]/analytics/page.tsx
++++ b/app/app/[orgId]/analytics/page.tsx
+@@ -22,7 +22,7 @@
+ export default async function UsageAnalyticsPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/api-keys/page.tsx b/app/app/[orgId]/api-keys/page.tsx
+--- a/app/app/[orgId]/api-keys/page.tsx
++++ b/app/app/[orgId]/api-keys/page.tsx
+@@ -14,7 +14,7 @@
+ export default async function ApiKeysPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/audit-logs/page.tsx b/app/app/[orgId]/audit-logs/page.tsx
+--- a/app/app/[orgId]/audit-logs/page.tsx
++++ b/app/app/[orgId]/audit-logs/page.tsx
+@@ -15,10 +15,9 @@
+   params,
+   searchParams,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+   searchParams:
+-    | Promise<{ cursor?: string; direction?: string }>
+-    | { cursor?: string; direction?: string };
++    | Promise<{ cursor?: string; direction?: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/billing/invoices/[invoiceId]/page.tsx b/app/app/[orgId]/billing/invoices/[invoiceId]/page.tsx
+--- a/app/app/[orgId]/billing/invoices/[invoiceId]/page.tsx
++++ b/app/app/[orgId]/billing/invoices/[invoiceId]/page.tsx
+@@ -36,8 +36,7 @@
+   params,
+ }: {
+   params:
+-    | Promise<{ orgId: string; invoiceId: string }>
+-    | { orgId: string; invoiceId: string };
++    | Promise<{ orgId: string; invoiceId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/billing/invoices/page.tsx b/app/app/[orgId]/billing/invoices/page.tsx
+--- a/app/app/[orgId]/billing/invoices/page.tsx
++++ b/app/app/[orgId]/billing/invoices/page.tsx
+@@ -12,7 +12,7 @@
+ export default async function InvoicesPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/billing/page.tsx b/app/app/[orgId]/billing/page.tsx
+--- a/app/app/[orgId]/billing/page.tsx
++++ b/app/app/[orgId]/billing/page.tsx
+@@ -19,7 +19,7 @@
+ export default async function BillingPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/dashboard/page.tsx b/app/app/[orgId]/dashboard/page.tsx
+--- a/app/app/[orgId]/dashboard/page.tsx
++++ b/app/app/[orgId]/dashboard/page.tsx
+@@ -27,7 +27,7 @@
+ export default async function DashboardPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/layout.tsx b/app/app/[orgId]/layout.tsx
+--- a/app/app/[orgId]/layout.tsx
++++ b/app/app/[orgId]/layout.tsx
+@@ -10,7 +10,7 @@
+   params,
+ }: {
+   children: ReactNode;
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/members/page.tsx b/app/app/[orgId]/members/page.tsx
+--- a/app/app/[orgId]/members/page.tsx
++++ b/app/app/[orgId]/members/page.tsx
+@@ -16,7 +16,7 @@
+ export default async function MembersPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/plans/page.tsx b/app/app/[orgId]/plans/page.tsx
+--- a/app/app/[orgId]/plans/page.tsx
++++ b/app/app/[orgId]/plans/page.tsx
+@@ -16,7 +16,7 @@
+ export default async function PlansPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/settings/page.tsx b/app/app/[orgId]/settings/page.tsx
+--- a/app/app/[orgId]/settings/page.tsx
++++ b/app/app/[orgId]/settings/page.tsx
+@@ -18,7 +18,7 @@
+   params,
+   searchParams,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+   searchParams: Promise<{ currencyError?: string; currencySaved?: string }>;
+ }) {
+   const user = await getCurrentUser();
+diff --git a/app/app/[orgId]/webhooks/logs/page.tsx b/app/app/[orgId]/webhooks/logs/page.tsx
+--- a/app/app/[orgId]/webhooks/logs/page.tsx
++++ b/app/app/[orgId]/webhooks/logs/page.tsx
+@@ -13,7 +13,7 @@
+ export default async function WebhookLogsPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/app/[orgId]/webhooks/page.tsx b/app/app/[orgId]/webhooks/page.tsx
+--- a/app/app/[orgId]/webhooks/page.tsx
++++ b/app/app/[orgId]/webhooks/page.tsx
+@@ -14,7 +14,7 @@
+ export default async function WebhooksPage({
+   params,
+ }: {
+-  params: Promise<{ orgId: string }> | { orgId: string };
++  params: Promise<{ orgId: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login");
+diff --git a/app/invite/page.tsx b/app/invite/page.tsx
+--- a/app/invite/page.tsx
++++ b/app/invite/page.tsx
+@@ -33,8 +33,7 @@
+   searchParams,
+ }: {
+   searchParams:
+-    | Promise<{ token?: string | string[] }>
+-    | { token?: string | string[] };
++    | Promise<{ token?: string | string[] }>;
+ }) {
+   const resolvedSearchParams = await Promise.resolve(searchParams);
+   const tokenValue = resolvedSearchParams.token;
+diff --git a/app/onboarding/create-org/page.tsx b/app/onboarding/create-org/page.tsx
+--- a/app/onboarding/create-org/page.tsx
++++ b/app/onboarding/create-org/page.tsx
+@@ -6,7 +6,7 @@
+ export default async function CreateOrgPage({
+   searchParams,
+ }: {
+-  searchParams: Promise<{ error?: string }> | { error?: string };
++  searchParams: Promise<{ error?: string }>;
+ }) {
+   const user = await getCurrentUser();
+   if (!user) redirect("/login?next=/onboarding/create-org");

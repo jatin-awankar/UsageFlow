@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-start_customer_test_database() {
+start_customer_test_postgres() {
   container="usageflow-$1-$$"
   app_log="$(mktemp)"
   docker run --rm -d --name "$container" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD=synthetic-only postgres:17.6-alpine >/dev/null
@@ -11,6 +11,10 @@ start_customer_test_database() {
   docker exec "$container" pg_isready -h 127.0.0.1 -U postgres >/dev/null
   db_port="$(docker port "$container" 5432/tcp | sed 's/.*://')"
   export DATABASE_URL="postgresql://postgres:synthetic-only@127.0.0.1:${db_port}/postgres"
+}
+
+start_customer_test_database() {
+  start_customer_test_postgres "$1"
   for file in prisma/migrations/*/migration.sql; do
     docker exec -i "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$file" >/dev/null
   done
