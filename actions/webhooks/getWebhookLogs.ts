@@ -1,6 +1,6 @@
 "use server";
 
-import { listBillingWebhookEvents, listWebhookDeliveryLogs } from "@/lib/webhooks/views";
+import { listBillingWebhookEventsForOwner, listWebhookDeliveryLogsForActor } from "@/lib/webhooks/views";
 import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import { Role } from "@prisma/client";
 
@@ -10,16 +10,16 @@ export async function getWebhookLogs(
 ) {
     void userId;
 
-    await requireCurrentOrgRole(orgId, [
+    const { user } = await requireCurrentOrgRole(orgId, [
         Role.OWNER,
         Role.ADMIN,
         Role.DEVELOPER,
     ]);
 
-    return listWebhookDeliveryLogs(orgId);
+    return listWebhookDeliveryLogsForActor(orgId, user.id);
 }
 
 export async function getBillingWebhookEvents(orgId: string) {
-    await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN, Role.DEVELOPER]);
-    return listBillingWebhookEvents(orgId);
+    const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER]);
+    return listBillingWebhookEventsForOwner(orgId, user.id);
 }

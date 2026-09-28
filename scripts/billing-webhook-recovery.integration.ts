@@ -8,12 +8,27 @@ import { Client } from "pg";
 import prisma from "../lib/prisma";
 import { refreshBillingStatus } from "../lib/webhooks/billing-status";
 import { replayBillingWebhookForActor } from "../lib/webhooks/replay-billing";
+import { listBillingWebhookEventsForOwner, listWebhookDeliveryLogs, listWebhookDeliveryLogsForActor } from "../lib/webhooks/views";
+import { rotateEndpointSecretForOwner } from "../lib/webhooks/rotate-secret";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import BillingDeliveryEvents from "../components/webhooks/BillingDeliveryEvents";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 const lockDb = new Client({ connectionString: process.env.DATABASE_URL });
 const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
 const workers: ChildProcess[] = [];
 const received: Array<{ body: Buffer; id: string; timestamp: string; signature: string }> = [];
+const foreignReceived: string[] = [];
+const foreignReceiver = createServer(async (request, response) => {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) chunks.push(Buffer.from(chunk));
+  const event = verifyBillingRequest(Buffer.concat(chunks), request.headers["x-usageflow-timestamp"],
+    request.headers["x-usageflow-signature"], "foreign-secret");
+  if (!event) { response.writeHead(401).end("invalid"); return; }
+  foreignReceived.push(event.id);
+  response.writeHead(200).end("ok");
+});
 let receiverStatus = 200;
 let receiverMode: "respond" | "timeout" | "close" = "respond";
 const receiver = createServer(async (request, response) => {
@@ -76,9 +91,12 @@ async function seed(url: string) {
 try {
   await db.connect();
   await new Promise<void>((resolve) => receiver.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => foreignReceiver.listen(0, "127.0.0.1", resolve));
   const address = receiver.address();
+  const foreignAddress = foreignReceiver.address();
   assert(address && typeof address !== "string");
-  await seed(`http://127.0.0.1:${address.port}/receive`);
+  assert(foreignAddress && typeof foreignAddress !== "string");
+  await seed(`http://127.0.0.1:${address.port}/path-secret-marker?token=query-secret-marker`);
   await queue.obliterate({ force: true });
   const beforeSelection = startWorker({ BILLING_TEST_EXIT_BEFORE_SELECTION: "true" });
   await waitFor(() => beforeSelection.exitCode !== null || beforeSelection.signalCode !== null, "pre-selection crash");
@@ -265,6 +283,12 @@ try {
   }
   await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='replay-event'`)).rows[0].status === "MIXED",
     "failed and successful replay targets");
+  const mixedView = renderToStaticMarkup(createElement(BillingDeliveryEvents, {
+    events: await listBillingWebhookEventsForOwner("recover-org", "recover-user"),
+  }));
+  assert.match(mixedView, /Mixed endpoint outcomes/);
+  assert.match(mixedView, /recover-endpoint: Terminal failure/);
+  assert.match(mixedView, /recover-second: Delivered/);
   receiverStatus = 200;
   const replayInput = { orgId: "recover-org", eventId: "replay-event", endpointId: "recover-endpoint",
     idempotencyKey: "repair-1", reason: "Receiver repaired" };
@@ -286,7 +310,7 @@ try {
     "lateArrivals",comparison,currency,amount) VALUES ('foreign-version','foreign-record','foreign-snapshot',1,
     'recover-user',now(),'2026-07-01','2026-08-01','2026-08-04','[]','[]','[]','[]','{}','[]','{}','USD',0)`);
   await db.query(`INSERT INTO "WebhookEndpoint" (id,url,secret,active,"orgId",events)
-    VALUES ('foreign-endpoint',$1,'foreign-secret',true,'foreign-org',ARRAY['invoice.finalized'])`, [`http://127.0.0.1:${address.port}/foreign`]);
+    VALUES ('foreign-endpoint',$1,'foreign-secret',true,'foreign-org',ARRAY['invoice.finalized'])`, [`http://127.0.0.1:${foreignAddress.port}/foreign`]);
   await db.query(`INSERT INTO "WebhookEvent" (id,type,payload,status,"orgId","billingRecordVersionId",
     "targetEndpointIds","targetSelectionRecordedAt") VALUES ('foreign-event','invoice.finalized',
     '{"amount":"0","version":1}','FAILED','foreign-org','foreign-version',ARRAY['foreign-endpoint'],now())`);
@@ -297,12 +321,18 @@ try {
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingWebhookReplay" WHERE "webhookEventId"='foreign-event'`)).rows[0].n, 0);
   await kill(restarted);
   await queue.obliterate({ force: true });
+  await db.query(`UPDATE "BillingWebhookWork" SET "attemptCount"=0,"failedAttempts"=0,terminal=false,"dueAt"=now()
+    WHERE "webhookEventId"='foreign-event'`);
+  await db.query(`UPDATE "WebhookEvent" SET status='PENDING' WHERE id='foreign-event'`);
   const replay = await replayBillingWebhookForActor(replayInput, "recover-user");
   assert.equal(replay.cycle, 2);
   assert.deepEqual(await replayBillingWebhookForActor(replayInput, "recover-user"), replay);
   assert.equal((await db.query(`SELECT status FROM "WebhookEvent" WHERE id='replay-event'`)).rows[0].status, "PENDING");
   const replayWorker = startWorker();
   await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='replay-event'`)).rows[0].status === "DELIVERED", "replayed delivery");
+  await waitFor(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id='foreign-event'`)).rows[0].status === "DELIVERED", "foreign delivery");
+  assert.deepEqual(foreignReceived, ["foreign-event"]);
+  assert(!received.some((item) => item.id === "foreign-event"));
   assert.equal(received.length, beforeReplay + 1);
   assert.equal(received.at(-1)?.id, "replay-event");
   assert.equal(JSON.parse(received.at(-1)!.body.toString()).payload.version, 1);
@@ -324,15 +354,47 @@ try {
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"='replay-record'`)).rows[0].n, 1);
   assert.equal((await db.query(`SELECT "currentSnapshotId" FROM "BillingRecord" WHERE id='replay-record'`)).rows[0].currentSnapshotId, "replay-snapshot");
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE id='recover-version'`)).rows[0].n, 1);
+  const ownerEvents = await listBillingWebhookEventsForOwner("recover-org", "recover-user");
+  const replayView = ownerEvents.find((event) => event.id === "replay-event");
+  assert(replayView);
+  assert.deepEqual(replayView.targetEndpointIds, ["recover-endpoint", "recover-second"]);
+  assert(replayView.deliveries.some((attempt) => attempt.endpointId === "recover-endpoint" && attempt.cycle === 2));
+  assert(replayView.deliveries.some((attempt) => attempt.endpointId === "recover-endpoint" &&
+    attempt.cycle === 1 && attempt.responseCode === 500 && attempt.durationMs !== null));
+  assert(replayView.billingWebhookReplays.some((replay) => replay.endpointId === "recover-endpoint" && replay.cycle === 2));
+  assert(!JSON.stringify(ownerEvents).includes("foreign-secret"));
+  assert(!JSON.stringify(ownerEvents).includes("synthetic-secret"));
+  assert(!JSON.stringify(ownerEvents).includes("path-secret-marker"));
+  assert(!JSON.stringify(ownerEvents).includes("query-secret-marker"));
+  assert(!JSON.stringify(await listWebhookDeliveryLogs("recover-org")).includes("responseBody"));
+  assert(!JSON.stringify(await listWebhookDeliveryLogs("recover-org")).includes("path-secret-marker"));
+  await db.query(`INSERT INTO "User" (id,email) VALUES ('recover-admin','admin@example.test')`);
+  await db.query(`INSERT INTO "Membership" (id,"userId","orgId",role)
+    VALUES ('recover-admin-membership','recover-admin','recover-org','ADMIN')`);
+  assert((await listWebhookDeliveryLogsForActor("recover-org", "recover-user")).length > 0);
+  assert.deepEqual(await listWebhookDeliveryLogsForActor("recover-org", "recover-admin"), []);
+  await assert.rejects(listBillingWebhookEventsForOwner("foreign-org", "recover-user"), /OWNER_REQUIRED/);
+  assert(!ownerEvents.some((event) => event.id === "foreign-event"));
+  const ownerView = renderToStaticMarkup(createElement(BillingDeliveryEvents, { events: ownerEvents }));
+  assert.match(ownerView, /replay-event/);
+  assert.doesNotMatch(ownerView, /foreign-event|path-secret-marker|query-secret-marker/);
+  await assert.rejects(rotateEndpointSecretForOwner("recover-org", "foreign-endpoint", "recover-user"), /ENDPOINT_NOT_FOUND/);
+  const rotated = await rotateEndpointSecretForOwner("recover-org", "recover-endpoint", "recover-user");
+  assert(rotated.secret && rotated.secret !== "synthetic-secret");
+  assert(!JSON.stringify(await listBillingWebhookEventsForOwner("recover-org", "recover-user")).includes(rotated.secret));
   await assert.rejects(replayBillingWebhookForActor({ ...replayInput, idempotencyKey: "repair-2" }, "recover-user"), /INVALID_REPLAY_STATE/);
   await db.query(`DELETE FROM "Membership" WHERE id='replay-owner'`);
   await assert.rejects(replayBillingWebhookForActor(replayInput, "recover-user"), /OWNER_REQUIRED/);
+  await assert.rejects(rotateEndpointSecretForOwner("recover-org", "recover-endpoint", "recover-user"), /OWNER_REQUIRED/);
+  await assert.rejects(listBillingWebhookEventsForOwner("recover-org", "recover-user"), /OWNER_REQUIRED/);
   await kill(replayWorker);
   console.log("Billing webhook recovery acceptance passed");
 } finally {
   for (const child of workers) if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
   receiver.closeAllConnections();
+  foreignReceiver.closeAllConnections();
   await new Promise<void>((resolve) => receiver.close(() => resolve()));
+  await new Promise<void>((resolve) => foreignReceiver.close(() => resolve()));
   await queue.close();
   await prisma.$disconnect();
   await lockDb.end();
