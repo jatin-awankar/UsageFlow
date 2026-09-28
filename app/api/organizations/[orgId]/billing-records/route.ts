@@ -31,8 +31,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     // Delivery and recovery are not yet deployed. Only disposable acceptance runs can open this gate.
     if (process.env.NODE_ENV === "production" || process.env.CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED !== "true" || process.env.CUSTOMER_LINKED_INGESTION_ENABLED !== "true")
       return NextResponse.json({ error: "Finalization unavailable" }, { status: 404 });
+    if (typeof body.requestId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(body.requestId))
+      return NextResponse.json({ error: "Invalid finalization request identity" }, { status: 400 });
     try {
-      const result = await finalizeBillingRecord(request, orgId, actorId, customer.id, period);
+      const result = await finalizeBillingRecord(request, orgId, actorId, customer.id, period, body.requestId);
+      // A test-only post-commit failure models a lost response. The transaction
+      // has completed; retrying this identity reads its durable binding.
+      if (request.headers.get("x-billing-test-fail-finalization") === "after-commit") throw new Error("Injected response loss");
       return "blocked" in result ? NextResponse.json({ error: "Finalization blocked", blockingReasons: result.blocked }, { status: 409 }) : NextResponse.json(result);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && ["P2002", "P2034"].includes(error.code))

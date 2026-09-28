@@ -343,7 +343,7 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const stalePending = await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose);
     expect(stalePending).toMatchObject({ ready: false, blockingReasons: [{ code: "LEDGER_PENDING", eventId: secondRecoveryEvent }] });
     const staleApproval = await owner.request.post(url, { headers: { "x-billing-test-now": recoveryAfterClose },
-      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer } });
+      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer, requestId: "stale-approval" } });
     expect(staleApproval.status()).toBe(409);
     expect(await staleApproval.json()).toMatchObject({ blockingReasons: [{ code: "LEDGER_PENDING", eventId: secondRecoveryEvent }] });
     expect(stalePending.snapshotId).not.toBe(readyView.snapshotId);
@@ -372,7 +372,7 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).toMatchObject({ ready: false,
       blockingReasons: [{ code: "RECONCILIATION_MISMATCH" }] });
     const mismatchedApproval = await owner.request.post(url, { headers: { "x-billing-test-now": recoveryAfterClose },
-      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer } });
+      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer, requestId: "blocked-approval" } });
     expect(mismatchedApproval.status()).toBe(409);
     expect(await mismatchedApproval.json()).toMatchObject({ blockingReasons: [{ code: "RECONCILIATION_MISMATCH" }] });
     expect(mismatch.snapshot.reconciliation).toMatchObject({ balanced: false, rated: { amount: null, currency: null } });
@@ -399,9 +399,9 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(correctedEvidence.snapshot.reconciliation.rated).toMatchObject({ amount: "8.000", currency: "USD" });
     expect(correctedEvidence.snapshot.comparison).toMatchObject({ previousSnapshotId: mismatch.currentSnapshotId,
       amountDifference: null, unavailableReason: "MIXED_CURRENCY" });
-    const finalize = (headers: Record<string, string> = {}) => owner.request.post(url, {
+    const finalize = (headers: Record<string, string> = {}, requestId = "approval-recovery") => owner.request.post(url, {
       headers: { "x-billing-test-now": recoveryAfterClose, ...headers },
-      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer },
+      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer, requestId },
     });
     expect((await viewer.request.post(url, { data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer } })).status()).toBe(403);
     expect((await owner.request.post(url, { data: { action: "finalize", month: reconciliationMonth, billedCustomerId: customerB } })).status()).toBe(404);
@@ -421,10 +421,32 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(0);
       expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBeNull();
       expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.finalized'`)).rows[0].n).toBe(0);
+      expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest"`)).rows[0].n).toBe(0);
     }
-    const [firstFinal, secondFinal] = await Promise.all([finalize(), finalize()]);
-    expect([firstFinal.status(), secondFinal.status()].sort()).toEqual([200, 409]);
-    const final = await (firstFinal.status() === 200 ? firstFinal : secondFinal).json();
+    const lostResponse = await finalize({ "x-billing-test-fail-finalization": "after-commit" });
+    expect(lostResponse.status()).toBe(500);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest" WHERE "requestId"='approval-recovery'`)).rows[0].n).toBe(1);
+    const winnerId = "approval-recovery";
+    const final = await (await finalize({}, winnerId)).json();
+    const competingResponse = await finalize({}, "competing-approval");
+    expect(competingResponse.status()).toBe(409);
+    expect(await competingResponse.json()).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: final.versionId }] });
+    expect(await (await finalize({}, winnerId)).json()).toEqual(final);
+    const differentIdentity = await finalize({}, "another-approval");
+    expect(differentIdentity.status()).toBe(409);
+    expect(await differentIdentity.json()).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: final.versionId }] });
+    const changedFields = await owner.request.post(url, { headers: { "x-billing-test-now": recoveryAfterClose },
+      data: { action: "finalize", month: "2024-01", billedCustomerId: recoveryCustomer, requestId: winnerId } });
+    expect(changedFields.status()).toBe(409);
+    expect(await changedFields.json()).toMatchObject({ blockingReasons: [{ code: "REQUEST_ID_CONFLICT" }] });
+    const changedCustomer = await owner.request.post(url, { headers: { "x-billing-test-now": recoveryAfterClose },
+      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: customerA, requestId: winnerId } });
+    expect(changedCustomer.status()).toBe(409);
+    expect(await changedCustomer.json()).toMatchObject({ blockingReasons: [{ code: "REQUEST_ID_CONFLICT" }] });
+    const binding = (await db.query(`SELECT * FROM "BillingFinalizationRequest" WHERE "orgId"='draft-a' AND "requestId"=$1`, [winnerId])).rows[0];
+    expect(binding).toMatchObject({ billedCustomerId: recoveryCustomer, billingRecordId: correctedEvidence.id,
+      versionId: final.versionId, eventId: final.eventId });
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest"`)).rows[0].n).toBe(1);
     expect(final).toMatchObject({ billingRecordId: correctedEvidence.id, kind: "BILLING_RECORD_COMPARISON_CALCULATION" });
     const version = (await db.query(`SELECT * FROM "BillingRecordVersion" WHERE id=$1`, [final.versionId])).rows[0];
     expect(version).toMatchObject({ billingRecordId: correctedEvidence.id,
@@ -445,6 +467,22 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const laterEvent = (await laterEventResponse.json()).eventId as string;
     run(laterEvent, "RATING_TEST_FAIL_ATTEMPT");
     run(laterEvent); // Worker recovery for this Customer after approval cannot change the earlier final month.
+    const nextMonth = nextMonthInstant.slice(0, 7);
+    const nextMonthAfterClose = new Date(Date.UTC(Number(nextMonth.slice(0, 4)), Number(nextMonth.slice(5)), 4, 0, 0, 0, 1)).toISOString();
+    const nextDraft = await (await create(nextMonth, recoveryCustomer, nextMonthAfterClose)).json();
+    expect(nextDraft.snapshot.state).toBe("READY_FOR_REVIEW");
+    const nextApproval = (requestId: string) => owner.request.post(url, { headers: { "x-billing-test-now": nextMonthAfterClose },
+      data: { action: "finalize", month: nextMonth, billedCustomerId: recoveryCustomer, requestId } });
+    const [nextFirst, nextSecond] = await Promise.all([nextApproval("next-first"), nextApproval("next-second")]);
+    expect([nextFirst.status(), nextSecond.status()].sort()).toEqual([200, 409]);
+    const nextFinal = await (nextFirst.status() === 200 ? nextFirst : nextSecond).json();
+    const nextConflict = await (nextFirst.status() === 409 ? nextFirst : nextSecond).json();
+    expect(nextConflict).toMatchObject({ blockingReasons: [{ code: "ALREADY_FINALIZED", currentVersionId: nextFinal.versionId }] });
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [nextDraft.id])).rows[0].n).toBe(1);
+    expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [nextDraft.id])).rows[0].currentFinalVersionId).toBe(nextFinal.versionId);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE "billingRecordVersionId"=$1 AND type='invoice.finalized'`, [nextFinal.versionId])).rows[0].n).toBe(1);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingFinalizationRequest" WHERE "billingRecordId"=$1 AND "versionId"=$2 AND "eventId"=$3`,
+      [nextDraft.id, nextFinal.versionId, nextFinal.eventId])).rows[0].n).toBe(1);
     const afterFinalRecalculation = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
     expect(afterFinalRecalculation.finalization).toMatchObject({ kind: "BILLING_RECORD_COMPARISON_CALCULATION",
       currentVersion: { id: final.versionId, amount: "8.000", lines: version.lines } });

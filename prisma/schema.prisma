@@ -402,10 +402,12 @@ model BillingRecord {
   snapshots BillingRecordSnapshot[] @relation("RecordSnapshots")
   currentSnapshot BillingRecordSnapshot? @relation("CurrentSnapshot", fields: [currentSnapshotId, id], references: [id, billingRecordId], onDelete: Restrict)
   finalVersions BillingRecordVersion[] @relation("RecordFinalVersions")
+  finalizationRequests BillingFinalizationRequest[]
   currentFinalVersion BillingRecordVersion? @relation("CurrentFinalVersion", fields: [currentFinalVersionId, id], references: [id, billingRecordId], onDelete: Restrict)
 
   @@unique([orgId, billedCustomerId, periodStart])
   @@unique([id, orgId, billedCustomerId])
+  @@unique([id, orgId, billedCustomerId, periodStart], map: "BillingRecord_request_period_identity_key")
 }
 
 model BillingRecordVersion {
@@ -432,6 +434,7 @@ model BillingRecordVersion {
   approvedBy User @relation(fields: [approvedById], references: [id], onDelete: Restrict)
   currentFor BillingRecord[] @relation("CurrentFinalVersion")
   outboundEvent WebhookEvent?
+  finalizationRequests BillingFinalizationRequest[]
 
   @@unique([id, billingRecordId])
   @@unique([billingRecordId, version])
@@ -503,8 +506,25 @@ model WebhookEvent {
   deliveries   WebhookDelivery[]
   organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   billingRecordVersion BillingRecordVersion? @relation(fields: [billingRecordVersionId], references: [id], onDelete: Restrict)
+  finalizationRequests BillingFinalizationRequest[]
 
   @@index([orgId, createdAt])
+}
+
+model BillingFinalizationRequest {
+  orgId String
+  requestId String
+  billedCustomerId String
+  periodStart DateTime @db.Timestamptz(3)
+  billingRecordId String
+  versionId String
+  eventId String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  record BillingRecord @relation(fields: [billingRecordId, orgId, billedCustomerId, periodStart], references: [id, orgId, billedCustomerId, periodStart], onDelete: Restrict)
+  version BillingRecordVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  event WebhookEvent @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@id([orgId, requestId])
 }
 
 model WebhookDelivery {
