@@ -13,5 +13,6 @@ export async function getWebhooks(userId: string, orgId: string) {
     return prisma.webhookEndpoint.findMany({
         where: { orgId },
         orderBy: { createdAt: "desc" },
+        select: { id: true, url: true, events: true, active: true, createdAt: true },
     });
 }

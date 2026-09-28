@@ -1,17 +1,19 @@
 import express from "express";
 import crypto from "node:crypto";
-import { verifyBillingRequest } from "./billing-verifier.js";
+import { verifyRotatingBillingRequest } from "./billing-verifier.js";
 
 const app = express();
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+const PREVIOUS_SECRET = process.env.WEBHOOK_PREVIOUS_SECRET;
+const PREVIOUS_SECRET_EXPIRES_AT = process.env.WEBHOOK_PREVIOUS_SECRET_EXPIRES_AT;
 if (!WEBHOOK_SECRET) throw new Error("WEBHOOK_SECRET is not configured");
 
 // Use a durable unique event-ID constraint in production and commit it with
 // the work caused by the event. This Set demonstrates the deduplication flow.
 const processedBillingEventIds = new Set();
 app.post("/billing-webhook", express.raw({ type: "application/json" }), (req, res) => {
-  const event = verifyBillingRequest(req.body, req.get("X-UsageFlow-Timestamp"),
-    req.get("X-UsageFlow-Signature"), WEBHOOK_SECRET);
+  const event = verifyRotatingBillingRequest(req.body, req.get("X-UsageFlow-Timestamp"),
+    req.get("X-UsageFlow-Signature"), WEBHOOK_SECRET, PREVIOUS_SECRET, PREVIOUS_SECRET_EXPIRES_AT);
   if (!event) return res.status(401).send("Invalid billing signature or request");
   if (processedBillingEventIds.has(event.id)) return res.status(200).send("Already processed");
   // Process the verified event and durably record its ID in one transaction.

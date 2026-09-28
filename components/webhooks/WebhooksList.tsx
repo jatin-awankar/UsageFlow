@@ -1,3 +1,4 @@
+import RotateWebhookSecretButton from "@/components/webhooks/RotateWebhookSecretButton";
 import ToggleWebhookButton from "@/components/forms/ToggleWebhookButton";
 import { WebhookEndpointStatusBadge } from "@/components/webhooks/WebhookStatusBadges";
 
@@ -12,9 +13,11 @@ export default function WebhooksList({
   userId,
   orgId,
   webhooks,
+  canRotate,
 }: {
   userId: string;
   orgId: string;
+  canRotate: boolean;
   webhooks: {
     id: string;
     url: string;
@@ -54,6 +57,7 @@ export default function WebhooksList({
               {webhook.events.map(toSentenceCase).join(", ")}
             </p>
             <div className="mt-3">
+              {canRotate && <RotateWebhookSecretButton orgId={orgId} endpointId={webhook.id} />}
               <ToggleWebhookButton
                 userId={userId}
                 orgId={orgId}
@@ -108,6 +112,7 @@ export default function WebhooksList({
                   <WebhookEndpointStatusBadge active={webhook.active} />
                 </td>
                 <td className="px-4 py-3 text-right">
+                  {canRotate && <RotateWebhookSecretButton orgId={orgId} endpointId={webhook.id} />}
                   <ToggleWebhookButton
                     userId={userId}
                     orgId={orgId}

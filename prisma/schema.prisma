@@ -501,6 +501,8 @@ model WebhookEndpoint {
   id        String       @id @default(uuid())
   url       String
   secret    String
+  previousSecret String?
+  previousSecretExpiresAt DateTime?
   active    Boolean      @default(true)
   events    String[]
   orgId     String
