@@ -342,6 +342,10 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     const secondRecoveryEvent = (await secondRecoveryResponse.json()).eventId as string;
     const stalePending = await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose);
     expect(stalePending).toMatchObject({ ready: false, blockingReasons: [{ code: "LEDGER_PENDING", eventId: secondRecoveryEvent }] });
+    const staleApproval = await owner.request.post(url, { headers: { "x-billing-test-now": recoveryAfterClose },
+      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer } });
+    expect(staleApproval.status()).toBe(409);
+    expect(await staleApproval.json()).toMatchObject({ blockingReasons: [{ code: "LEDGER_PENDING", eventId: secondRecoveryEvent }] });
     expect(stalePending.snapshotId).not.toBe(readyView.snapshotId);
     run(secondRecoveryEvent, "RATING_TEST_FAIL_ATTEMPT");
     expect(await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).toMatchObject({ ready: false,
@@ -367,6 +371,10 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(mismatch.snapshot.state).toBe("BLOCKED");
     expect(await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).toMatchObject({ ready: false,
       blockingReasons: [{ code: "RECONCILIATION_MISMATCH" }] });
+    const mismatchedApproval = await owner.request.post(url, { headers: { "x-billing-test-now": recoveryAfterClose },
+      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer } });
+    expect(mismatchedApproval.status()).toBe(409);
+    expect(await mismatchedApproval.json()).toMatchObject({ blockingReasons: [{ code: "RECONCILIATION_MISMATCH" }] });
     expect(mismatch.snapshot.reconciliation).toMatchObject({ balanced: false, rated: { amount: null, currency: null } });
     expect(mismatch.snapshot.reconciliation.rated.byCurrency).toEqual([
       { currency: "EUR", amount: "4.000" }, { currency: "USD", amount: "4.000" },
@@ -387,10 +395,57 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect(correctedEvidence.snapshot.state).toBe("READY_FOR_REVIEW");
     expect((await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).ready).toBe(true);
     expect((await db.query(`SELECT count(*)::int AS count FROM "WebhookEvent"`)).rows[0].count).toBe(0);
-    expect((await db.query(`SELECT count(*)::int AS count FROM information_schema.tables WHERE table_name = 'BillingRecordVersion'`)).rows[0].count).toBe(0);
+    expect((await db.query(`SELECT count(*)::int AS count FROM "BillingRecordVersion"`)).rows[0].count).toBe(0);
     expect(correctedEvidence.snapshot.reconciliation.rated).toMatchObject({ amount: "8.000", currency: "USD" });
     expect(correctedEvidence.snapshot.comparison).toMatchObject({ previousSnapshotId: mismatch.currentSnapshotId,
       amountDifference: null, unavailableReason: "MIXED_CURRENCY" });
+    const finalize = (headers: Record<string, string> = {}) => owner.request.post(url, {
+      headers: { "x-billing-test-now": recoveryAfterClose, ...headers },
+      data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer },
+    });
+    expect((await viewer.request.post(url, { data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer } })).status()).toBe(403);
+    expect((await owner.request.post(url, { data: { action: "finalize", month: reconciliationMonth, billedCustomerId: customerB } })).status()).toBe(404);
+    expect((await finalize({ "x-billing-test-now": closeAt })).status()).toBe(409);
+    for (const failure of ["before-version", "before-pointer", "before-event"]) {
+      expect((await finalize({ "x-billing-test-fail-finalization": failure })).status()).toBe(500);
+      expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(0);
+      expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBeNull();
+      expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.finalized'`)).rows[0].n).toBe(0);
+    }
+    const [firstFinal, secondFinal] = await Promise.all([finalize(), finalize()]);
+    expect([firstFinal.status(), secondFinal.status()].sort()).toEqual([200, 409]);
+    const final = await (firstFinal.status() === 200 ? firstFinal : secondFinal).json();
+    expect(final).toMatchObject({ billingRecordId: correctedEvidence.id, kind: "BILLING_RECORD_COMPARISON_CALCULATION" });
+    const version = (await db.query(`SELECT * FROM "BillingRecordVersion" WHERE id=$1`, [final.versionId])).rows[0];
+    expect(version).toMatchObject({ billingRecordId: correctedEvidence.id,
+      version: 1, approvedById: "draft-owner", currency: "USD", sourceEvents: correctedEvidence.snapshot.sourceEvents,
+      ratedSources: correctedEvidence.snapshot.ratedSources, lines: correctedEvidence.snapshot.lines,
+      reconciliation: correctedEvidence.snapshot.reconciliation, lateArrivals: correctedEvidence.snapshot.lateArrivals });
+    expect(version.amount).toBe("8.000");
+    expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBe(final.versionId);
+    expect((await db.query(`SELECT type, payload, "billingRecordVersionId" FROM "WebhookEvent" WHERE id=$1`, [final.eventId])).rows[0]).toMatchObject({
+      type: "invoice.finalized", billingRecordVersionId: final.versionId, payload: { organizationId: "draft-a", billingRecordId: correctedEvidence.id,
+        customerId: recoveryCustomer, versionId: final.versionId, version: 1, amount: "8.000", currency: "USD" },
+    });
+    const nextMonthInstant = new Date(Date.UTC(Number(reconciliationMonth.slice(0, 4)), Number(reconciliationMonth.slice(5)), 1, 0, 0, 1)).toISOString();
+    const laterEventResponse = await request.post(`${base}/api/track`, { headers: { "x-usageflow-api-key": "secret-org-c",
+      "idempotency-key": "draft-after-final-recovery", "x-ledger-test-received-at": nextMonthInstant },
+      data: { customerId: "recovery", metric: "CALLS", amount: 2, timestamp: nextMonthInstant } });
+    expect(laterEventResponse.status()).toBe(200);
+    const laterEvent = (await laterEventResponse.json()).eventId as string;
+    run(laterEvent, "RATING_TEST_FAIL_ATTEMPT");
+    run(laterEvent); // Worker recovery for this Customer after approval cannot change the earlier final month.
+    const afterFinalRecalculation = await (await create(reconciliationMonth, recoveryCustomer, recoveryAfterClose)).json();
+    expect(afterFinalRecalculation.finalization).toMatchObject({ kind: "BILLING_RECORD_COMPARISON_CALCULATION",
+      currentVersion: { id: final.versionId, amount: "8.000", lines: version.lines } });
+    expect((await db.query(`SELECT lines, amount FROM "BillingRecordVersion" WHERE id=$1`, [final.versionId])).rows[0]).toEqual({ lines: version.lines, amount: "8.000" });
+    await expect(db.query(`UPDATE "BillingRecordVersion" SET amount=9 WHERE id=$1`, [final.versionId])).rejects.toThrow();
+    await expect(db.query(`INSERT INTO "BillingRecordVersion" (id, "billingRecordId", "snapshotId", version, "approvedById", "finalizedAt",
+      "periodStart", "periodEnd", "closeAt", "sourceEvents", "ratedSources", "eventOutcomes", lines, reconciliation, "lateArrivals", comparison, currency, amount)
+      SELECT gen_random_uuid()::text, "billingRecordId", "snapshotId", version, "approvedById", "finalizedAt",
+      "periodStart", "periodEnd", "closeAt", "sourceEvents", "ratedSources", "eventOutcomes", lines, reconciliation, "lateArrivals", comparison, currency, amount
+      FROM "BillingRecordVersion" WHERE id=$1`, [final.versionId])).rejects.toThrow();
+    expect((await db.query(`SELECT amount FROM "Invoice" WHERE id='legacy-invoice'`)).rows[0].amount).toBe(999);
   } finally {
     worker?.kill("SIGTERM");
     await owner.close(); await viewer.close(); await db.end();

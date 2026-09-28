@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getMembership } from "@/lib/authz/getMembership";
 import { persistedRatedAmount, sumPersistedRatedAmounts } from "@/lib/persisted-rated-amount";
 import { compareDrafts } from "@/lib/draft-comparison";
+import { randomUUID } from "node:crypto";
 
 function month(value: string | null) {
   if (!value || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return null;
@@ -19,7 +20,7 @@ type Month = NonNullable<ReturnType<typeof month>>;
 
 async function authorized(orgId: string) {
   const user = await getCurrentUser();
-  return !!user?.id && (await getMembership(user.id, orgId))?.role === "OWNER";
+  return user?.id && (await getMembership(user.id, orgId))?.role === "OWNER" ? user.id : null;
 }
 
 const testClockReads = new WeakMap<NextRequest, number>();
@@ -83,8 +84,7 @@ function safeReason(reason: string | null | undefined) {
   return reason && safeReasons.has(reason) ? reason : null;
 }
 
-async function calculateRecord(orgId: string, billedCustomerId: string, period: Month, request: NextRequest, asOf?: Date) {
-  const calculate = () => prisma.$transaction(async (tx) => {
+async function calculateInTransaction(tx: Prisma.TransactionClient, orgId: string, billedCustomerId: string, period: Month, request: NextRequest, asOf?: Date) {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${orgId + ":" + billedCustomerId + ":" + period.start.toISOString()}, 0))`;
     const calculatedAt = asOf ?? requestTime(request);
     const key = { orgId, billedCustomerId, periodStart: period.start };
@@ -200,7 +200,10 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
     if (process.env.NODE_ENV !== "production" && process.env.BILLING_RECORD_TEST_CLOCK_ENABLED === "true" &&
       request.headers.get("x-billing-test-fail-publication") === "true") throw new Error("Injected draft publication failure");
     return tx.billingRecord.update({ where: { id: existing.id }, data: { currentSnapshotId: snapshot.id }, include: { currentSnapshot: true } });
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+}
+
+async function calculateRecord(orgId: string, billedCustomerId: string, period: Month, request: NextRequest, asOf?: Date) {
+  const calculate = () => prisma.$transaction((tx) => calculateInTransaction(tx, orgId, billedCustomerId, period, request, asOf), { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       return await calculate();
@@ -213,17 +216,75 @@ async function calculateRecord(orgId: string, billedCustomerId: string, period: 
 
 async function recordResponse(record: Awaited<ReturnType<typeof calculateRecord>>) {
   const history = await prisma.billingRecordSnapshot.findMany({ where: { billingRecordId: record.id }, orderBy: [{ calculatedAt: "asc" }, { id: "asc" }] });
-  return NextResponse.json({ id: record.id, orgId: record.orgId, billedCustomerId: record.billedCustomerId, periodStart: record.periodStart, periodEnd: record.periodEnd, closeAt: record.closeAt, currentSnapshotId: record.currentSnapshotId, kind: "CALCULATION", snapshot: record.currentSnapshot, history });
+  const finalVersion = record.currentFinalVersionId ? await prisma.billingRecordVersion.findUnique({ where: { id: record.currentFinalVersionId } }) : null;
+  return NextResponse.json({ id: record.id, orgId: record.orgId, billedCustomerId: record.billedCustomerId, periodStart: record.periodStart, periodEnd: record.periodEnd, closeAt: record.closeAt, currentSnapshotId: record.currentSnapshotId, kind: "CALCULATION", snapshot: record.currentSnapshot, history,
+    finalization: finalVersion ? { kind: "BILLING_RECORD_COMPARISON_CALCULATION", currentVersion: { ...finalVersion, amount: finalVersion.amount.toFixed(3) } } : null });
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await context.params;
-  if (!(await authorized(orgId))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const actorId = await authorized(orgId);
+  if (!actorId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json().catch(() => null);
   const period = month(body?.month);
   if (!period || typeof body?.billedCustomerId !== "string") return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   const customer = await prisma.customer.findFirst({ where: { id: body.billedCustomerId, orgId }, select: { id: true } });
   if (!customer) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (body.action === "finalize") {
+    // Delivery and recovery are not yet deployed. Only disposable acceptance runs can open this gate.
+    if (process.env.NODE_ENV === "production" || process.env.CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED !== "true" || process.env.CUSTOMER_LINKED_INGESTION_ENABLED !== "true")
+      return NextResponse.json({ error: "Finalization unavailable" }, { status: 404 });
+    const failAt = request.headers.get("x-billing-test-fail-finalization");
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        // Ledger and rating workers do not participate in the draft advisory lock.
+        // Hold their evidence tables against writes before taking the approval read.
+        await tx.$executeRaw`LOCK TABLE "Membership", "Customer", "UsageEvent", "LedgerProcessingIntent", "RatedEvent", "RatingRetry", "RatingFailure", "UnratedEvent" IN SHARE MODE`;
+        const membership = await tx.membership.findUnique({ where: { userId_orgId: { userId: actorId, orgId } }, select: { role: true } });
+        if (membership?.role !== "OWNER") return { blocked: [{ code: "OWNER_REQUIRED" }] };
+        const scopedCustomer = await tx.customer.findFirst({ where: { id: customer.id, orgId }, select: { id: true } });
+        if (!scopedCustomer) return { blocked: [{ code: "CUSTOMER_NOT_FOUND" }] };
+        const approvalAt = requestTime(request);
+        const record = await calculateInTransaction(tx, orgId, customer.id, period, request, approvalAt);
+        const snapshot = record.currentSnapshot!;
+        const outcomes = snapshot.eventOutcomes as Array<{ eventId: string; state: string; reason: string | null }>;
+        const reconciliation = snapshot.reconciliation as { balanced: boolean; rated: { amount: string | null; currency: string | null } };
+        const blockingReasons = [
+          ...(approvalAt <= period.close ? [{ code: "CLOSE_NOT_PASSED" }] : []),
+          ...outcomes.filter((outcome) => outcome.state !== "RATED").map((outcome) => ({ code: outcome.state, eventId: outcome.eventId, reason: outcome.reason })),
+          ...(!reconciliation.balanced || !reconciliation.rated.amount || !reconciliation.rated.currency ? [{ code: "RECONCILIATION_MISMATCH" }] : []),
+        ];
+        if (blockingReasons.length || snapshot.state !== "READY_FOR_REVIEW") return { blocked: blockingReasons };
+        if (record.currentFinalVersionId) return { blocked: [{ code: "ALREADY_FINALIZED" }] };
+        const versionId = randomUUID();
+        const eventId = randomUUID();
+        const finalizedAt = approvalAt;
+        if (failAt === "before-version") throw new Error("Injected finalization failure");
+        await tx.billingRecordVersion.create({ data: {
+          id: versionId, billingRecordId: record.id, snapshotId: snapshot.id, version: 1, approvedById: actorId, finalizedAt,
+          periodStart: record.periodStart, periodEnd: record.periodEnd, closeAt: record.closeAt,
+          sourceEvents: snapshot.sourceEvents as Prisma.InputJsonValue, ratedSources: snapshot.ratedSources as Prisma.InputJsonValue,
+          eventOutcomes: snapshot.eventOutcomes as Prisma.InputJsonValue, lines: snapshot.lines as Prisma.InputJsonValue,
+          reconciliation: snapshot.reconciliation as Prisma.InputJsonValue, lateArrivals: snapshot.lateArrivals as Prisma.InputJsonValue,
+          comparison: snapshot.comparison === null ? Prisma.JsonNull : snapshot.comparison as Prisma.InputJsonValue,
+          currency: reconciliation.rated.currency!, amount: reconciliation.rated.amount!,
+        } });
+        if (failAt === "before-pointer") throw new Error("Injected finalization failure");
+        await tx.billingRecord.update({ where: { id: record.id }, data: { currentFinalVersionId: versionId } });
+        if (failAt === "before-event") throw new Error("Injected finalization failure");
+        await tx.webhookEvent.create({ data: { id: eventId, orgId, type: "invoice.finalized", billingRecordVersionId: versionId,
+          payload: { organizationId: orgId, billingRecordId: record.id, customerId: customer.id,
+            periodStart: period.start.toISOString(), periodEnd: period.end.toISOString(), versionId, version: 1,
+            currency: reconciliation.rated.currency!, amount: reconciliation.rated.amount! } } });
+        return { versionId, eventId, billingRecordId: record.id, kind: "BILLING_RECORD_COMPARISON_CALCULATION" };
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+      return "blocked" in result ? NextResponse.json({ error: "Finalization blocked", blockingReasons: result.blocked }, { status: 409 }) : NextResponse.json(result);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && ["P2002", "P2034"].includes(error.code))
+        return NextResponse.json({ error: "Finalization conflict" }, { status: 409 });
+      throw error;
+    }
+  }
   const checkedAt = requestTime(request);
   const record = await calculateRecord(orgId, customer.id, period, request, checkedAt);
   if (body.action === "readiness") {
