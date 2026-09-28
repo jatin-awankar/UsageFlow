@@ -158,6 +158,11 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await recoveredSecond.json()).currentSnapshotId).toBe(readyRecovery.currentSnapshotId);
     expect(readyRecovery.snapshot.state).toBe("READY_FOR_REVIEW");
     const closeAt = new Date(Date.UTC(Number(reconciliationMonth.slice(0, 4)), Number(reconciliationMonth.slice(5)), 4)).toISOString();
+    const crossedClose = await owner.request.post(url, { headers: { "x-billing-test-now-sequence": `${closeAt},${recoveryAfterClose}` },
+      data: { action: "readiness", month: reconciliationMonth, billedCustomerId: recoveryCustomer } });
+    expect(crossedClose.status()).toBe(200);
+    expect(await crossedClose.json()).toMatchObject({ checkedAt: closeAt, ready: false,
+      blockingReasons: [{ code: "CLOSE_NOT_PASSED" }] });
     expect(await readiness(reconciliationMonth, recoveryCustomer, closeAt)).toMatchObject({ ready: false, informational: true,
       blockingReasons: [{ code: "CLOSE_NOT_PASSED" }] });
     const readyView = await readiness(reconciliationMonth, recoveryCustomer, recoveryAfterClose);

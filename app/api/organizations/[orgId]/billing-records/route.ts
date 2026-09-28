@@ -22,7 +22,17 @@ async function authorized(orgId: string) {
   return !!user?.id && (await getMembership(user.id, orgId))?.role === "OWNER";
 }
 
+const testClockReads = new WeakMap<NextRequest, number>();
+
 function requestTime(request: NextRequest) {
+  if (process.env.NODE_ENV !== "production" && process.env.BILLING_RECORD_TEST_CLOCK_ENABLED === "true" && process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true") {
+    const sequence = request.headers.get("x-billing-test-now-sequence")?.split(",");
+    if (sequence?.length === 2 && sequence.every((value) => !Number.isNaN(Date.parse(value)))) {
+      const read = testClockReads.get(request) ?? 0;
+      testClockReads.set(request, read + 1);
+      return new Date(sequence[Math.min(read, 1)]);
+    }
+  }
   const testClock = process.env.NODE_ENV !== "production" && process.env.BILLING_RECORD_TEST_CLOCK_ENABLED === "true" && process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true" ? request.headers.get("x-billing-test-now") : null;
   return testClock && !Number.isNaN(Date.parse(testClock)) ? new Date(testClock) : new Date();
 }
@@ -73,10 +83,10 @@ function safeReason(reason: string | null | undefined) {
   return reason && safeReasons.has(reason) ? reason : null;
 }
 
-async function calculateRecord(orgId: string, billedCustomerId: string, period: Month, request: NextRequest) {
+async function calculateRecord(orgId: string, billedCustomerId: string, period: Month, request: NextRequest, asOf?: Date) {
   const calculate = () => prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${orgId + ":" + billedCustomerId + ":" + period.start.toISOString()}, 0))`;
-    const calculatedAt = requestTime(request);
+    const calculatedAt = asOf ?? requestTime(request);
     const key = { orgId, billedCustomerId, periodStart: period.start };
     let existing = await tx.billingRecord.findUnique({ where: { orgId_billedCustomerId_periodStart: key }, include: { currentSnapshot: true } });
     const events = await tx.usageEvent.findMany({
@@ -214,12 +224,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
   if (!period || typeof body?.billedCustomerId !== "string") return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   const customer = await prisma.customer.findFirst({ where: { id: body.billedCustomerId, orgId }, select: { id: true } });
   if (!customer) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const record = await calculateRecord(orgId, customer.id, period, request);
+  const checkedAt = requestTime(request);
+  const record = await calculateRecord(orgId, customer.id, period, request, checkedAt);
   if (body.action === "readiness") {
     const snapshot = record.currentSnapshot!;
     const outcomes = snapshot.eventOutcomes as Array<{ eventId: string; state: string; reason: string | null }>;
     const reconciliation = snapshot.reconciliation as { balanced: boolean; accepted: { count: number; quantity: string }; rated: { count: number; quantity: string; amount: string | null; currency: string | null } };
-    const checkedAt = requestTime(request);
     const blockingReasons = [
       ...(checkedAt <= period.close ? [{ code: "CLOSE_NOT_PASSED" }] : []),
       ...outcomes.filter((outcome) => outcome.state !== "RATED").map((outcome) => ({ code: outcome.state, eventId: outcome.eventId, reason: outcome.reason })),
