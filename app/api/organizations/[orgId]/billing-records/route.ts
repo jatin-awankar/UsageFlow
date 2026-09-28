@@ -39,6 +39,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ or
     if (!validRevisionInput(body)) return NextResponse.json({ error: "Invalid revision request" }, { status: 400 });
     try {
       const result = await reviseBillingRecord(request, orgId, actorId, customer.id, period, body);
+      if (request.headers.get("x-billing-test-fail-revision") === "after-commit") throw new Error("Injected response loss");
       return "blocked" in result ? NextResponse.json({ error: "Revision blocked", blockingReasons: result.blocked }, { status: 409 }) : NextResponse.json(result);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && ["P2002", "P2034"].includes(error.code))

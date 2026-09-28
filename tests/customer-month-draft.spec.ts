@@ -510,8 +510,11 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBe(final.versionId);
       expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(1);
       expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordAdjustment" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(0);
+      expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRevisionRequest" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(0);
       expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.revised' AND "orgId"='draft-a'`)).rows[0].n).toBe(0);
     }
+    const lostRevision = await revision({ "x-billing-test-fail-revision": "after-commit" });
+    expect(lostRevision.status()).toBe(500);
     const revisedResponse = await revision();
     expect(revisedResponse.status()).toBe(200);
     const revised = await revisedResponse.json();
@@ -538,7 +541,38 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       payload: { organizationId: "draft-a", billingRecordId: correctedEvidence.id, customerId: recoveryCustomer,
         versionId: revised.versionId, predecessorVersionId: final.versionId, adjustmentId: revised.adjustmentId,
         currency: "USD", previousAmount: "8.000", amount: "9.000" } });
-    expect((await revision()).status()).toBe(409);
+    expect(await (await revision()).json()).toEqual(revised);
+    const changedRevision = await revision({}, { reason: "A different correction" });
+    expect(changedRevision.status()).toBe(409);
+    expect(await changedRevision.json()).toMatchObject({ blockingReasons: [{ code: "REQUEST_ID_CONFLICT" }] });
+    const revisionBinding = (await db.query(`SELECT * FROM "BillingRevisionRequest" WHERE "orgId"='draft-a' AND "requestId"='revision-one'`)).rows[0];
+    expect(revisionBinding).toMatchObject({ billingRecordId: correctedEvidence.id, expectedVersionId: final.versionId,
+      adjustmentId: revised.adjustmentId, versionId: revised.versionId, eventId: revised.eventId });
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRevisionRequest" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(1);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE "billingRecordVersionId"=$1 AND type='invoice.revised'`, [revised.versionId])).rows[0].n).toBe(1);
+    const retryFinal = await (await finalize({}, winnerId)).json();
+    expect(retryFinal).toEqual(final);
+    expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBe(revised.versionId);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(2);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordAdjustment" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(1);
+    const competing = (requestId: string) => revision({}, { expectedVersionId: revised.versionId, requestId,
+      signedDelta: "1.000", revisedAmount: "10.000", affectedLines: [{ lineIndex: 0,
+        sourceEventIds: revisedVersion.lines[0].sourceEventIds, signedDelta: "1.000", revisedAmount: "10.000" }] });
+    const [raceA, raceB] = await Promise.all([competing("revision-race-a"), competing("revision-race-b")]);
+    expect([raceA.status(), raceB.status()].sort()).toEqual([200, 409]);
+    const winnerRequestId = raceA.status() === 200 ? "revision-race-a" : "revision-race-b";
+    const loserRequestId = raceA.status() === 409 ? "revision-race-a" : "revision-race-b";
+    const raceWinner = await (raceA.status() === 200 ? raceA : raceB).json();
+    expect(await (await competing(winnerRequestId)).json()).toEqual(raceWinner);
+    const staleRevision = await competing(loserRequestId);
+    expect(staleRevision.status()).toBe(409);
+    expect(await staleRevision.json()).toMatchObject({ blockingReasons: [{ code: "STALE_VERSION", currentVersionId: raceWinner.versionId }] });
+    expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId).toBe(raceWinner.versionId);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(3);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordAdjustment" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(2);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRevisionRequest" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(2);
+    expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.revised' AND "billingRecordVersionId" IN ($1,$2)`,
+      [revised.versionId, raceWinner.versionId])).rows[0].n).toBe(2);
     expect((await db.query(`SELECT amount FROM "Invoice" WHERE id='legacy-invoice'`)).rows[0].amount).toBe(999);
   } finally {
     worker?.kill("SIGTERM");

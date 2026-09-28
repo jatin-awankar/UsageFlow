@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { Prisma, type BillingRecordVersion } from "@prisma/client";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { requestTime, type Month } from "@/lib/billing-record-calculation";
 
@@ -10,6 +10,15 @@ export type RevisionInput = { expectedVersionId: string; requestId: string; reas
 const exact = (value: unknown) => typeof value === "string" && /^-?(?:0|[1-9]\d{0,32})\.\d{3}$/.test(value) ? BigInt(value.replace(".", "")) : null;
 const money = (value: bigint) => `${value < 0n ? "-" : ""}${(value < 0n ? -value : value) / 1000n}.${((value < 0n ? -value : value) % 1000n).toString().padStart(3, "0")}`;
 const durableEvidence = (value: string) => /^https:\/\/[^\s/?#]+\/[^\s#]+$/.test(value) || /^urn:[a-z0-9][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:._/-]+$/.test(value);
+
+function revisionHash(input: RevisionInput) {
+  const fields = { expectedVersionId: input.expectedVersionId, reason: input.reason.trim(), evidenceRef: input.evidenceRef,
+    currency: input.currency, signedDelta: input.signedDelta, revisedAmount: input.revisedAmount,
+    affectedLines: input.affectedLines.map((line) => ({ lineIndex: line.lineIndex, sourceEventIds: [...line.sourceEventIds].sort(),
+      signedDelta: line.signedDelta, revisedAmount: line.revisedAmount }))
+      .sort((a, b) => a.lineIndex - b.lineIndex) };
+  return createHash("sha256").update(JSON.stringify(fields)).digest("hex");
+}
 
 export function validRevisionInput(value: unknown): value is RevisionInput {
   if (!value || typeof value !== "object") return false;
@@ -66,6 +75,14 @@ export async function reviseBillingRecord(request: NextRequest, orgId: string, a
     const membership = await tx.membership.findUnique({ where: { userId_orgId: { userId: actorId, orgId } }, select: { role: true } });
     if (membership?.role !== "OWNER") return { blocked: [{ code: "OWNER_REQUIRED" }] };
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${orgId + ":" + customerId + ":" + period.start.toISOString()}, 0))`;
+    const binding = await tx.billingRevisionRequest.findUnique({ where: { orgId_requestId: { orgId, requestId: input.requestId } } });
+    if (binding) {
+      if (binding.billedCustomerId !== customerId || binding.periodStart.getTime() !== period.start.getTime() ||
+        binding.expectedVersionId !== input.expectedVersionId || binding.requestHash !== revisionHash(input))
+        return { blocked: [{ code: "REQUEST_ID_CONFLICT" }] };
+      return { versionId: binding.versionId, eventId: binding.eventId, adjustmentId: binding.adjustmentId,
+        billingRecordId: binding.billingRecordId, kind: "BILLING_RECORD_COMPARISON_CALCULATION" };
+    }
     const record = await tx.billingRecord.findUnique({ where: { orgId_billedCustomerId_periodStart: { orgId, billedCustomerId: customerId, periodStart: period.start } } });
     if (!record?.currentFinalVersionId) return { blocked: [{ code: "NOT_FINALIZED" }] };
     if (record.currentFinalVersionId !== input.expectedVersionId) return { blocked: [{ code: "STALE_VERSION", currentVersionId: record.currentFinalVersionId }] };
@@ -97,6 +114,9 @@ export async function reviseBillingRecord(request: NextRequest, orgId: string, a
       payload: { organizationId: orgId, billingRecordId: record.id, customerId, periodStart: period.start.toISOString(),
         periodEnd: period.end.toISOString(), versionId, predecessorVersionId: previous.id, version: previous.version + 1,
         currency: previous.currency, previousAmount: previous.amount.toFixed(3), amount: input.revisedAmount, adjustmentId } } });
+    await tx.billingRevisionRequest.create({ data: { orgId, requestId: input.requestId, billedCustomerId: customerId,
+      periodStart: period.start, billingRecordId: record.id, expectedVersionId: previous.id,
+      requestHash: revisionHash(input), adjustmentId, versionId, eventId } });
     return { versionId, eventId, adjustmentId, billingRecordId: record.id, kind: "BILLING_RECORD_COMPARISON_CALCULATION" };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
 }
