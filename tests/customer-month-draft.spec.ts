@@ -406,6 +406,16 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await viewer.request.post(url, { data: { action: "finalize", month: reconciliationMonth, billedCustomerId: recoveryCustomer } })).status()).toBe(403);
     expect((await owner.request.post(url, { data: { action: "finalize", month: reconciliationMonth, billedCustomerId: customerB } })).status()).toBe(404);
     expect((await finalize({ "x-billing-test-now": closeAt })).status()).toBe(409);
+    // A persisted rating cannot hide an unresolved ledger failure at approval time.
+    await db.query(`UPDATE "UsageEvent" SET "processingState"='FAILED' WHERE id=$1`, [secondRecoveryEvent]);
+    try {
+      const conflictingLedgerEvidence = await finalize();
+      expect(conflictingLedgerEvidence.status()).toBe(409);
+      expect(await conflictingLedgerEvidence.json()).toMatchObject({ blockingReasons: [{ code: "LEDGER_FAILED", eventId: secondRecoveryEvent }] });
+      expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(0);
+    } finally {
+      await db.query(`UPDATE "UsageEvent" SET "processingState"='PROCESSED' WHERE id=$1`, [secondRecoveryEvent]);
+    }
     for (const failure of ["before-version", "before-pointer", "before-event"]) {
       expect((await finalize({ "x-billing-test-fail-finalization": failure })).status()).toBe(500);
       expect((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE "billingRecordId"=$1`, [correctedEvidence.id])).rows[0].n).toBe(0);
