@@ -30,6 +30,7 @@ export default function WebhookLogsList({
     responseCode: number | null;
     responseBody: string | null;
     attempt: number;
+    cycle: number;
     durationMs: number | null;
     startedAt: Date | null;
     webhookEvent: { type: string };
@@ -76,7 +77,7 @@ export default function WebhookLogsList({
               </code>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Attempt {log.attempt}
+              Cycle {log.cycle} · Attempt {log.attempt}
               {log.responseCode ? ` - HTTP ${log.responseCode}` : ""}
               {typeof log.durationMs === "number"
                 ? ` - ${log.durationMs} ms`
@@ -134,7 +135,7 @@ export default function WebhookLogsList({
                   <WebhookDeliveryStatusBadge status={log.status} />
                 </td>
                 <td className="px-4 py-3 text-slate-700">
-                  Attempt {log.attempt}
+                  Cycle {log.cycle} · Attempt {log.attempt}
                   {log.responseCode ? ` - HTTP ${log.responseCode}` : ""}
                   {typeof log.durationMs === "number"
                     ? ` - ${log.durationMs} ms`

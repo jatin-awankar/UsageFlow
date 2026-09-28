@@ -24,6 +24,7 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
   const received: Array<{ body: string; headers: Record<string, string | string[] | undefined> }> = [];
   const heldResponses = new Map<string, ServerResponse>();
   let holdRevisionResponses = false;
+  let failingReplayPath: string | null = null;
   const receiver = createServer((request, response) => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -32,6 +33,10 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
       received.push({ body, headers: request.headers });
       if (holdRevisionResponses && JSON.parse(body).type === "invoice.revised") {
         heldResponses.set(request.url ?? "", response);
+        return;
+      }
+      if (request.url === failingReplayPath) {
+        response.writeHead(500).end("receiver unavailable");
         return;
       }
       response.writeHead(204).end();
@@ -693,6 +698,54 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE type='invoice.revised' AND "billingRecordVersionId" IN ($1,$2)`,
       [revised.versionId, raceWinner.versionId])).rows[0].n).toBe(2);
     expect((await db.query(`SELECT amount FROM "Invoice" WHERE id='legacy-invoice'`)).rows[0].amount).toBe(999);
+    // Let the worker exhaust a real target while its selected peer succeeds,
+    // then replay through the signed-in owner's visible control.
+    await db.query(`UPDATE "WebhookEndpoint" SET active=true WHERE id='billing-target-a'`);
+    await db.query(`UPDATE "WebhookEndpoint" SET active=true WHERE id='billing-target-b'`);
+    failingReplayPath = "/billing";
+    const replayApprovalResponse = await revision({}, { expectedVersionId: raceWinner.versionId,
+      requestId: "revision-for-replay", reason: "Correct comparison after review", revisedAmount: "11.000",
+      affectedLines: [{ lineIndex: 0, sourceEventIds: version.lines[0].sourceEventIds,
+        signedDelta: "1.000", revisedAmount: "11.000" }] });
+    expect(replayApprovalResponse.status()).toBe(200);
+    const replayApproval = await replayApprovalResponse.json();
+    expect((await db.query(`SELECT "targetEndpointIds" FROM "WebhookEvent" WHERE id=$1`, [replayApproval.eventId])).rows[0].targetEndpointIds)
+      .toEqual(["billing-target-a", "billing-target-b"]);
+    for (let failures = 1; failures <= 5; failures++) {
+      await expect.poll(async () => (await db.query(`SELECT "failedAttempts" FROM "BillingWebhookWork"
+        WHERE "webhookEventId"=$1 AND "endpointId"='billing-target-a'`, [replayApproval.eventId])).rows[0]?.failedAttempts,
+        { timeout: 20_000 }).toBe(failures);
+      if (failures < 5) await db.query(`UPDATE "BillingWebhookWork" SET "dueAt"=now()-interval '1 second'
+        WHERE "webhookEventId"=$1 AND "endpointId"='billing-target-a'`, [replayApproval.eventId]);
+    }
+    await expect.poll(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id=$1`, [replayApproval.eventId])).rows[0].status)
+      .toBe("MIXED");
+    expect((await db.query(`SELECT cycle,attempt,status FROM "WebhookDelivery" WHERE "webhookEventId"=$1
+      AND "endpointId"='billing-target-a' ORDER BY attempt`, [replayApproval.eventId])).rows)
+      .toEqual([1, 2, 3, 4, 5].map((attempt) => ({ cycle: 1, attempt, status: "FAILED" })));
+    const originalReplayBody = received.find(({ body }) => JSON.parse(body).id === replayApproval.eventId)!.body;
+    const beforeManualReplay = received.filter(({ body }) => JSON.parse(body).id === replayApproval.eventId).length;
+    failingReplayPath = null;
+    await owner.goto(`${base}/app/draft-a/webhooks/logs`);
+    await owner.getByLabel("Replay reason").fill("Receiver repaired");
+    await owner.getByRole("button", { name: "Replay failed endpoint" }).click();
+    await expect(owner.getByRole("status")).toHaveText("Replay queued for this endpoint.");
+    await owner.getByRole("button", { name: "Replay failed endpoint" }).click();
+    await expect(owner.getByRole("status")).toHaveText("Replay queued for this endpoint.");
+    await expect.poll(async () => received.filter(({ body }) => JSON.parse(body).id === replayApproval.eventId).length).toBe(beforeManualReplay + 1);
+    const replayRequest = received.filter(({ body }) => JSON.parse(body).id === replayApproval.eventId).at(-1)!;
+    expect(replayRequest.body).toBe(originalReplayBody);
+    expect((await db.query(`SELECT "actorId",reason,cycle FROM "BillingWebhookReplay" WHERE "webhookEventId"=$1`, [replayApproval.eventId])).rows[0])
+      .toEqual({ actorId: "draft-owner", reason: "Receiver repaired", cycle: 2 });
+    expect((await db.query(`SELECT count(*)::int AS n FROM "BillingWebhookReplay" WHERE "webhookEventId"=$1`, [replayApproval.eventId])).rows[0].n).toBe(1);
+    expect((await db.query(`SELECT cycle,attempt,status FROM "WebhookDelivery" WHERE "webhookEventId"=$1
+      AND "endpointId"='billing-target-b'`, [replayApproval.eventId])).rows).toEqual([{ cycle: 1, attempt: 1, status: "SUCCESS" }]);
+    await expect.poll(async () => (await db.query(`SELECT status FROM "WebhookEvent" WHERE id=$1`, [replayApproval.eventId])).rows[0].status)
+      .toBe("DELIVERED");
+    expect((await db.query(`SELECT "currentFinalVersionId" FROM "BillingRecord" WHERE id=$1`, [correctedEvidence.id])).rows[0].currentFinalVersionId)
+      .toBe(replayApproval.versionId);
+    await viewer.goto(`${base}/app/draft-a/webhooks/logs`);
+    await expect(viewer.getByRole("button", { name: "Replay failed endpoint" })).toHaveCount(0);
   } finally {
     for (const response of heldResponses.values()) response.writeHead(204).end();
     worker?.kill("SIGTERM");

@@ -49,9 +49,10 @@ async function upsertWebhookDelivery(args: {
 
   await prisma.webhookDelivery.upsert({
     where: {
-      webhookEventId_endpointId_attempt: {
+      webhookEventId_endpointId_cycle_attempt: {
         webhookEventId,
         endpointId,
+        cycle: 1,
         attempt,
       },
     },
