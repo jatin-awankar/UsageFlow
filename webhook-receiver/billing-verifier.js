@@ -22,3 +22,13 @@ export function verifyBillingRequest(rawBody, timestampHeader, signatureHeader, 
     return event;
   } catch { return null; }
 }
+
+// Keep only one previous key. Expiry is exclusive at the exact 24-hour mark.
+export function verifyRotatingBillingRequest(rawBody, timestampHeader, signatureHeader,
+    currentSecret, previousSecret, previousSecretExpiresAt, now = new Date()) {
+  const nowSeconds = Math.floor(now.getTime() / 1000);
+  const current = verifyBillingRequest(rawBody, timestampHeader, signatureHeader, currentSecret, nowSeconds);
+  if (current) return current;
+  if (!previousSecret || !previousSecretExpiresAt || now.getTime() >= new Date(previousSecretExpiresAt).getTime()) return null;
+  return verifyBillingRequest(rawBody, timestampHeader, signatureHeader, previousSecret, nowSeconds);
+}

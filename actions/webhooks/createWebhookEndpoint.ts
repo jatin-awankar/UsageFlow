@@ -1,69 +1,19 @@
-// app/actions/createWebhookEndpoint.ts
 "use server";
 
-import prisma from "@/lib/prisma";
 import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
-import { writeAuditLog } from "@/lib/audit";
-import crypto from "crypto";
 import { createWebhookSchema } from "@/lib/validators";
+import { createEndpointForOwner } from "@/lib/webhooks/create-endpoint";
 import { Role } from "@prisma/client";
 
-export async function createWebhookEndpoint(
-  userId: string,
-  orgId: string,
-  data: {
-    url: string;
-    events: string[];
-  },
-) {
-  // 1️⃣ Validate input
-  const parsed = createWebhookSchema.safeParse(data);
-  if (!parsed.success) {
-    return { success: false, error: "Invalid webhook data", status: 400 }
-  }
-
-  const { url, events } = parsed.data;
-
+export async function createWebhookEndpoint(userId: string, orgId: string, data: { url: string; events: string[] }) {
   void userId;
-
-  const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN]);
-
-  const secret = crypto.randomBytes(32).toString("hex");
-
-  // 3️⃣ Create webhook endpoint
+  const parsed = createWebhookSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: "Invalid webhook data", status: 400 };
+  const { user } = await requireCurrentOrgRole(orgId, [Role.OWNER]);
   try {
-    const webhook = await prisma.webhookEndpoint.create({
-      data: {
-        orgId,
-        url,
-        events,
-        secret,
-        active: true,
-      },
-    });
-
-    // 4️⃣ Audit log (THIS WAS MISSING)
-    await writeAuditLog({
-      orgId,
-      userId: user.id,
-      action: "WEBHOOK_CREATED",
-      entity: "WebhookEndpoint",
-      entityId: webhook.id,
-      metadata: {
-        data: {
-          url: webhook.url,
-          events: webhook.events,
-        },
-      },
-    });
-
-    return { success: true, data: webhook };
-  } catch (error) {
-    console.error("Failed to create webhook endpoint", error);
-    return {
-      success: false,
-      error: "Failed to create webhook endpoint",
-      statusCode: 500,
-    };
+    const endpoint = await createEndpointForOwner(orgId, user.id, parsed.data.url, parsed.data.events);
+    return { success: true, data: endpoint };
+  } catch {
+    return { success: false, error: "Failed to create webhook endpoint", statusCode: 500 };
   }
 }

@@ -1,3 +1,4 @@
+import { getMembership } from "@/lib/authz/getMembership";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getWebhooks } from "@/actions/webhooks/getWebhooks";
 import { redirect } from "next/navigation";
@@ -21,6 +22,7 @@ export default async function WebhooksPage({
 
   const { orgId } = await Promise.resolve(params);
   const webhooks = await getWebhooks(user.id, orgId);
+  const membership = await getMembership(user.id, orgId);
 
   return (
     <>
@@ -38,7 +40,7 @@ export default async function WebhooksPage({
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
-            <CreateWebhookForm userId={user.id} orgId={orgId} />
+            {membership?.role === "OWNER" && <CreateWebhookForm userId={user.id} orgId={orgId} />}
           </div>
         }
       />
@@ -48,7 +50,7 @@ export default async function WebhooksPage({
       ) : (
         <section className="space-y-6">
           <WebhooksOverview webhooks={webhooks} />
-          <WebhooksList userId={user.id} orgId={orgId} webhooks={webhooks} />
+          <WebhooksList userId={user.id} orgId={orgId} webhooks={webhooks} canRotate={membership?.role === "OWNER"} />
         </section>
       )}
     </>

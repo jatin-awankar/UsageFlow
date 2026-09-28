@@ -2,7 +2,7 @@
 
 import { Role } from "@prisma/client";
 import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
-import prisma from "@/lib/prisma";
+import { listWebhookEndpoints } from "@/lib/webhooks/views";
 
 
 export async function getWebhooks(userId: string, orgId: string) {
@@ -10,8 +10,5 @@ export async function getWebhooks(userId: string, orgId: string) {
 
     await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN, Role.DEVELOPER]);
 
-    return prisma.webhookEndpoint.findMany({
-        where: { orgId },
-        orderBy: { createdAt: "desc" },
-    });
+    return listWebhookEndpoints(orgId);
 }
