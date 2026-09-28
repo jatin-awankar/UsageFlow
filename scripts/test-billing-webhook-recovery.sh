@@ -19,3 +19,6 @@ done
 export DATABASE_URL="postgresql://postgres:synthetic-only@127.0.0.1:$(docker port "$container" 5432/tcp | sed 's/.*://')/postgres"
 export REDIS_URL="redis://127.0.0.1:$(docker port "$redis_container" 6379/tcp | sed 's/.*://')"
 npx tsx scripts/billing-webhook-recovery.integration.ts
+cleanup
+trap - EXIT
+bash scripts/test-customer-month-draft.sh

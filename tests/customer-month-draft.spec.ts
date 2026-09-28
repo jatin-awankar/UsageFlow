@@ -460,10 +460,11 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     await db.query(`INSERT INTO "WebhookEndpoint" (id, url, secret, events, "orgId") VALUES
       ('billing-added-later', $1, 'later-secret', ARRAY['invoice.finalized'], 'draft-a')`, [`http://127.0.0.1:${receiverPort}/late`]);
     const webhookQueue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
-    const queued = await webhookQueue.getJobs(["waiting", "delayed", "active"]);
+    const queued = await webhookQueue.getJobs(["waiting", "delayed"]);
     expect(queued.filter((job) => job.name === "DELIVER_WEBHOOK" && job.data.webhookEventId === final.eventId)).toHaveLength(1);
-    await webhookQueue.add("DELIVER_WEBHOOK", { webhookEventId: final.eventId, endpointId: "billing-target-a", attempt: 1 },
-      { jobId: `duplicate-billing-${final.eventId}`, removeOnComplete: true });
+    await webhookQueue.obliterate({ force: true });
+    const lostFinalJobs = await webhookQueue.getJobs(["waiting", "delayed"]);
+    expect(lostFinalJobs.filter((job) => job.name === "DELIVER_WEBHOOK" && job.data.webhookEventId === final.eventId)).toHaveLength(0);
     await webhookQueue.close();
     worker = spawn("./node_modules/.bin/tsx", ["worker/index.ts"], { env: process.env, stdio: "ignore" });
     await expect.poll(async () => received.filter(({ body }) => JSON.parse(body).id === final.eventId).length,
@@ -578,6 +579,13 @@ test("owner drafts use verified Customer ledger events and immutable monthly sna
     expect((await db.query(`SELECT count(*)::int AS n FROM "WebhookEvent" WHERE "billingRecordVersionId"=$1`, [revised.versionId])).rows[0].n).toBe(1);
     expect((await db.query(`SELECT "targetEndpointIds" FROM "WebhookEvent" WHERE id=$1`, [revised.eventId])).rows[0].targetEndpointIds)
       .toEqual(["billing-target-a", "billing-target-b"]);
+    const revisionQueue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
+    const revisionJobs = await revisionQueue.getJobs(["waiting", "delayed"]);
+    expect(revisionJobs.filter((job) => job.name === "DELIVER_WEBHOOK" && job.data.webhookEventId === revised.eventId)).toHaveLength(2);
+    await revisionQueue.obliterate({ force: true });
+    const lostRevisionJobs = await revisionQueue.getJobs(["waiting", "delayed"]);
+    expect(lostRevisionJobs.filter((job) => job.name === "DELIVER_WEBHOOK" && job.data.webhookEventId === revised.eventId)).toHaveLength(0);
+    await revisionQueue.close();
     worker = spawn("./node_modules/.bin/tsx", ["worker/index.ts"], { env: process.env, stdio: "ignore" });
     await expect.poll(async () => received.filter(({ body }) => JSON.parse(body).id === revised.eventId).length,
       { timeout: 20_000 }).toBe(2);
