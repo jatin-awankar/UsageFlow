@@ -162,7 +162,8 @@ try {
   assert.equal(verifyBillingRequest(firstRequest.body, firstRequest.timestamp, `v1=${"0".repeat(64)}`, "synthetic-secret", now), null);
   assert.equal(verifyBillingRequest(firstRequest.body, String(now - 300), signed(String(now - 300)), "synthetic-secret", now)?.id, "recover-event");
   assert.equal(verifyBillingRequest(firstRequest.body, String(now - 301), signed(String(now - 301)), "synthetic-secret", now), null);
-  assert.equal(verifyBillingRequest(firstRequest.body, String(now + 1), signed(String(now + 1)), "synthetic-secret", now), null);
+  assert.equal(verifyBillingRequest(firstRequest.body, String(now + 300), signed(String(now + 300)), "synthetic-secret", now)?.id, "recover-event");
+  assert.equal(verifyBillingRequest(firstRequest.body, String(now + 301), signed(String(now + 301)), "synthetic-secret", now), null);
   const attempts = await db.query(`SELECT attempt,status FROM "WebhookDelivery" WHERE "webhookEventId"='recover-event' ORDER BY attempt`);
   assert.deepEqual(attempts.rows, [{ attempt: 1, status: "FAILED" }, { attempt: 2, status: "SUCCESS" }]);
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM "BillingRecordVersion" WHERE id='recover-version'`)).rows[0].n, 1);

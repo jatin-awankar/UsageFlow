@@ -6,7 +6,7 @@ export function verifyBillingRequest(rawBody, timestampHeader, signatureHeader, 
       !/^(0|[1-9][0-9]*)$/.test(timestampHeader) || typeof signatureHeader !== "string" ||
       !/^v1=[0-9a-f]{64}$/.test(signatureHeader) || typeof secret !== "string" || !secret) return null;
   const timestamp = Number(timestampHeader);
-  if (!Number.isSafeInteger(timestamp) || timestamp > nowSeconds || nowSeconds - timestamp > 300) return null;
+  if (!Number.isSafeInteger(timestamp) || Math.abs(nowSeconds - timestamp) > 300) return null;
   const expected = createHmac("sha256", secret).update(timestampHeader).update(".").update(rawBody).digest();
   const supplied = Buffer.from(signatureHeader.slice(3), "hex");
   if (!timingSafeEqual(expected, supplied)) return null;

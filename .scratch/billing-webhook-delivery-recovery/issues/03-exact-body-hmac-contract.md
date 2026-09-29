@@ -16,3 +16,4 @@
 ## Comments
 
 - 2026-09-28: Implemented in draft PR [#72](https://github.com/jatin-awankar/UsageFlow/pull/72), which remains open. The billing recovery acceptance harness, TypeScript check, ESLint, and diff check passed. Two-axis code review found no blocking findings; it noted an optional unused timestamp injection parameter and that the revised-event test captures its body as a string before byte comparison.
+- 2026-09-29: Restored-copy receiver review found that this ticket's future-timestamp wording conflicts with the approved spec's symmetric 300-second window. The follow-up correction aligns the sample verifier, published docs, and boundary tests with the spec; the deployed billing gate remains closed.
