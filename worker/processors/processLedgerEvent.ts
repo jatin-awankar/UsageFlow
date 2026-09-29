@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import prisma from "@/lib/prisma";
+import { emitPilotEvidenceTrace } from "@/lib/pilotEvidenceTrace";
 import { Prisma } from "@prisma/client";
 import { attemptCustomerRating } from "./rateCustomerEvent";
 
@@ -16,7 +17,12 @@ function safeFailureReason(error: unknown) {
   return "LEDGER_PROJECTION_FAILED";
 }
 
-export async function processLedgerEvent(eventId: string) {
+export async function processLedgerEvent(eventId: string, pilotTrace = false) {
+  const trace = (stage: string) => {
+    if (pilotTrace && process.env.PILOT_EVIDENCE_TRACE === "true") {
+      emitPilotEvidenceTrace({ stage, eventId, at: new Date().toISOString() });
+    }
+  };
   const token = randomUUID();
   const now = new Date();
   const claimed = await prisma.$transaction(async (tx) => {
@@ -32,6 +38,7 @@ export async function processLedgerEvent(eventId: string) {
     await tx.usageEvent.update({ where: { id: eventId }, data: { processingState: "PROCESSING" } });
     return true;
   });
+  if (claimed) trace("durable_claim");
   if (!claimed) {
     await attemptCustomerRating(eventId);
     return;
@@ -60,8 +67,10 @@ export async function processLedgerEvent(eventId: string) {
       await tx.usageEvent.update({ where: { id: eventId }, data: { processingState: "PROCESSED" } });
       await tx.ledgerProcessingIntent.update({ where: { eventId }, data: { leaseToken: null, leaseUntil: null, failureReason: null } });
     });
+    trace("projection_committed");
     if (process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_EXIT_BEFORE_RATING === "true") process.exit(92);
     await attemptCustomerRating(eventId);
+    trace("rating_attempt_finished");
   } catch (error) {
     console.error("Ledger projection failed", { eventId, error });
     await prisma.$transaction(async (tx) => {

@@ -28,7 +28,11 @@ const deliverWebhookJobSchema = z.object({
   attempt: z.number().int().min(1).optional(),
 });
 
-const processLedgerEventJobSchema = z.object({ eventId: z.string().min(1) });
+const processLedgerEventJobSchema = z.object({
+  eventId: z.string().min(1),
+  pilotTrace: z.boolean().optional(),
+  pilotTraceKind: z.enum(["initial", "ledger_recovery", "rating_recovery"]).optional(),
+});
 
 export type UsageFlowJobData =
   | z.infer<typeof aggregateUsageJobSchema>
@@ -53,8 +57,10 @@ export async function processQueueJob(job: QueueJobInput) {
         const data = deliverWebhookJobSchema.parse(job.data);
         return processWebhook(data.webhookEventId, data.endpointId, data.attempt);
       }
-    case "PROCESS_LEDGER_EVENT":
-      return processLedgerEvent(processLedgerEventJobSchema.parse(job.data).eventId);
+    case "PROCESS_LEDGER_EVENT": {
+      const data = processLedgerEventJobSchema.parse(job.data);
+      return processLedgerEvent(data.eventId, data.pilotTrace);
+    }
     default:
       throw new Error(
         `Unknown queue job: ${job.name}${job.id ? ` (${job.id})` : ""}`

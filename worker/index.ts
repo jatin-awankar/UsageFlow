@@ -2,6 +2,7 @@
 import "dotenv/config";
 
 import { Worker } from "bullmq";
+import { emitPilotEvidenceTrace } from "@/lib/pilotEvidenceTrace";
 import { bullmqConnection, usageFlowQueueName } from "@/lib/bullmq";
 import {
   processQueueJob,
@@ -26,6 +27,9 @@ function getWorkerConcurrency() {
 const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
   usageFlowQueueName,
   async (job) => {
+    if (job.name === "PROCESS_LEDGER_EVENT" && "pilotTrace" in job.data && job.data.pilotTrace === true && process.env.PILOT_EVIDENCE_TRACE === "true") {
+      emitPilotEvidenceTrace({ stage: "worker_execution", eventId: String("eventId" in job.data ? job.data.eventId : ""), at: new Date().toISOString(), queueEnteredAt: new Date(job.timestamp).toISOString(), jobId: job.id, jobKind: "pilotTraceKind" in job.data ? job.data.pilotTraceKind : undefined });
+    }
     console.log(`Processing job: ${job.name}`, job.data);
     return processQueueJob(job);
   },

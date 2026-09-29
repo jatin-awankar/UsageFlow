@@ -6,6 +6,7 @@ import { Client } from "pg";
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
 const workers: ChildProcess[] = [];
+const workerOutput = new Map<ChildProcess, string>();
 
 async function waitFor(predicate: () => Promise<boolean>, label: string, timeout = 15_000) {
   const until = Date.now() + timeout;
@@ -21,6 +22,8 @@ function startWorker(extraEnv: Record<string, string> = {}) {
     env: { ...process.env, ...extraEnv }, stdio: ["ignore", "pipe", "pipe"],
   });
   worker.stderr?.on("data", (chunk) => process.stderr.write(chunk));
+  workerOutput.set(worker, "");
+  worker.stdout?.on("data", (chunk) => workerOutput.set(worker, (workerOutput.get(worker) || "") + chunk.toString()));
   workers.push(worker);
   return worker;
 }
@@ -64,13 +67,22 @@ async function assertProjection(ids: string[]) {
 try {
   await db.connect();
   // Redis can lose a dispatched job while the committed PostgreSQL intent survives.
-  const lost = await accept("worker-queue-loss");
+  const lost = await accept("event-abcdef12-345-0");
   console.log("Accepted queue-loss event");
   assert.equal((await state(lost)).processingState, "PENDING");
   await queue.obliterate({ force: true });
   let worker = startWorker();
   await waitFor(async () => (await state(lost)).processingState === "PROCESSED", "queue loss recovery");
+  await waitFor(async () => (workerOutput.get(worker) || "").split("\n").some((line) => line.startsWith("PILOT_TRACE ") && line.includes(`"eventId":"${lost}"`) && line.includes('"jobKind":"ledger_recovery"')), "sampled recovery-job trace");
   console.log("Recovered queue-loss event");
+  await stopWorker(worker);
+
+  const ratingRecovery = await accept("event-abcdef12-345-1");
+  worker = startWorker({ LEDGER_TEST_EXIT_BEFORE_RATING: "true" });
+  await waitFor(async () => worker.exitCode !== null || worker.signalCode !== null, "post-projection worker exit");
+  assert.equal((await state(ratingRecovery)).processingState, "PROCESSED");
+  worker = startWorker();
+  await waitFor(async () => (workerOutput.get(worker) || "").split("\n").some((line) => line.startsWith("PILOT_TRACE ") && line.includes(`"eventId":"${ratingRecovery}"`) && line.includes('"jobKind":"rating_recovery"')), "sampled rating-only recovery trace");
   await stopWorker(worker);
 
   const restarted = await accept("worker-restart");
@@ -126,8 +138,8 @@ try {
   await waitFor(async () => (await state(failed)).processingState === "PROCESSED", "failed retry");
   await queue.add("PROCESS_LEDGER_EVENT", { eventId: failed }, { jobId: `duplicate-${failed}`, removeOnComplete: true });
   await waitFor(async () => (await queue.getJob(`duplicate-${failed}`)) === undefined, "duplicate delivery");
-  await assertProjection([lost, restarted, interrupted, invalid, storageFailed, failed]);
-  for (const id of [lost, restarted, interrupted, invalid, storageFailed, failed]) {
+  await assertProjection([lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]);
+  for (const id of [lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]) {
     assert.equal((await state(id)).billingTreatment, "LEDGER_ONLY");
     assert.equal((await state(id)).processingState, "PROCESSED");
   }

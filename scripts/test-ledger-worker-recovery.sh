@@ -21,6 +21,7 @@ INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('metric-c', 'Calls',
 SQL
 set_customer_test_environment
 export TZ=UTC CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z" LEDGER_TEST_FAIL_DISPATCH=false
+export PILOT_EVIDENCE_TRACE=true PILOT_EVIDENCE_RUN_ID=abcdef12-345 PILOT_EVIDENCE_SAMPLE_EVERY=1
 export REDIS_URL="redis://127.0.0.1:${redis_port}"
 start_customer_test_app
 npx tsx scripts/ledger-worker-recovery.integration.ts
