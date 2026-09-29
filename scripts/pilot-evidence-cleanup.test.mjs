@@ -24,7 +24,7 @@ test("interrupted run cleanup stops only its recorded processes and containers",
     assert.equal(exitCode, 0);
     assert.throws(() => process.kill(managed.pid, 0), { code: "ESRCH" });
     assert.doesNotThrow(() => process.kill(unrelated.pid, 0));
-    assert.equal((await readFile(dockerCalls, "utf8")).trim(), `rm -f usageflow-pilot-pg-${runId} usageflow-pilot-redis-${runId}`);
+    assert.equal((await readFile(dockerCalls, "utf8")).trim(), `rm -f usageflow-pilot-pg-${runId} usageflow-pilot-redis-${runId} usageflow-pilot-restore-pg-${runId} usageflow-pilot-restore-redis-${runId}`);
   } finally {
     try { process.kill(managed.pid, "SIGKILL"); } catch {}
     try { process.kill(unrelated.pid, "SIGKILL"); } catch {}

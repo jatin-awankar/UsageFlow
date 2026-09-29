@@ -9,7 +9,7 @@ const ps = (...args) => execFileSync("ps", args, { encoding: "utf8" }).trim();
 const identity = (pid) => ({ pid, started: ps("-p", String(pid), "-o", "lstart="), command: ps("-p", String(pid), "-o", "command=") });
 
 if (action === "register") {
-  if (!/^(api|worker)$/.test(role ?? "") || !Number.isSafeInteger(Number(rawPid)) || Number(rawPid) < 1) throw new Error("Invalid process registration");
+  if (!/^(api|worker|sender)$/.test(role ?? "") || !Number.isSafeInteger(Number(rawPid)) || Number(rawPid) < 1) throw new Error("Invalid process registration");
   let manifest = { runId, processes: [] };
   try { manifest = JSON.parse(await readFile(manifestPath, "utf8")); } catch (error) { if (error.code !== "ENOENT") throw error; }
   if (manifest.runId !== runId) throw new Error("Run ID mismatch");
