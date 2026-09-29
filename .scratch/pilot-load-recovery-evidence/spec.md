@@ -1,0 +1,50 @@
+# Pilot load and recovery evidence
+
+Status: Spec ready for implementation; no capacity or recovery result measured yet.
+
+## Purpose and boundary
+
+Verify the targets in [the pilot specification](../../docs/pilot-specification.md) with repeatable, synthetic, application-level drills. A passing local drill is evidence for the recorded machine and container limits, not a provider guarantee. Keep production data, deployed configuration, Customer-linked ingestion, and the pilot billing finalization gate untouched. Do not publish a capacity, RPO, or RTO guarantee until a run produces the evidence below and a separate rollout decision reviews it.
+
+## Test seam
+
+Extend the disposable-container pattern in `scripts/customer-test-harness.sh` and `scripts/test-ledger-worker-recovery.sh`: start fresh PostgreSQL and Redis containers with unique names, ports, queue name, and database credentials; apply repository migrations; seed only synthetic organizations, active Customers, API keys, active subscriptions, metrics, an explicit organization currency, and effective price versions. Start the real Next.js API and `worker/index.ts` as child processes. Enable `CUSTOMER_LINKED_INGESTION_ENABLED=true` only in those child environments. Leave finalization and revision gates off. Use `/api/track` for ingestion and the owner ledger-export API for export measurements. Do not insert measured events or derived rows directly into PostgreSQL.
+
+The runner writes an append-only sender journal outside PostgreSQL and its container, preferably a run-specific file under a temporary directory. Before each HTTP attempt, flush a record containing run ID, organization, external Customer ID, metric, quantity, occurrence time, idempotency key, exact payload, attempt number, and local send time. Append response status, response body/event ID when observed, and completion or transport-error time. Preserve attempts with lost or timed-out responses. Record a hash and byte length of the journal in the report; retain the journal and backup artifact until reconciliation is reviewed. Use synthetic keys and no real secrets in saved evidence.
+
+Use the current acceptance contract: `app/api/track/route.ts` commits a `UsageEvent` and `LedgerProcessingIntent` before attempting BullMQ dispatch; a dispatch failure can still return an accepted ID. The worker's recovery scan requeues unfinished intents, and `processLedgerEvent` uses a PostgreSQL lease and an idempotent projection. Rating can finish after projection, so those are distinct outcomes. Existing recovery tests provide fault examples, but this drill measures them at pilot volume and against the sender journal.
+
+## Workloads
+
+1. In one UTC calendar-month fixture, send 100,000 distinct accepted events for one organization. Allocate at least 20,000 of those to one active Customer; distribute the rest across other active Customers. Use deterministic idempotency keys and a mix of positive integer quantities that exposes count/quantity confusion. Keep occurrence times within the accepted window; record the actual receipt window and total elapsed ingestion time. Retry a bounded, documented subset with identical payloads and verify original IDs; reuse another subset's keys with changed billable fields and verify conflicts. Report accepted unique events separately from total HTTP attempts.
+2. In a separate run, sustain short 10-request/second bursts through the real API with the real worker active. Record the burst duration, achieved request and unique-acceptance rates per second, response codes, and backlog. A requested rate alone does not establish an achieved rate.
+3. Run a healthy baseline and distinct worker-stop, worker-kill-after-claim, Redis job-loss, and Redis outage/restart scenarios. Use the existing nonproduction crash seam and lease-expiry behavior without editing event rows to force success. After recovery, replay the sender journal using the same idempotency keys and payloads; keep any new event IDs distinct from original IDs.
+4. Take a timed PostgreSQL logical backup during ongoing synthetic ingestion. Record the backup start, consistency point or snapshot completion, and finish times. Restore to a fresh PostgreSQL container using the same schema/application version, reconnect a fresh API and worker, and replay the sender journal. Redis contents are disposable; start a clean Redis and let PostgreSQL intents drive recovery. Document backup and restore commands, image digests or versions, and whether writes were paused. Do not use a database copy as proof that post-snapshot acknowledgements survived.
+
+Record commit SHA, UTC start/end, host CPU/RAM/storage, Docker CPU/memory limits, PostgreSQL and Redis image versions and limits, worker concurrency, API process count, queue name, network placement, and observed resource saturation. Repeated runs use fresh containers and a fresh journal; report all runs, including failures.
+
+## Measurements and reconciliation
+
+For every observed accepted response, compare the original event ID to PostgreSQL `UsageEvent`, `LedgerProcessingIntent`, `LedgerEventProjection`, and `RatedEvent`. For attempts without a response, query by organization and idempotency key to classify whether they were committed; do not label an unknown response as rejected. Report unknowns that cannot be resolved. Reconcile sets and totals per organization, Customer, metric, and UTC month: accepted original IDs, raw row count and quantity, projected count and quantity, rated count and quantity, price version/currency, per-event rated amount, and summed rated amount. Compare to independently computed expectations from the sender journal and seeded effective prices. Fail on unexpected missing, extra, duplicate, cross-Customer, or mismatched rows. Count `PENDING`, `PROCESSING`, `FAILED`, `UNRATED`, `RatingRetry`, and `RatingFailure` separately at each checkpoint; do not silently drop them from the denominator.
+
+Compute `projectedAt - receivedAt` and `ratedAt - receivedAt` independently for each accepted event. Report p50, p95, p99, maximum, and count above 60 seconds for each stage, with the total accepted-event denominator and counts lacking each terminal timestamp. Report the fraction finishing both stages within one minute. Use database timestamps for these latencies and retain clock/precision details; do not substitute request-send time for `receivedAt`.
+
+Measure ledger-export snapshot creation separately from paginating all rows via the owner API. Record creation duration, page count, pagination duration, HTTP errors/timeouts, row count, IDs, quantities, and export totals. Reconcile export rows and totals against the captured accepted ledger state at snapshot creation, accounting explicitly for events accepted concurrently. An export creation or pagination failure fails its own check even when ingestion and rating pass.
+
+After restore, produce three disjoint original-ID sets: survived in the restored database, absent from the restored database, and unresolved. Then replay every journaled attempt with its original key and payload. Report original IDs still absent, replay-created replacement IDs, replayed quantity, duplicate responses retaining original IDs, and the final count/quantity/rating reconciliation. Recreated quantity does not restore a lost original event ID. Preserve both pre-replay and post-replay reports. Do not use `Subscription.externalCustomerId` or ambiguous legacy identifiers to infer a billed Customer.
+
+## Recovery clocks and decisions
+
+Define outage start as the timestamp the fault is injected or the original API becomes unavailable, whichever is earlier, and capture both. Measure **ingestion RTO** until the restored API durably accepts and reads back a new probe event. Measure **full-reconciliation RTO** until all committed original IDs that survived plus all successfully replayed usage have the expected projection and rating, all counts and quantities match, and no unexplained pending/failed/unrated records remain. Record failures or timeouts rather than assigning a finite RTO.
+
+State the backup gap from the backup consistency point to outage start, and list accepted original IDs and quantity absent from the restored database **before replay**. That observed original-ID and quantity loss is the pre-replay RPO evidence; report the time span from oldest absent acceptance to outage, plus the backup gap. After replay, state remaining original-ID loss separately from unrecovered usage quantity. If original IDs cannot be recovered, never report zero original-ID loss or zero RPO merely because quantities were recreated. Report recovery times for worker/queue loss and PostgreSQL restore independently.
+
+The evidence report must state the measured values and sample size for every scenario, compare them with 100,000 events/month, 20,000 per Customer, 10/second bursts, 60-second processing, and four-hour ingestion restoration targets, and mark each target pass, fail, or unmeasured. No measured value exists at spec publication time. A local pass supports only the tested configuration and workload; production guarantees require a separate infrastructure drill and review.
+
+## Acceptance checks for the implementation ticket
+
+- The harness runs without paid services or production credentials, cleans up only its own containers/processes, and leaves pilot gates unchanged.
+- A complete 100,000-event run includes the 20,000-Customer subset; the separate burst run records achieved rate and both stage latency distributions, including missing outcomes.
+- Fault drills prove queue replay, worker interruption, restore, journal replay, and exact original-ID classification; a deliberately lost post-backup accepted event is reported as lost even if replay restores its quantity.
+- Export creation and pagination are timed and reconciled independently; any mismatch or timeout makes the run fail visibly.
+- The report includes reproducible commands, environment limits, raw journal and evidence hashes, measured RPO/RTO definitions and results, and explicit unmeasured fields. It never converts a backup's existence into a zero-loss claim.
