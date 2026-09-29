@@ -9,7 +9,8 @@ if [[ "${1:-}" == "--cleanup" ]]; then
   docker rm -f "usageflow-pilot-pg-$run_id" "usageflow-pilot-redis-$run_id" >/dev/null 2>&1 || true
   exit 0
 fi
-[[ "${1:-}" == "--smoke" ]] || { echo 'Usage: npm run test:pilot-evidence -- --smoke' >&2; exit 2; }
+mode="${1:---smoke}"
+[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst]' >&2; exit 2; }
 unset CUSTOMER_LINKED_INGESTION_ENABLED
 for command in docker node npm curl; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
 node --test scripts/pilot-evidence-cleanup.test.mjs
@@ -44,6 +45,7 @@ export REDIS_URL="redis://127.0.0.1:${redis_port}"
 export QUEUE_NAME="usageflow-pilot-$run_id"
 export NEXTAUTH_URL="http://127.0.0.1:${api_port}"
 export NEXTAUTH_SECRET="synthetic-$run_id"
+export PILOT_COMMIT="$(git rev-parse HEAD)"
 export CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED=false
 export BILLING_RECORD_TEST_CLOCK_ENABLED=false
 for migration in prisma/migrations/*/migration.sql; do docker exec -i "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$migration" >/dev/null; done
@@ -52,6 +54,7 @@ docker exec -i "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgre
 INSERT INTO "User" (id, email) VALUES ('user-' || :'run_id', 'pilot-' || :'run_id' || '@example.test');
 INSERT INTO "Organization" (id, name, currency) VALUES ('org-' || :'run_id', 'Synthetic Pilot', 'USD');
 INSERT INTO "Customer" (id, "orgId", "externalId") VALUES ('customer-row-' || :'run_id', 'org-' || :'run_id', 'customer-' || :'run_id');
+INSERT INTO "Customer" (id, "orgId", "externalId") VALUES ('customer-row-secondary-' || :'run_id', 'org-' || :'run_id', 'customer-secondary-' || :'run_id');
 INSERT INTO "ApiKey" (id, name, "hashedKey", "orgId") VALUES ('key-' || :'run_id', 'Synthetic', :'key_hash', 'org-' || :'run_id');
 INSERT INTO "Plan" (id, name, "basePrice", "billingPeriod", "orgId") VALUES ('plan-' || :'run_id', 'Synthetic', 0, 'MONTHLY', 'org-' || :'run_id');
 INSERT INTO "Subscription" (id, status, "periodStart", "orgId", "planId") VALUES ('subscription-' || :'run_id', 'ACTIVE', now() - interval '1 day', 'org-' || :'run_id', 'plan-' || :'run_id');
@@ -68,6 +71,10 @@ for _ in $(seq 1 90); do
   sleep 1
 done
 curl -fsS "$NEXTAUTH_URL/login" >/dev/null
+if [[ "$mode" != "--smoke" ]]; then
+  node scripts/pilot-evidence-load.mjs "$mode" "$run_id" "$artifact_dir" "$NEXTAUTH_URL" "$api_key"
+  exit 0
+fi
 node scripts/pilot-evidence-sender.mjs "$run_id" "$artifact_dir" "$NEXTAUTH_URL" "$api_key"
 event_id="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).eventId)' "$artifact_dir/smoke-evidence.json")"
 docker exec "$pg_container" psql -X -tAc "SELECT count(*) FROM \"UsageEvent\" WHERE \"orgId\" = 'org-$run_id'" -U postgres -d postgres | grep -qx 1
