@@ -12,7 +12,7 @@ fi
 mode="${1:---smoke}"
 [[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--faults" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--faults]' >&2; exit 2; }
 unset CUSTOMER_LINKED_INGESTION_ENABLED
-for command in docker node npm curl; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
+for command in docker node npm curl rg; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
 node --test scripts/pilot-evidence-cleanup.test.mjs
 run_id="$(node -e 'console.log(require("crypto").randomUUID().slice(0,12))')"
 artifact_root="${PILOT_EVIDENCE_DIR:-/tmp/usageflow-pilot-evidence}"
@@ -24,6 +24,10 @@ pg_container="usageflow-pilot-pg-$run_id"
 redis_container="usageflow-pilot-redis-$run_id"
 api_pid='' worker_pid=''
 cleanup() {
+  local exit_status=$?
+  if [[ "$mode" == "--faults" && "$exit_status" -ne 0 ]]; then
+    node scripts/pilot-evidence-abort.mjs "$artifact_dir" "$run_id" "$exit_status" "${scenario:-setup}" "${fault_phase:-setup}" || true
+  fi
   node scripts/pilot-evidence-processes.mjs cleanup "$artifact_dir" "$run_id" || true
   [[ -z "$api_pid" ]] || wait "$api_pid" 2>/dev/null || true
   [[ -z "$worker_pid" ]] || wait "$worker_pid" 2>/dev/null || true
@@ -37,8 +41,11 @@ api_port="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1
 docker run --rm -d --name "$pg_container" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD="$db_password" postgres:17.6-alpine >/dev/null
 redis_port="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"
 docker run -d --name "$redis_container" -p "127.0.0.1:${redis_port}:6379" redis:7-alpine >/dev/null
-for _ in $(seq 1 60); do docker exec "$pg_container" pg_isready -U postgres >/dev/null 2>&1 && break; sleep 0.5; done
-docker exec "$pg_container" pg_isready -U postgres >/dev/null
+for _ in $(seq 1 60); do
+  if docker logs "$pg_container" 2>&1 | rg -q "PostgreSQL init process complete" && docker exec "$pg_container" pg_isready -U postgres >/dev/null 2>&1; then break; fi
+  sleep 0.5
+done
+docker exec "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -tAc "SELECT 1" | rg -qx 1
 db_port="$(docker port "$pg_container" 5432/tcp | sed 's/.*://')"
 redis_port="$(docker port "$redis_container" 6379/tcp | sed 's/.*://')"
 export DATABASE_URL="postgresql://postgres:${db_password}@127.0.0.1:${db_port}/postgres"

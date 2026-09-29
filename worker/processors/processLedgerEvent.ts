@@ -38,6 +38,8 @@ export async function processLedgerEvent(eventId: string) {
   }
 
   // The integration suite kills this worker after the durable PROCESSING claim.
+  const pauseAfterClaimMs = process.env.NODE_ENV !== "production" ? Number(process.env.LEDGER_TEST_PAUSE_AFTER_CLAIM_MS || 0) : 0;
+  if (pauseAfterClaimMs > 0 && pauseAfterClaimMs <= 10000) await new Promise((resolve) => setTimeout(resolve, pauseAfterClaimMs));
   if (process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_EXIT_AFTER_CLAIM === "true") process.exit(91);
 
   try {
