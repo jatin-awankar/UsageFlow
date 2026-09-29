@@ -6,11 +6,11 @@ if [[ "${1:-}" == "--cleanup" ]]; then
   [[ "$run_id" =~ ^[0-9a-f]{8}-[0-9a-f]{3}$ ]] || { echo 'Invalid pilot run ID' >&2; exit 2; }
   artifact_root="${PILOT_EVIDENCE_DIR:-/tmp/usageflow-pilot-evidence}"
   node scripts/pilot-evidence-processes.mjs cleanup "$artifact_root/$run_id" "$run_id"
-  docker rm -f "usageflow-pilot-pg-$run_id" "usageflow-pilot-redis-$run_id" >/dev/null 2>&1 || true
+  docker rm -f "usageflow-pilot-pg-$run_id" "usageflow-pilot-redis-$run_id" "usageflow-pilot-restore-pg-$run_id" "usageflow-pilot-restore-redis-$run_id" >/dev/null 2>&1 || true
   exit 0
 fi
 mode="${1:---smoke}"
-[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--faults" || "$mode" == "--export" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--faults|--export]' >&2; exit 2; }
+[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--faults" || "$mode" == "--export" || "$mode" == "--restore" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--faults|--export|--restore]' >&2; exit 2; }
 unset CUSTOMER_LINKED_INGESTION_ENABLED
 for command in docker node npm curl rg; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
 node --test scripts/pilot-evidence-cleanup.test.mjs
@@ -25,13 +25,16 @@ redis_container="usageflow-pilot-redis-$run_id"
 api_pid='' worker_pid=''
 cleanup() {
   local exit_status=$?
+  if [[ "$mode" == "--restore" && "$exit_status" -ne 0 ]]; then
+    node scripts/pilot-evidence-restore-abort.mjs "$artifact_dir" "$run_id" "$exit_status" || true
+  fi
   if [[ "$mode" == "--faults" && "$exit_status" -ne 0 ]]; then
     node scripts/pilot-evidence-abort.mjs "$artifact_dir" "$run_id" "$exit_status" "${scenario:-setup}" "${fault_phase:-setup}" || true
   fi
   node scripts/pilot-evidence-processes.mjs cleanup "$artifact_dir" "$run_id" || true
   [[ -z "$api_pid" ]] || wait "$api_pid" 2>/dev/null || true
   [[ -z "$worker_pid" ]] || wait "$worker_pid" 2>/dev/null || true
-  docker rm -f "$pg_container" "$redis_container" >/dev/null 2>&1 || true
+  docker rm -f "$pg_container" "$redis_container" "usageflow-pilot-restore-pg-$run_id" "usageflow-pilot-restore-redis-$run_id" >/dev/null 2>&1 || true
   echo "Retained synthetic evidence: $artifact_dir"
 }
 trap cleanup EXIT
@@ -85,6 +88,11 @@ curl -fsS "$NEXTAUTH_URL/login" >/dev/null
 if [[ "$mode" == "--faults" ]]; then
   source scripts/pilot-evidence-faults.sh
   run_pilot_faults
+  exit 0
+fi
+if [[ "$mode" == "--restore" ]]; then
+  source scripts/pilot-evidence-restore.sh
+  run_pilot_restore
   exit 0
 fi
 if [[ "$mode" != "--smoke" ]]; then
