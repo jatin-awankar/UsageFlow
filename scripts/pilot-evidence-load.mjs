@@ -4,18 +4,39 @@ import { join } from "node:path";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import pg from "pg";
+import { readTraces } from "./pilot-evidence-measurements.mjs";
 
 const [mode, runId, directory, baseUrl, apiKey] = process.argv.slice(2);
 if (!["--volume", "--burst", "--export"].includes(mode) || !runId || !directory || !baseUrl || !apiKey) throw new Error("Invalid load arguments");
 if (process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true") throw new Error("Sender inherited the ingestion gate");
 const volume = mode !== "--burst";
-const count = volume ? 100_000 : Number(process.env.PILOT_BURST_SECONDS || 10) * 10;
+const count = mode === "--volume" && process.env.PILOT_DIAGNOSTIC_EVENT_COUNT ? Number(process.env.PILOT_DIAGNOSTIC_EVENT_COUNT) : volume ? 100_000 : Number(process.env.PILOT_BURST_SECONDS || 10) * 10;
 const requestedRate = volume ? null : 10;
 const concurrency = volume ? 8 : 1;
+const sampleEvery = Math.max(1, Math.ceil(count / 100));
+let journalOverheadMs = 0;
 const journalPath = join(directory, "sender-journal.jsonl");
 const journal = await open(journalPath, "wx", 0o600);
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await db.connect();
+const databaseSamples = [];
+let databaseSamplingMs = 0;
+let activeSample = Promise.resolve();
+async function sampleDatabase() {
+  const previous = activeSample;
+  activeSample = previous.then(async () => {
+  const started = performance.now();
+  try {
+    const { rows: [row] } = await db.query(`SELECT count(*) FILTER (WHERE wait_event_type = 'Lock')::int AS lock_waiters FROM pg_stat_activity WHERE datname = current_database()`);
+    const stats = dockerEvidence(`usageflow-pilot-pg-${runId}`).stats;
+    databaseSamples.push({ at: new Date().toISOString(), lockWaiters: row.lock_waiters, containerCpuPercent: stats?.CPUPerc ?? null, containerMemory: stats?.MemUsage ?? null });
+  } catch (error) { databaseSamples.push({ at: new Date().toISOString(), error: String(error) }); }
+  finally { databaseSamplingMs += performance.now() - started; }
+  });
+  return activeSample;
+}
+await sampleDatabase();
+const databaseTimer = setInterval(sampleDatabase, 15_000);
 const occurrence = new Date(Date.now() - 60_000).toISOString();
 const startedAt = new Date();
 const startedMs = performance.now();
@@ -34,11 +55,11 @@ let next = 0;
 let exportRun;
 let journalChain = Promise.resolve();
 function append(record) {
-  journalChain = journalChain.then(async () => { await journal.write(`${JSON.stringify(record)}\n`); await journal.sync(); });
+  journalChain = journalChain.then(async () => { const start = performance.now(); await journal.write(`${JSON.stringify(record)}\n`); await journal.sync(); journalOverheadMs += performance.now() - start; });
   return journalChain;
 }
 function payloadFor(index) {
-  return { customerId: index < (volume ? 20_000 : count) ? `customer-${runId}` : `customer-secondary-${runId}`, metric: "CALLS", amount: index % 3 + 1, timestamp: occurrence };
+  return { customerId: index < (volume ? Math.min(20_000, count) : count) ? `customer-${runId}` : `customer-secondary-${runId}`, metric: "CALLS", amount: index % 3 + 1, timestamp: occurrence };
 }
 async function send(index, variant = "original") {
   const original = payloadFor(index);
@@ -51,7 +72,7 @@ async function send(index, variant = "original") {
   await append({ type: "send", runId, organization: `org-${runId}`, externalCustomerId: body.customerId, metric: body.metric, quantity: body.amount, occurrenceTime: occurrence, idempotencyKey: key, payload, attempt, attemptNumber, variant, sendTime: new Date().toISOString() });
   let result;
   try {
-    const response = await fetch(`${baseUrl}/api/track`, { method: "POST", headers: { "content-type": "application/json", "x-usageflow-api-key": apiKey, "idempotency-key": key }, body: payload, signal: AbortSignal.timeout(30_000) });
+    const response = await fetch(`${baseUrl}/api/track`, { method: "POST", headers: { "content-type": "application/json", "x-usageflow-api-key": apiKey, "idempotency-key": key, ...(index % sampleEvery === 0 ? { "x-pilot-evidence-trace": "1" } : {}) }, body: payload, signal: AbortSignal.timeout(30_000) });
     const text = await response.text();
     let parsed;
     try { parsed = JSON.parse(text); } catch { parsed = null; }
@@ -121,7 +142,7 @@ try {
 
   const orgId = `org-${runId}`;
   async function snapshot() {
-    const { rows } = await db.query(`SELECT e.id, e."idempotencyKey" AS key, e.amount, e."billedCustomerId" AS customer, e."receivedAt" AT TIME ZONE 'UTC' AS received, e."processingState" AS state, p."projectedAt" AS projected, p.amount AS projected_quantity, r."ratedAt" AS rated, EXTRACT(EPOCH FROM (p."projectedAt" - e."receivedAt")) * 1000 AS projection_ms, EXTRACT(EPOCH FROM (r."ratedAt" - (e."receivedAt" AT TIME ZONE 'UTC'))) * 1000 AS rating_ms, r.quantity AS rated_quantity, r.amount AS rated_amount, r.currency, r."priceVersionId" AS price_id, i."eventId" IS NOT NULL AS has_intent, u."eventId" IS NOT NULL AS unrated, rr."eventId" IS NOT NULL AS rating_retry, rf."eventId" IS NOT NULL AS rating_failure FROM "UsageEvent" e LEFT JOIN "LedgerProcessingIntent" i ON i."eventId" = e.id LEFT JOIN "RatedEvent" r ON r."eventId" = e.id LEFT JOIN "LedgerEventProjection" p ON p."eventId" = e.id LEFT JOIN "UnratedEvent" u ON u."eventId" = e.id LEFT JOIN "RatingRetry" rr ON rr."eventId" = e.id LEFT JOIN "RatingFailure" rf ON rf."eventId" = e.id WHERE e."orgId" = $1 AND e."billingTreatment" = 'LEDGER_ONLY'`, [orgId]);
+    const { rows } = await db.query(`SELECT e.id, e."idempotencyKey" AS key, e.amount, e."billedCustomerId" AS customer, e."receivedAt" AT TIME ZONE 'UTC' AS received, e."processingState" AS state, p."projectedAt" AT TIME ZONE 'UTC' AS projected, p.amount AS projected_quantity, r."ratedAt" AS rated, EXTRACT(EPOCH FROM (p."projectedAt" - e."receivedAt")) * 1000 AS projection_ms, EXTRACT(EPOCH FROM (r."ratedAt" - (e."receivedAt" AT TIME ZONE 'UTC'))) * 1000 AS rating_ms, r.quantity AS rated_quantity, r.amount AS rated_amount, r.currency, r."priceVersionId" AS price_id, i."eventId" IS NOT NULL AS has_intent, u."eventId" IS NOT NULL AS unrated, rr."eventId" IS NOT NULL AS rating_retry, rf."eventId" IS NOT NULL AS rating_failure FROM "UsageEvent" e LEFT JOIN "LedgerProcessingIntent" i ON i."eventId" = e.id LEFT JOIN "RatedEvent" r ON r."eventId" = e.id LEFT JOIN "LedgerEventProjection" p ON p."eventId" = e.id LEFT JOIN "UnratedEvent" u ON u."eventId" = e.id LEFT JOIN "RatingRetry" rr ON rr."eventId" = e.id LEFT JOIN "RatingFailure" rf ON rf."eventId" = e.id WHERE e."orgId" = $1 AND e."billingTreatment" = 'LEDGER_ONLY'`, [orgId]);
     return rows;
   }
   let rows = await snapshot();
@@ -143,7 +164,7 @@ try {
   if (rows.length !== count || rawIds.size !== count) failures.push(`Raw count/unique IDs: ${rows.length}/${rawIds.size}; expected ${count}`);
   for (let index = 0; index < count; index++) {
     const row = byKey.get(`event-${runId}-${index}`);
-    if (!row || row.id !== accepted.get(index) || row.amount !== index % 3 + 1 || row.customer !== `customer-row-${index < (volume ? 20_000 : count) ? "" : "secondary-"}${runId}` || !row.has_intent || (row.projected && row.projected_quantity !== row.amount) || (row.rated && (row.rated_quantity !== row.amount || row.price_id !== `price-${runId}` || row.currency !== "USD" || Number(row.rated_amount) !== row.amount))) {
+    if (!row || row.id !== accepted.get(index) || row.amount !== index % 3 + 1 || row.customer !== `customer-row-${index < (volume ? Math.min(20_000, count) : count) ? "" : "secondary-"}${runId}` || !row.has_intent || (row.projected && row.projected_quantity !== row.amount) || (row.rated && (row.rated_quantity !== row.amount || row.price_id !== `price-${runId}` || row.currency !== "USD" || Number(row.rated_amount) !== row.amount))) {
       if (failures.length < 30) failures.push(`Reconciliation mismatch at index ${index}`);
     }
   }
@@ -169,8 +190,16 @@ try {
   }
   const firstReceipt = rows.reduce((v, r) => !v || r.received < v ? r.received : v, null);
   const lastReceipt = rows.reduce((v, r) => !v || r.received > v ? r.received : v, null);
+  await sampleDatabase();
+  const traceIds = new Set(Array.from({ length: count }, (_, index) => index).filter(index => index % sampleEvery === 0).map(index => accepted.get(index)).filter(Boolean));
+  const correlation = await readTraces(directory, traceIds, new Map(rows.map(row => [row.id, row])));
+  if (correlation.count !== traceIds.size) failures.push(`Correlated ${correlation.count}/${traceIds.size} sampled IDs`);
+  for (const sample of correlation.samples) if (!sample.apiDispatchAt || !sample.queueEnteredAt || !sample.workerExecutionAt || !sample.durableClaimAt || sample.queueWaitMs === null || sample.claimToProjectionMs === null || sample.claimToProjectionMs < 0 || !sample.projectedAt || !sample.ratedAt) failures.push(`Incomplete or invalid sampled timing for ${sample.eventId}`);
   const report = {
-    mode, runId, startedAt: startedAt.toISOString(), ingestionEndedAt: ingestionEndedAt.toISOString(), endedAt: new Date().toISOString(), requested: { distinctEvents: count, requestsPerSecond: requestedRate, burstDurationSeconds: volume ? null : count / 10, volumeCustomerMinimum: volume ? 20_000 : null },
+    correlation,
+    database: { samples: databaseSamples, note: "Container CPU is point sampled; lock waiters are instantaneous. Cumulative database CPU and lock wait duration are unavailable from standard PostgreSQL views." },
+    instrumentation: { sampledEvery: sampleEvery, journalSyncWallMs: journalOverheadMs, journalSyncWallMsPerAttempt: journalOverheadMs / outcomes.length, databaseSamplingWallMs: databaseSamplingMs, synchronousTraceEmissionMs: correlation.synchronousTraceMs, traceEmissionCount: correlation.traceEmissionCount, note: "Separate wall times for sender journal writes and fsyncs, database polling including Docker stats, and synchronous trace emission. Concurrent work can overlap; indirect scheduling and I/O effects are unmeasured, so these are not a throughput correction." },
+    mode, runId, startedAt: startedAt.toISOString(), ingestionEndedAt: ingestionEndedAt.toISOString(), endedAt: new Date().toISOString(), requested: { distinctEvents: count, requestsPerSecond: requestedRate, burstDurationSeconds: volume ? null : count / 10, volumeCustomerMinimum: volume && count === 100_000 ? 20_000 : null, diagnosticEventCount: mode === "--volume" && count !== 100_000 ? count : null },
     achieved: { originalAcceptedResponses: observedAcceptedResponses, resolvedCommittedOriginals: accepted.size, uniquePersistedEvents: rows.length, httpAttempts: outcomes.length, uncertainAttempts: outcomes.filter(o => o.classification === "uncertain").length, unresolvedTransportAttempts, responseCodes, initialSendElapsedSeconds, ingestionElapsedSeconds, originalRequestsPerSecond: count / initialSendElapsedSeconds, acceptedUniquePerSecond: accepted.size / ingestionElapsedSeconds, responseSeconds: volume ? null : responseSeconds, firstReceiptAt: firstReceipt?.toISOString() ?? null, lastReceiptAt: lastReceipt?.toISOString() ?? null, receiptWindowSeconds: firstReceipt && lastReceipt ? (lastReceipt - firstReceipt) / 1000 : null, retryIdsRetained: retries.filter(({ index, outcome }) => outcome.eventId === accepted.get(index)).length, changedFieldConflicts: conflicts.filter(({ outcome }) => outcome.status === 409).length },
     backlogAtSendEnd, finalBacklog: { missingProjection: projected.missing, missingRating: rated.missing, pending: rows.filter(r => r.state === "PENDING").length, processing: rows.filter(r => r.state === "PROCESSING").length, failed: rows.filter(r => r.state === "FAILED").length, unrated: rows.filter(r => r.unrated).length, ratingRetry: rows.filter(r => r.rating_retry).length, ratingFailure: rows.filter(r => r.rating_failure).length },
     latency: { clockPrecision: "JavaScript Date and PostgreSQL timestamp read at millisecond precision", projectedAtMinusReceivedAt: projected, ratedAtMinusReceivedAt: rated, bothWithin60Seconds: bothWithinMinute, bothWithin60SecondsFraction: rows.length ? bothWithinMinute / rows.length : null },
@@ -192,6 +221,8 @@ try {
   console.log(JSON.stringify({ runId, mode, report: join(directory, reportName), export: report.export, achieved: report.achieved, latency: report.latency, failures }));
   if (failures.length) process.exitCode = 1;
 } finally {
+  clearInterval(databaseTimer);
+  await activeSample;
   await journal.close();
   await db.end();
 }

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import prisma from "@/lib/prisma";
 import { hashApiKey } from "@/lib/apiKeys/generateKey";
 import { usageQueue } from "@/lib/queue";
+import { emitPilotEvidenceTrace } from "@/lib/pilotEvidenceTrace";
 import { customerLinkedUsageEventSchema, usageEventSchema } from "@/lib/validators";
 
 function billableFingerprint(customerId: string | null, metric: string, amount: number, timestamp: Date) {
@@ -146,15 +147,17 @@ export async function POST(req: NextRequest) {
           if (process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_FAIL_DISPATCH === "true") {
             throw new Error("Injected ledger dispatch failure");
           }
-          const dispatch = usageQueue.add("PROCESS_LEDGER_EVENT", { eventId: event.id }, { jobId: `ledger-${event.id}`, removeOnComplete: true });
+          const traced = process.env.PILOT_EVIDENCE_TRACE === "true" && req.headers.get("x-pilot-evidence-trace") === "1";
+          const dispatch = usageQueue.add("PROCESS_LEDGER_EVENT", { eventId: event.id, ...(traced ? { pilotTrace: true } : {}) }, { jobId: `ledger-${event.id}`, removeOnComplete: true });
           let timeout: ReturnType<typeof setTimeout> | undefined;
           try {
-            await Promise.race([
+            const queuedJob = await Promise.race([
               dispatch,
               new Promise<never>((_, reject) => {
                 timeout = setTimeout(() => reject(new Error("Ledger dispatch timed out")), 500);
               }),
             ]);
+            if (traced) emitPilotEvidenceTrace({ stage: "api_dispatch", eventId: event.id, at: new Date().toISOString(), queueEnteredAt: new Date(queuedJob.timestamp).toISOString(), jobId: queuedJob.id });
           } finally {
             if (timeout) clearTimeout(timeout);
           }
