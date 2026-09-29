@@ -3,6 +3,10 @@ import { getUsageFlowQueue } from "@/lib/bullmq";
 import { isSampledPilotEvidenceKey } from "@/lib/pilotEvidenceTrace";
 import { findRateableUnratedEventIds } from "./processors/rateCustomerEvent";
 
+// The sampled 10,000-event runs saw queue-wait p99 as high as 61.6 seconds.
+// Allow that wait plus margin before treating an unclaimed dispatch as lost.
+export const PENDING_RECOVERY_GRACE_MS = 75_000;
+
 async function sampledIdsFor(candidateIds: string[]) {
   const sampledIds = new Set<string>();
   const runId = process.env.PILOT_EVIDENCE_RUN_ID;
@@ -20,9 +24,14 @@ async function sampledIdsFor(candidateIds: string[]) {
 
 export async function recoverLedgerWork() {
   const now = new Date();
+  const pendingCutoff = new Date(now.getTime() - PENDING_RECOVERY_GRACE_MS);
   const intents = await prisma.ledgerProcessingIntent.findMany({
     where: {
-      event: { billingTreatment: "LEDGER_ONLY", processingState: { in: ["PENDING", "PROCESSING", "FAILED"] } },
+      event: { billingTreatment: "LEDGER_ONLY" },
+      AND: [{ OR: [
+        { event: { processingState: "PENDING" }, createdAt: { lte: pendingCutoff } },
+        { event: { processingState: { in: ["PROCESSING", "FAILED"] } } },
+      ] }],
       OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
     },
     select: { eventId: true },

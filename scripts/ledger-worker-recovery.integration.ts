@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { Queue } from "bullmq";
 import { Client } from "pg";
+import { PENDING_RECOVERY_GRACE_MS, recoverLedgerWork } from "../worker/recoverLedgerWork";
+import prisma from "../lib/prisma";
+import { getUsageFlowQueue } from "../lib/bullmq";
 
 const db = new Client({ connectionString: process.env.DATABASE_URL });
 const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
@@ -66,12 +69,24 @@ async function assertProjection(ids: string[]) {
 
 try {
   await db.connect();
+  const waiting = await accept("worker-original-waiting");
+  assert(await queue.getJob(`ledger-${waiting}`), "original dispatch is waiting");
+  for (let scan = 0; scan < 3; scan++) await recoverLedgerWork();
+  const waitingJobs = await queue.getJobs(["waiting", "delayed", "active"]);
+  assert.deepEqual(waitingJobs.filter((job) => job.data.eventId === waiting).map((job) => job.id), [`ledger-${waiting}`]);
+  let worker = startWorker();
+  await waitFor(async () => (await state(waiting)).processingState === "PROCESSED", "original waiting job");
+  await stopWorker(worker);
+
   // Redis can lose a dispatched job while the committed PostgreSQL intent survives.
   const lost = await accept("event-abcdef12-345-0");
   console.log("Accepted queue-loss event");
   assert.equal((await state(lost)).processingState, "PENDING");
   await queue.obliterate({ force: true });
-  let worker = startWorker();
+  await recoverLedgerWork();
+  assert.equal((await queue.getJobs(["waiting"])).filter((job) => job.data.eventId === lost).length, 0);
+  await db.query(`UPDATE "LedgerProcessingIntent" SET "createdAt" = now() - ($2::int * interval '1 millisecond') WHERE "eventId" = $1`, [lost, PENDING_RECOVERY_GRACE_MS + 1_000]);
+  worker = startWorker();
   await waitFor(async () => (await state(lost)).processingState === "PROCESSED", "queue loss recovery");
   await waitFor(async () => (workerOutput.get(worker) || "").split("\n").some((line) => line.startsWith("PILOT_TRACE ") && line.includes(`"eventId":"${lost}"`) && line.includes('"jobKind":"ledger_recovery"')), "sampled recovery-job trace");
   console.log("Recovered queue-loss event");
@@ -138,8 +153,8 @@ try {
   await waitFor(async () => (await state(failed)).processingState === "PROCESSED", "failed retry");
   await queue.add("PROCESS_LEDGER_EVENT", { eventId: failed }, { jobId: `duplicate-${failed}`, removeOnComplete: true });
   await waitFor(async () => (await queue.getJob(`duplicate-${failed}`)) === undefined, "duplicate delivery");
-  await assertProjection([lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]);
-  for (const id of [lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]) {
+  await assertProjection([waiting, lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]);
+  for (const id of [waiting, lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]) {
     assert.equal((await state(id)).billingTreatment, "LEDGER_ONLY");
     assert.equal((await state(id)).processingState, "PROCESSED");
   }
@@ -149,5 +164,7 @@ try {
 } finally {
   for (const worker of workers) await stopWorker(worker);
   await queue.close();
+  await getUsageFlowQueue().close();
   await db.end();
+  await prisma.$disconnect();
 }
