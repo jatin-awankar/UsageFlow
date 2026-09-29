@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
@@ -31,19 +31,31 @@ export async function createLedgerExport(orgId: string, period: { start: Date; e
   const referenceSecret = process.env.NEXTAUTH_SECRET;
   if (!referenceSecret) throw new Error("Export key reference secret is not configured");
   return prisma.$transaction(async (tx) => {
-    const events = await tx.usageEvent.findMany({
-      where: { orgId, billingTreatment: "LEDGER_ONLY", timestamp: { gte: period.start, lt: period.end } },
-      orderBy: [{ timestamp: "asc" }, { id: "asc" }],
-      select: {
-        id: true, idempotencyKey: true, timestamp: true, receivedAt: true,
-        metricKey: true, amount: true, processingState: true,
-        billedCustomer: { select: { externalId: true } },
-        processingIntent: { select: { failureReason: true } },
-      },
-    });
+    const events = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const batch = await tx.usageEvent.findMany({
+        where: { orgId, billingTreatment: "LEDGER_ONLY", timestamp: { gte: period.start, lt: period.end } },
+        orderBy: [{ timestamp: "asc" }, { id: "asc" }],
+        take: 500,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: {
+          id: true, idempotencyKey: true, timestamp: true, receivedAt: true,
+          metricKey: true, amount: true, processingState: true,
+          billedCustomer: { select: { externalId: true } },
+          processingIntent: { select: { failureReason: true } },
+        },
+      });
+      events.push(...batch);
+      if (batch.length < 500) break;
+      cursor = batch[batch.length - 1].id;
+    }
     if (events.some((event) => !event.billedCustomer || !event.receivedAt || !event.processingState)) {
       throw new Error("Ledger event is incomplete");
     }
+    const snapshotLedgerStateSha256 = createHash("sha256")
+      .update(events.map((event) => JSON.stringify([event.id, event.processingState])).join("\n"))
+      .digest("hex");
     const totals = new Map<string, { externalCustomerId: string; metric: string; count: number; quantity: number }>();
     const rows = events.map((event, position) => {
       const externalCustomerId = event.billedCustomer!.externalId;
@@ -67,6 +79,6 @@ export async function createLedgerExport(orgId: string, period: { start: Date; e
     for (let index = 0; index < rows.length; index += 1000) {
       await tx.ledgerExportRow.createMany({ data: rows.slice(index, index + 1000).map((row) => ({ ...row, exportId: snapshot.id })) });
     }
-    return { id: snapshot.id, periodStart: snapshot.periodStart, periodEnd: snapshot.periodEnd, createdAt: snapshot.createdAt, totals: snapshot.totals, rowCount: rows.length };
+    return { id: snapshot.id, periodStart: snapshot.periodStart, periodEnd: snapshot.periodEnd, createdAt: snapshot.createdAt, totals: snapshot.totals, rowCount: rows.length, snapshotLedgerStateSha256 };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 120_000 });
 }

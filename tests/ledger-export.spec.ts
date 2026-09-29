@@ -117,3 +117,32 @@ test("owner can export an early UTC year without shifting the period", async ({ 
   expect(snapshot.periodEnd).toBe("0099-02-01T00:00:00.000Z");
   expect(snapshot.rowCount).toBe(0);
 });
+
+test("owner snapshot reads more than one bounded ledger batch", async ({ page, request }) => {
+  await signIn(page, "owner@example.test");
+  const ids = new Set<string>();
+  for (let index = 0; index < 501; index++) {
+    const accepted = await request.post(`${base}/api/track`, {
+      headers: { "x-usageflow-api-key": "secret-org-c", "idempotency-key": `batch-${index}` },
+      data: { customerId: "customer-c", metric: "calls", amount: 2, timestamp: "2026-10-04T00:00:00.000Z" },
+    });
+    expect(accepted.status()).toBe(200);
+    ids.add((await accepted.json()).eventId);
+  }
+  const created = await page.request.post(`${base}/api/ledger-exports`, { data: { orgId: "org-c", period } });
+  expect(created.status()).toBe(201);
+  const snapshot = await created.json();
+  expect(snapshot.rowCount).toBeGreaterThanOrEqual(501);
+  let cursor: string | null = null;
+  const exported = new Set<string>();
+  do {
+    const url: string = `${base}/api/ledger-exports/${snapshot.id}?orgId=org-c${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+    const response: import("@playwright/test").APIResponse = await page.request.get(url);
+    expect(response.status()).toBe(200);
+    const pageBody: { rows: Array<{ eventId: string }>; nextCursor: string | null } = await response.json();
+    for (const row of pageBody.rows) exported.add(row.eventId);
+    cursor = pageBody.nextCursor;
+  } while (cursor);
+  expect(exported.size).toBe(snapshot.rowCount);
+  for (const id of ids) expect(exported.has(id)).toBe(true);
+});
