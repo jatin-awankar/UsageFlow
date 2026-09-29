@@ -12,6 +12,7 @@
     "test:billing-webhook-recovery": "bash scripts/test-billing-webhook-recovery.sh",
     "test:billing-webhook-readiness": "bash scripts/test-billing-webhook-readiness.sh",
     "test:inventory": "node --experimental-strip-types --test scripts/inventory-customer-model.test.ts",
+    "test:pilot-evidence": "bash scripts/test-pilot-evidence.sh",
     "test:customer-owner": "bash scripts/test-customer-owner.sh",
     "test:customer-ingestion": "bash scripts/test-customer-ingestion.sh",
     "test:ledger-acceptance": "bash scripts/test-ledger-acceptance.sh",
