@@ -28,7 +28,11 @@ const deliverWebhookJobSchema = z.object({
   attempt: z.number().int().min(1).optional(),
 });
 
-const processLedgerEventJobSchema = z.object({ eventId: z.string().min(1), pilotTrace: z.boolean().optional() });
+const processLedgerEventJobSchema = z.object({
+  eventId: z.string().min(1),
+  pilotTrace: z.boolean().optional(),
+  pilotTraceKind: z.enum(["initial", "ledger_recovery", "rating_recovery"]).optional(),
+});
 
 export type UsageFlowJobData =
   | z.infer<typeof aggregateUsageJobSchema>

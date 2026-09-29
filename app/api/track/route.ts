@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
             throw new Error("Injected ledger dispatch failure");
           }
           const traced = process.env.PILOT_EVIDENCE_TRACE === "true" && req.headers.get("x-pilot-evidence-trace") === "1";
-          const dispatch = usageQueue.add("PROCESS_LEDGER_EVENT", { eventId: event.id, ...(traced ? { pilotTrace: true } : {}) }, { jobId: `ledger-${event.id}`, removeOnComplete: true });
+          const dispatch = usageQueue.add("PROCESS_LEDGER_EVENT", { eventId: event.id, ...(traced ? { pilotTrace: true, pilotTraceKind: "initial" as const } : {}) }, { jobId: `ledger-${event.id}`, removeOnComplete: true });
           let timeout: ReturnType<typeof setTimeout> | undefined;
           try {
             const queuedJob = await Promise.race([

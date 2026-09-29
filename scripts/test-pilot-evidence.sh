@@ -66,6 +66,15 @@ export NEXTAUTH_URL="http://127.0.0.1:${api_port}"
 export NEXTAUTH_SECRET="synthetic-$run_id"
 export PILOT_COMMIT="$(git rev-parse HEAD)"
 export PILOT_EVIDENCE_TRACE=true
+if [[ "$mode" == "--volume" || "$mode" == "--export" ]]; then
+  pilot_evidence_count="${PILOT_DIAGNOSTIC_EVENT_COUNT:-100000}"
+elif [[ "$mode" == "--burst" ]]; then
+  pilot_evidence_count="$(node -e 'console.log(Number(process.env.PILOT_BURST_SECONDS || 10) * 10)')"
+fi
+if [[ -n "${pilot_evidence_count:-}" ]]; then
+  export PILOT_EVIDENCE_RUN_ID="$run_id"
+  export PILOT_EVIDENCE_SAMPLE_EVERY="$(node -e 'console.log(Math.max(1, Math.ceil(Number(process.argv[1]) / 100)))' "$pilot_evidence_count")"
+fi
 export CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED=false
 export BILLING_RECORD_TEST_CLOCK_ENABLED=false
 for migration in prisma/migrations/*/migration.sql; do docker exec -i "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$migration" >/dev/null; done

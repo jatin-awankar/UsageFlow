@@ -29,9 +29,11 @@ export function correlateTraces(apiText, workerText, ids, rows) {
     const claim = claims.filter(item => projectionAt && Date.parse(item.at) <= Date.parse(projectionAt)).at(-1);
     const row = rows.get(eventId);
     const difference = (a, b) => a && b ? Date.parse(b) - Date.parse(a) : null;
-    samples.push({ eventId, apiDispatchAt: api?.at ?? null, queueEnteredAt: api?.queueEnteredAt ?? null, workerExecutionAt: execution?.at ?? null, durableClaimAt: claim?.at ?? null, projectedAt: row?.projected?.toISOString() ?? null, ratedAt: row?.rated?.toISOString() ?? null, jobExecutions: events.filter(item => item.stage === "worker_execution").length, queueWaitMs: difference(api?.queueEnteredAt, execution?.at), claimToProjectionMs: difference(claim?.at, row?.projected?.toISOString()) });
+    const executions = events.filter(item => item.stage === "worker_execution");
+    const ledgerExecutions = executions.filter(item => item.jobKind !== "rating_recovery");
+    samples.push({ eventId, apiDispatchAt: api?.at ?? null, queueEnteredAt: api?.queueEnteredAt ?? null, workerExecutionAt: execution?.at ?? null, durableClaimAt: claim?.at ?? null, projectedAt: row?.projected?.toISOString() ?? null, ratedAt: row?.rated?.toISOString() ?? null, jobExecutions: executions.length, ledgerJobExecutions: ledgerExecutions.length, ledgerRecoveryExecutions: executions.filter(item => item.jobKind === "ledger_recovery").length, ratingRecoveryJobExecutions: executions.filter(item => item.jobKind === "rating_recovery").length, queueWaitMs: difference(api?.queueEnteredAt, execution?.at), claimToProjectionMs: difference(claim?.at, row?.projected?.toISOString()) });
   }
-  return { count: samples.length, duplicateJobExecutions: samples.reduce((n, item) => n + Math.max(0, item.jobExecutions - 1), 0), synchronousTraceMs, traceEmissionCount, samples };
+  return { count: samples.length, duplicateJobExecutions: samples.reduce((n, item) => n + Math.max(0, item.ledgerJobExecutions - 1), 0), ledgerRecoveryExecutions: samples.reduce((n, item) => n + item.ledgerRecoveryExecutions, 0), ratingRecoveryJobExecutions: samples.reduce((n, item) => n + item.ratingRecoveryJobExecutions, 0), synchronousTraceMs, traceEmissionCount, samples };
 }
 
 export async function readTraces(directory, ids, rows) {
