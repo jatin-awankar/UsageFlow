@@ -31,16 +31,25 @@ export async function createLedgerExport(orgId: string, period: { start: Date; e
   const referenceSecret = process.env.NEXTAUTH_SECRET;
   if (!referenceSecret) throw new Error("Export key reference secret is not configured");
   return prisma.$transaction(async (tx) => {
-    const events = await tx.usageEvent.findMany({
-      where: { orgId, billingTreatment: "LEDGER_ONLY", timestamp: { gte: period.start, lt: period.end } },
-      orderBy: [{ timestamp: "asc" }, { id: "asc" }],
-      select: {
-        id: true, idempotencyKey: true, timestamp: true, receivedAt: true,
-        metricKey: true, amount: true, processingState: true,
-        billedCustomer: { select: { externalId: true } },
-        processingIntent: { select: { failureReason: true } },
-      },
-    });
+    const events = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const batch = await tx.usageEvent.findMany({
+        where: { orgId, billingTreatment: "LEDGER_ONLY", timestamp: { gte: period.start, lt: period.end } },
+        orderBy: [{ timestamp: "asc" }, { id: "asc" }],
+        take: 500,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: {
+          id: true, idempotencyKey: true, timestamp: true, receivedAt: true,
+          metricKey: true, amount: true, processingState: true,
+          billedCustomer: { select: { externalId: true } },
+          processingIntent: { select: { failureReason: true } },
+        },
+      });
+      events.push(...batch);
+      if (batch.length < 500) break;
+      cursor = batch[batch.length - 1].id;
+    }
     if (events.some((event) => !event.billedCustomer || !event.receivedAt || !event.processingState)) {
       throw new Error("Ledger event is incomplete");
     }

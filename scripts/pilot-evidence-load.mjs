@@ -6,9 +6,9 @@ import { execFileSync } from "node:child_process";
 import pg from "pg";
 
 const [mode, runId, directory, baseUrl, apiKey] = process.argv.slice(2);
-if (!["--volume", "--burst"].includes(mode) || !runId || !directory || !baseUrl || !apiKey) throw new Error("Invalid load arguments");
+if (!["--volume", "--burst", "--export"].includes(mode) || !runId || !directory || !baseUrl || !apiKey) throw new Error("Invalid load arguments");
 if (process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true") throw new Error("Sender inherited the ingestion gate");
-const volume = mode === "--volume";
+const volume = mode !== "--burst";
 const count = volume ? 100_000 : Number(process.env.PILOT_BURST_SECONDS || 10) * 10;
 const requestedRate = volume ? null : 10;
 const concurrency = volume ? 8 : 1;
@@ -31,6 +31,7 @@ function dockerEvidence(name) {
   } catch (error) { return { error: String(error) }; }
 }
 let next = 0;
+let exportRun;
 let journalChain = Promise.resolve();
 function append(record) {
   journalChain = journalChain.then(async () => { await journal.write(`${JSON.stringify(record)}\n`); await journal.sync(); });
@@ -68,7 +69,14 @@ const failures = [];
 try {
   if (volume) {
     await Promise.all(Array.from({ length: concurrency }, async () => {
-      while (next < count) { const index = next++; await send(index); }
+      while (next < count) {
+        const index = next++;
+        if (mode === "--export" && index >= Math.floor(count / 2) && !exportRun) {
+          const { createExportEvidence } = await import("./pilot-evidence-export.mjs");
+          exportRun = createExportEvidence({ db, runId, directory, baseUrl, ownerPassword: process.env.PILOT_OWNER_PASSWORD, occurrence }).then(value => ({ value }), error => ({ error: String(error) }));
+        }
+        await send(index);
+      }
     }));
   } else {
     const pending = [];
@@ -81,6 +89,19 @@ try {
     await Promise.all(pending);
   }
   const initialSendElapsedSeconds = (performance.now() - startedMs) / 1000;
+  let exportEvidence;
+  if (mode === "--export") {
+    if (!exportRun) failures.push("Export snapshot was never started during ingestion");
+    else {
+      const result = await exportRun;
+      if (result.error) {
+        failures.push(`Export creation or pagination failed: ${result.error}`);
+        try { await writeFile(join(directory, "export-failure.json"), `${JSON.stringify({ runId, failure: result.error, occurredAt: new Date().toISOString() }, null, 2)}\n`, { flag: "wx", mode: 0o600 }); }
+        catch (error) { if (error.code !== "EEXIST") throw error; }
+      }
+      else exportEvidence = result.value;
+    }
+  }
   for (let pass = 0; pass < 4 && accepted.size < count; pass++) {
     for (let index = 0; index < count; index++) {
       if (!accepted.has(index)) await send(index, "recovery");
@@ -157,8 +178,18 @@ try {
     environment: { commit: process.env.PILOT_COMMIT || null, host: os.hostname(), cpuCount: os.cpus().length, cpuModel: os.cpus()[0]?.model, memoryBytes: os.totalmem(), freeMemoryBytesAtReport: os.freemem(), loadAverageAtReport: os.loadavg(), apiProcesses: 1, workerConcurrency: Number(process.env.WORKER_CONCURRENCY || 5), queue: process.env.QUEUE_NAME, databaseImage: "postgres:17.6-alpine", redisImage: "redis:7-alpine", network: "host loopback published container ports", postgres: dockerEvidence(`usageflow-pilot-pg-${runId}`), redis: dockerEvidence(`usageflow-pilot-redis-${runId}`), saturation: "single Docker stats sample; peak saturation unmeasured" },
     journal: { file: "sender-journal.jsonl", bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") }, failures,
   };
-  await writeFile(join(directory, `${volume ? "volume" : "burst"}-evidence.json`), `${JSON.stringify(report, null, 2)}\n`, { flag: "wx", mode: 0o600 });
-  console.log(JSON.stringify({ runId, mode, report: join(directory, `${volume ? "volume" : "burst"}-evidence.json`), achieved: report.achieved, latency: report.latency, failures }));
+  if (mode === "--export" && exportEvidence) {
+    const { reconcileRatingEvidence } = await import("./pilot-evidence-export.mjs");
+    const rating = await reconcileRatingEvidence(db, runId, exportEvidence.ids);
+    exportEvidence.rating = rating;
+    failures.push(...exportEvidence.failures, ...rating.failures);
+    await writeFile(join(directory, "export-evidence.json"), `${JSON.stringify(exportEvidence, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+  }
+  report.export = mode === "--export" ? { evidence: exportEvidence ? "export-evidence.json" : null, creationMs: exportEvidence?.creationMs ?? null, paginationMs: exportEvidence?.paginationMs ?? null, pages: exportEvidence?.pages ?? null, rowCount: exportEvidence?.rowCount ?? null } : undefined;
+  report.failures = failures;
+  const reportName = `${mode === "--export" ? "export-load" : volume ? "volume" : "burst"}-evidence.json`;
+  await writeFile(join(directory, reportName), `${JSON.stringify(report, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+  console.log(JSON.stringify({ runId, mode, report: join(directory, reportName), export: report.export, achieved: report.achieved, latency: report.latency, failures }));
   if (failures.length) process.exitCode = 1;
 } finally {
   await journal.close();

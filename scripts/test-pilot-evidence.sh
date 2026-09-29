@@ -10,7 +10,7 @@ if [[ "${1:-}" == "--cleanup" ]]; then
   exit 0
 fi
 mode="${1:---smoke}"
-[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--faults" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--faults]' >&2; exit 2; }
+[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--faults" || "$mode" == "--export" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--faults|--export]' >&2; exit 2; }
 unset CUSTOMER_LINKED_INGESTION_ENABLED
 for command in docker node npm curl rg; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
 node --test scripts/pilot-evidence-cleanup.test.mjs
@@ -58,9 +58,12 @@ export CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED=false
 export BILLING_RECORD_TEST_CLOCK_ENABLED=false
 for migration in prisma/migrations/*/migration.sql; do docker exec -i "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$migration" >/dev/null; done
 key_hash="$(node -e 'console.log(require("crypto").createHash("sha256").update(process.argv[1]).digest("hex"))' "$api_key")"
-docker exec -i "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -v run_id="$run_id" -v key_hash="$key_hash" <<'SQL' >/dev/null
-INSERT INTO "User" (id, email) VALUES ('user-' || :'run_id', 'pilot-' || :'run_id' || '@example.test');
+owner_password="$(node -e 'console.log(require("crypto").randomBytes(24).toString("hex"))')"
+owner_password_hash="$(OWNER_PASSWORD="$owner_password" node -e 'require("bcryptjs").hash(process.env.OWNER_PASSWORD, 4).then(console.log)')"
+docker exec -i "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -v run_id="$run_id" -v key_hash="$key_hash" -v password_hash="$owner_password_hash" <<'SQL' >/dev/null
+INSERT INTO "User" (id, email, password) VALUES ('user-' || :'run_id', 'pilot-' || :'run_id' || '@example.test', :'password_hash');
 INSERT INTO "Organization" (id, name, currency) VALUES ('org-' || :'run_id', 'Synthetic Pilot', 'USD');
+INSERT INTO "Membership" (id, role, "userId", "orgId") VALUES ('membership-' || :'run_id', 'OWNER', 'user-' || :'run_id', 'org-' || :'run_id');
 INSERT INTO "Customer" (id, "orgId", "externalId") VALUES ('customer-row-' || :'run_id', 'org-' || :'run_id', 'customer-' || :'run_id');
 INSERT INTO "Customer" (id, "orgId", "externalId") VALUES ('customer-row-secondary-' || :'run_id', 'org-' || :'run_id', 'customer-secondary-' || :'run_id');
 INSERT INTO "ApiKey" (id, name, "hashedKey", "orgId") VALUES ('key-' || :'run_id', 'Synthetic', :'key_hash', 'org-' || :'run_id');
@@ -85,7 +88,7 @@ if [[ "$mode" == "--faults" ]]; then
   exit 0
 fi
 if [[ "$mode" != "--smoke" ]]; then
-  node scripts/pilot-evidence-load.mjs "$mode" "$run_id" "$artifact_dir" "$NEXTAUTH_URL" "$api_key"
+  PILOT_OWNER_PASSWORD="$owner_password" node scripts/pilot-evidence-load.mjs "$mode" "$run_id" "$artifact_dir" "$NEXTAUTH_URL" "$api_key"
   exit 0
 fi
 node scripts/pilot-evidence-sender.mjs "$run_id" "$artifact_dir" "$NEXTAUTH_URL" "$api_key"
