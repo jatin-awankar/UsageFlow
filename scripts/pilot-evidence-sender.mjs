@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 const [runId, directory, baseUrl, apiKey] = process.argv.slice(2);
 if (!runId || !directory || !baseUrl || !apiKey) throw new Error("Missing sender arguments");
+if (process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true") throw new Error("Sender inherited the Customer-linked ingestion gate");
 const journalPath = join(directory, "sender-journal.jsonl");
 const journal = await open(journalPath, "wx", 0o600);
 const occurrence = new Date(Date.now() - 60_000).toISOString();

@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [[ "${1:-}" == "--cleanup" ]]; then
+  run_id="${2:-}"
+  [[ "$run_id" =~ ^[0-9a-f]{8}-[0-9a-f]{3}$ ]] || { echo 'Invalid pilot run ID' >&2; exit 2; }
+  artifact_root="${PILOT_EVIDENCE_DIR:-/tmp/usageflow-pilot-evidence}"
+  node scripts/pilot-evidence-processes.mjs cleanup "$artifact_root/$run_id" "$run_id"
+  docker rm -f "usageflow-pilot-pg-$run_id" "usageflow-pilot-redis-$run_id" >/dev/null 2>&1 || true
+  exit 0
+fi
 [[ "${1:-}" == "--smoke" ]] || { echo 'Usage: npm run test:pilot-evidence -- --smoke' >&2; exit 2; }
+unset CUSTOMER_LINKED_INGESTION_ENABLED
 for command in docker node npm curl; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
+node --test scripts/pilot-evidence-cleanup.test.mjs
 run_id="$(node -e 'console.log(require("crypto").randomUUID().slice(0,12))')"
 artifact_root="${PILOT_EVIDENCE_DIR:-/tmp/usageflow-pilot-evidence}"
 mkdir -p "$artifact_root"
@@ -13,8 +23,9 @@ pg_container="usageflow-pilot-pg-$run_id"
 redis_container="usageflow-pilot-redis-$run_id"
 api_pid='' worker_pid=''
 cleanup() {
-  [[ -z "$api_pid" ]] || { pkill -P "$api_pid" 2>/dev/null || true; kill "$api_pid" 2>/dev/null || true; wait "$api_pid" 2>/dev/null || true; }
-  [[ -z "$worker_pid" ]] || { pkill -P "$worker_pid" 2>/dev/null || true; kill "$worker_pid" 2>/dev/null || true; wait "$worker_pid" 2>/dev/null || true; }
+  node scripts/pilot-evidence-processes.mjs cleanup "$artifact_dir" "$run_id" || true
+  [[ -z "$api_pid" ]] || wait "$api_pid" 2>/dev/null || true
+  [[ -z "$worker_pid" ]] || wait "$worker_pid" 2>/dev/null || true
   docker rm -f "$pg_container" "$redis_container" >/dev/null 2>&1 || true
   echo "Retained synthetic evidence: $artifact_dir"
 }
@@ -33,7 +44,6 @@ export REDIS_URL="redis://127.0.0.1:${redis_port}"
 export QUEUE_NAME="usageflow-pilot-$run_id"
 export NEXTAUTH_URL="http://127.0.0.1:${api_port}"
 export NEXTAUTH_SECRET="synthetic-$run_id"
-export CUSTOMER_LINKED_INGESTION_ENABLED=true
 export CUSTOMER_BILLING_FINALIZATION_TEST_ENABLED=false
 export BILLING_RECORD_TEST_CLOCK_ENABLED=false
 for migration in prisma/migrations/*/migration.sql; do docker exec -i "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < "$migration" >/dev/null; done
@@ -48,8 +58,10 @@ INSERT INTO "Subscription" (id, status, "periodStart", "orgId", "planId") VALUES
 INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('metric-' || :'run_id', 'Calls', 'CALLS', 'calls', 'org-' || :'run_id');
 INSERT INTO "PriceVersion" (id, "orgId", "metricId", currency, "unitPriceMicros", "effectiveFrom", "createdById") VALUES ('price-' || :'run_id', 'org-' || :'run_id', 'metric-' || :'run_id', 'USD', 1000000, now() - interval '1 day', 'user-' || :'run_id');
 SQL
-./node_modules/.bin/next dev -p "$api_port" >"$artifact_dir/api.log" 2>&1 & api_pid=$!
-./node_modules/.bin/tsx worker/index.ts >"$artifact_dir/worker.log" 2>&1 & worker_pid=$!
+CUSTOMER_LINKED_INGESTION_ENABLED=true ./node_modules/.bin/next dev -p "$api_port" >"$artifact_dir/api.log" 2>&1 & api_pid=$!
+node scripts/pilot-evidence-processes.mjs register "$artifact_dir" "$run_id" api "$api_pid"
+CUSTOMER_LINKED_INGESTION_ENABLED=true ./node_modules/.bin/tsx worker/index.ts >"$artifact_dir/worker.log" 2>&1 & worker_pid=$!
+node scripts/pilot-evidence-processes.mjs register "$artifact_dir" "$run_id" worker "$worker_pid"
 for _ in $(seq 1 90); do
   if curl -fsS "$NEXTAUTH_URL/login" >/dev/null 2>&1; then break; fi
   kill -0 "$api_pid" 2>/dev/null || { cat "$artifact_dir/api.log"; exit 1; }
