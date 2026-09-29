@@ -10,7 +10,7 @@ if [[ "${1:-}" == "--cleanup" ]]; then
   exit 0
 fi
 mode="${1:---smoke}"
-[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst]' >&2; exit 2; }
+[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--faults" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--faults]' >&2; exit 2; }
 unset CUSTOMER_LINKED_INGESTION_ENABLED
 for command in docker node npm curl; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
 node --test scripts/pilot-evidence-cleanup.test.mjs
@@ -35,7 +35,8 @@ db_password="$(node -e 'console.log(require("crypto").randomBytes(24).toString("
 api_key="pilot-$run_id-$(node -e 'console.log(require("crypto").randomBytes(16).toString("hex"))')"
 api_port="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"
 docker run --rm -d --name "$pg_container" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD="$db_password" postgres:17.6-alpine >/dev/null
-docker run --rm -d --name "$redis_container" -p 127.0.0.1::6379 redis:7-alpine >/dev/null
+redis_port="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"
+docker run -d --name "$redis_container" -p "127.0.0.1:${redis_port}:6379" redis:7-alpine >/dev/null
 for _ in $(seq 1 60); do docker exec "$pg_container" pg_isready -U postgres >/dev/null 2>&1 && break; sleep 0.5; done
 docker exec "$pg_container" pg_isready -U postgres >/dev/null
 db_port="$(docker port "$pg_container" 5432/tcp | sed 's/.*://')"
@@ -71,6 +72,11 @@ for _ in $(seq 1 90); do
   sleep 1
 done
 curl -fsS "$NEXTAUTH_URL/login" >/dev/null
+if [[ "$mode" == "--faults" ]]; then
+  source scripts/pilot-evidence-faults.sh
+  run_pilot_faults
+  exit 0
+fi
 if [[ "$mode" != "--smoke" ]]; then
   node scripts/pilot-evidence-load.mjs "$mode" "$run_id" "$artifact_dir" "$NEXTAUTH_URL" "$api_key"
   exit 0
