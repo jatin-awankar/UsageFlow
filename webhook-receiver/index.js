@@ -35,6 +35,13 @@ app.post("/webhook", (req, res) => {
   return res.status(200).send("Webhook received");
 });
 
-app.listen(4000, () => {
-  console.log("Webhook receiver running on http://localhost:4000/webhook");
+const port = Number(process.env.PORT ?? 4000);
+if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("Invalid receiver port");
+const server = app.listen(port, "127.0.0.1", (error) => {
+  if (error) {
+    console.error(`Webhook receiver could not start: ${error.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`Webhook receiver running on http://127.0.0.1:${server.address().port}/billing-webhook`);
 });
