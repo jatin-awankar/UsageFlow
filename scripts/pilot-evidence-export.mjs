@@ -143,6 +143,12 @@ export async function createExportEvidence({ db, runId, directory, baseUrl, owne
   progress.paginationMs = paginationMs;
   progress.phase = "reconciliation";
   const rowBytes = await readFile(rowsPath);
+  const snapshotLedgerStateSha256 = createHash("sha256")
+    .update(exported.map(row => JSON.stringify([row.eventId, row.processingState])).join("\n"))
+    .digest("hex");
+  const stateDigestMatched = created.snapshotLedgerStateSha256 === snapshotLedgerStateSha256;
+  const independentlyVerifiedStates = stateDigestMatched ? exported.length : 0;
+  if (!stateDigestMatched || independentlyVerifiedStates !== created.rowCount) failures.push("Export processing states differ from the transactional ledger capture");
   const exportedById = new Map(exported.map(row => [row.eventId, row]));
   for (const row of persisted) {
     const received = exportedById.get(row.eventId);
@@ -154,7 +160,7 @@ export async function createExportEvidence({ db, runId, directory, baseUrl, owne
   if (!sameTotals(grouped(exported, "externalCustomerId", "metric"), created.totals)) failures.push("API grouped totals differ from snapshot totals");
   if (!sameTotals(grouped(persisted, "externalCustomerId", "metric"), created.totals)) failures.push("Persisted grouped totals differ from snapshot totals");
   const stateCounts = Object.fromEntries(["PENDING", "PROCESSING", "PROCESSED", "FAILED"].map(state => [state.toLowerCase(), exported.filter(row => row.processingState === state).length]));
-  return { snapshotId: created.id, createdAt: created.createdAt, creationMs, paginationMs, pages, rowCount: exported.length, uniqueIds: seen.size, beforeAccepted: before.length, afterAccepted: after.length, acceptedDuringCreation, concurrentIncluded, concurrentExcluded: acceptedDuringCreation - concurrentIncluded, stateTransitionsDuringCreation: stateTransitions, stateCounts, snapshotTotals: created.totals, groupedTotals: grouped(exported, "externalCustomerId", "metric"), httpErrors, rowsFile: "export-rows.jsonl", rowsBytes: rowBytes.length, rowsSha256: createHash("sha256").update(rowBytes).digest("hex"), ids: [...seen], failures };
+  return { snapshotId: created.id, createdAt: created.createdAt, creationMs, paginationMs, pages, rowCount: exported.length, uniqueIds: seen.size, beforeAccepted: before.length, afterAccepted: after.length, acceptedDuringCreation, concurrentIncluded, concurrentExcluded: acceptedDuringCreation - concurrentIncluded, stateTransitionsDuringCreation: stateTransitions, independentlyVerifiedStates, snapshotLedgerStateSha256: created.snapshotLedgerStateSha256, stateDigestMatched, stateCounts, snapshotTotals: created.totals, groupedTotals: grouped(exported, "externalCustomerId", "metric"), httpErrors, rowsFile: "export-rows.jsonl", rowsBytes: rowBytes.length, rowsSha256: createHash("sha256").update(rowBytes).digest("hex"), ids: [...seen], failures };
   } catch (error) {
     if (progress.phase === "create") progress.creationMs = performance.now() - progress.creationStartedMs;
     if (progress.phase === "pagination") progress.paginationMs = performance.now() - progress.paginationStartedMs;
