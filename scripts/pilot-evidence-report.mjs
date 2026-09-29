@@ -90,7 +90,13 @@ for(const id of readdirSync(root).sort()) {
   run.samplePerScenario=data?.countPerScenario??null;run.scenarios={};
   for(const name of scenarios){const s=data?.scenarios?.[name]; if(s?.failures?.length) failures.push(...s.failures.map(x=>`${name}: ${x}`));run.scenarios[name]=s?{sample:s.sample??null,expected:s.journalExpected??null,workerQueueRecoverySeconds:s.faultToDrainSeconds??s.recoverySeconds??null,fullReconciliationSeconds:s.fullReconciliationSeconds??null,timedOut:s.timedOut??null,queueDrainedAtFinal:s.queueDrainedAtFinal??null,faultAt:s.faultAt??null,recoveryStartedAt:s.recoveryStartedAt??null,recoveryEndedAt:s.recoveryEndedAt??null,checkpoints:s.checkpoints?.map(c=>({at:c.at,name:c.name,totals:c.totals,backlog:c.backlog,queue:c.queue,failures:c.failures}))??null,failures:s.failures??[]}:null;
    if(data?.endedAt&&!s)fail(id,`missing ${name} scenario`);
-   if(s&&data?.endedAt){if(!s.sample?.attempted)fail(id,`${name} missing sample size`);if(s.timedOut===true && Number.isFinite(s.fullReconciliationSeconds))fail(id,`${name} timeout has finite recovery`);if(!Number.isFinite(s.recoverySeconds)&&!Number.isFinite(s.faultToDrainSeconds)&&s.timedOut!==true)fail(id,`${name} missing recovery status`);if(s.journalExpected?.count!=null && s.journalExpected.count!==s.sample?.committedOriginals)fail(id,`${name} reconciliation difference`);}
+   if(s&&data?.endedAt){
+    const sample=s.sample;
+    if(!Number.isSafeInteger(sample?.attempted)||sample.attempted<1||!Number.isSafeInteger(sample.acceptedResponses)||sample.acceptedResponses<0||sample.acceptedResponses>sample.attempted||!Number.isSafeInteger(sample.committedOriginals)||sample.committedOriginals<0||sample.committedOriginals>sample.attempted)fail(id,`${name} missing or invalid attempted, accepted, or committed sample size`);
+    if(s.timedOut===true && Number.isFinite(s.fullReconciliationSeconds))fail(id,`${name} timeout has finite recovery`);
+    if(!Number.isFinite(s.recoverySeconds)&&!Number.isFinite(s.faultToDrainSeconds)&&s.timedOut!==true)fail(id,`${name} missing recovery status`);
+    if(s.journalExpected?.count!=null && s.journalExpected.count!==sample?.committedOriginals)fail(id,`${name} reconciliation difference`);
+   }
   }
  }
  if(mode==='restore'){
@@ -105,6 +111,7 @@ for(const id of readdirSync(root).sort()) {
    if(postReplay){reconcile(id,'postReplay-replay count',[postReplay.expectedCount,postReplay.rawCount,postReplay.projectedCount,postReplay.ratedCount]);reconcile(id,'postReplay-replay quantity',[postReplay.expectedQuantity,postReplay.rawQuantity,postReplay.projectedQuantity,postReplay.ratedQuantity]);if(postReplay.remainingOriginalIdLoss?.length!==classifications?.absent?.length)fail(id,'postReplay-replay original ID loss differs from preReplay-replay absence');if(postReplay.unrecoveredQuantity===0&&postReplay.replayedQuantity!==preReplay.absentOriginalQuantity)fail(id,'zero unrecovered quantity unsupported by replay');}
   }
  }
+ if(failures.length)fail(id,`${failures.length} disclosed failed or incomplete outcome(s)`);
  runs.push(run);
 }
 for(const mode of modes)if(!runs.some(x=>x.mode===mode))fail('inventory',`missing ${mode} run`);

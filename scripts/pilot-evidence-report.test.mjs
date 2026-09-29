@@ -8,7 +8,7 @@ import { test } from 'node:test';
 function reportFixture(edit) {
  const root=mkdtempSync(join(tmpdir(),'pilot-report-'));
  const run='12345678-abc', dir=join(root,run);mkdirSync(dir);
- const data={runId:run,commit:'a'.repeat(40),startedAt:'2026-09-29T00:00:00Z',endedAt:'2026-09-29T00:01:00Z',countPerScenario:1,failures:[],scenarios:Object.fromEntries(['baseline','worker-stop','worker-crash','redis-job-loss','redis-outage'].map(name=>[name,{sample:{attempted:1,committedOriginals:1},journalExpected:{count:1},recoverySeconds:1,fullReconciliationSeconds:2,failures:[]}]))};
+ const data={runId:run,commit:'a'.repeat(40),startedAt:'2026-09-29T00:00:00Z',endedAt:'2026-09-29T00:01:00Z',countPerScenario:1,failures:[],scenarios:Object.fromEntries(['baseline','worker-stop','worker-crash','redis-job-loss','redis-outage'].map(name=>[name,{sample:{attempted:1,acceptedResponses:1,committedOriginals:1},journalExpected:{count:1},recoverySeconds:1,fullReconciliationSeconds:2,failures:[]}]))};
  edit(data,dir);
  writeFileSync(join(dir,'fault-evidence.json'),JSON.stringify(data));
  const result=spawnSync(process.execPath,['scripts/pilot-evidence-report.mjs'],{env:{...process.env,PILOT_EVIDENCE_DIR:root},encoding:'utf8'});
@@ -23,10 +23,18 @@ test('missing fault scenario fails the report check',()=>{
 });
 
 test('failed run remains present with its sample and failure',()=>{
- const {report}=reportFixture(data=>{data.failures=['injected fault timed out']});
+ const {result,report}=reportFixture(data=>{data.failures=['injected fault timed out']});
+ assert.equal(result.status,1);
+ assert.equal(report.check.status,'fail');
  assert.equal(report.runs.length,1);
  assert.deepEqual(report.runs[0].failures,['injected fault timed out']);
  assert.equal(report.runs[0].scenarios.baseline.sample.attempted,1);
+});
+
+test('completed fault run requires accepted and committed sample counts',()=>{
+ const {report}=reportFixture(data=>{delete data.scenarios.baseline.sample.acceptedResponses});
+ assert.equal(report.check.status,'fail');
+ assert.match(report.check.problems.join(' '),/baseline missing or invalid attempted, accepted, or committed sample size/);
 });
 
 test('failed run with an omitted fault scenario fails the report check',()=>{
