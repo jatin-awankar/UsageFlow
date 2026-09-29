@@ -13,6 +13,8 @@ run_pilot_restore() {
   [[ -e "$artifact_dir/ingestion-started" ]] || { echo 'Ingestion did not start' >&2; return 1; }
   node scripts/pilot-evidence-restore.mjs mark backupStart
   docker exec "$pg_container" pg_dump -Fc -U postgres -d postgres > "$backup"
+  node scripts/pilot-evidence-restore.mjs mark snapshotCompletion
+  node -e 'const fs=require("node:fs");const fd=fs.openSync(process.argv[1],"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}' "$backup"
   node scripts/pilot-evidence-restore.mjs mark backupFinish
   wait "$sender_pid"
   node scripts/pilot-evidence-restore.mjs post
@@ -40,4 +42,5 @@ run_pilot_restore() {
   node scripts/pilot-evidence-restore.mjs probe
   node scripts/pilot-evidence-restore.mjs replay
   node scripts/pilot-evidence-restore.mjs reconcile
+  PILOT_RESTORE_ASSERT_DIR="$artifact_dir" node --test scripts/pilot-evidence-restore-artifacts.test.mjs
 }

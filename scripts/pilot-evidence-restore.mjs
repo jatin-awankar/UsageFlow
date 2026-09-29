@@ -17,8 +17,8 @@ async function append(record) { const file = await open(journalPath, 'a', 0o600)
 const keyFor = index => `restore-${runId}-${index}`;
 function imageId(container) { try { return execFileSync('docker', ['inspect', '--format', '{{.Image}}', container], { encoding: 'utf8' }).trim(); } catch (error) { return { unavailable: String(error) }; } }
 const payloadFor = index => ({ customerId: `customer-${runId}`, metric: 'CALLS', amount: index % 3 + 1, timestamp: evidence.occurrenceTime });
-async function send(index, baseUrl, variant = 'original', source) {
-  const key = keyFor(index), payload = source?.payload || JSON.stringify(payloadFor(index));
+async function send(index, baseUrl, variant = 'original', source, keyOverride) {
+  const key = keyOverride || keyFor(index), payload = source?.payload || JSON.stringify(payloadFor(index));
   const attempt = `${index}:${variant}:${Date.now()}`;
   await append({ type: 'send', attempt, runId, organization: `org-${runId}`, externalCustomerId: `customer-${runId}`, metric: 'CALLS', quantity: JSON.parse(payload).amount, occurrenceTime: JSON.parse(payload).timestamp, idempotencyKey: key, payload, variant, sendTime: new Date().toISOString() });
   let outcome;
@@ -32,14 +32,20 @@ async function send(index, baseUrl, variant = 'original', source) {
 }
 async function records() { return (await readFile(journalPath, 'utf8')).trim().split('\n').map(line => JSON.parse(line)); }
 async function database(fn) { const db = new pg.Client({ connectionString: process.env.DATABASE_URL }); await db.connect(); try { return await fn(db); } finally { await db.end(); } }
-const query = `SELECT e.id, e."idempotencyKey" key, e.amount, e."billedCustomerId" customer, e."metricKey" metric, e."billingTreatment" treatment, e."processingState" state, e."receivedAt", i."eventId" IS NOT NULL intent, p."eventId" IS NOT NULL projection, p.amount projected_quantity, r."eventId" IS NOT NULL rating, r.quantity rated_quantity, r.amount rated_amount, r.currency, r."priceVersionId" price_id, u."eventId" IS NOT NULL unrated, rr."eventId" IS NOT NULL rating_retry, rf."eventId" IS NOT NULL rating_failure FROM "UsageEvent" e LEFT JOIN "LedgerProcessingIntent" i ON i."eventId"=e.id LEFT JOIN "LedgerEventProjection" p ON p."eventId"=e.id LEFT JOIN "RatedEvent" r ON r."eventId"=e.id LEFT JOIN "UnratedEvent" u ON u."eventId"=e.id LEFT JOIN "RatingRetry" rr ON rr."eventId"=e.id LEFT JOIN "RatingFailure" rf ON rf."eventId"=e.id WHERE e."orgId"=$1`;
+const query = `SELECT e.id, e."orgId" org, e."idempotencyKey" key, e.amount, e."billedCustomerId" customer, e."metricKey" metric, to_char(e.timestamp, 'YYYY-MM') event_month, e."billingTreatment" treatment, e."processingState" state, e."receivedAt", i."eventId" IS NOT NULL intent, p."eventId" IS NOT NULL projection, p.amount projected_quantity, r."eventId" IS NOT NULL rating, r.quantity rated_quantity, r.amount rated_amount, r.currency, r."priceVersionId" price_id, u."eventId" IS NOT NULL unrated, rr."eventId" IS NOT NULL rating_retry, rf."eventId" IS NOT NULL rating_failure FROM "UsageEvent" e LEFT JOIN "LedgerProcessingIntent" i ON i."eventId"=e.id LEFT JOIN "LedgerEventProjection" p ON p."eventId"=e.id LEFT JOIN "RatedEvent" r ON r."eventId"=e.id LEFT JOIN "UnratedEvent" u ON u."eventId"=e.id LEFT JOIN "RatingRetry" rr ON rr."eventId"=e.id LEFT JOIN "RatingFailure" rf ON rf."eventId"=e.id WHERE e."orgId"=$1`;
 async function rows() { return database(async db => (await db.query(query, [`org-${runId}`])).rows); }
 function originals(all) { const outcomes = new Map(all.filter(r => r.type === 'outcome').map(r => [r.attempt, r])); return all.filter(r => r.type === 'send' && r.variant === 'original').map(send => ({ ...send, outcome: outcomes.get(send.attempt) })); }
+function summarizeRows(items) {
+  const sum = field => items.reduce((n, row) => n + Number(row[field] || 0), 0);
+  return { rawCount: items.length, rawQuantity: sum('amount'), projectedCount: items.filter(r => r.projection).length, projectedQuantity: sum('projected_quantity'), ratedCount: items.filter(r => r.rating).length, ratedQuantity: sum('rated_quantity'), ratedAmount: sum('rated_amount'), backlog: { pending: items.filter(r => r.state === 'PENDING').length, processing: items.filter(r => r.state === 'PROCESSING').length, failed: items.filter(r => r.state === 'FAILED').length, unrated: items.filter(r => r.unrated).length, ratingRetry: items.filter(r => r.rating_retry).length, ratingFailure: items.filter(r => r.rating_failure).length } };
+}
+function groupKey(row) { return `${row.org}|${row.customer}|${row.metric}|${row.event_month}`; }
+function groupRows(items) { return Object.fromEntries([...new Set(items.map(groupKey))].sort().map(key => [key, summarizeRows(items.filter(row => groupKey(row) === key))])); }
 try {
   if (action === 'mark') {
-    if (!['backupStart', 'backupFinish', 'faultInjected', 'originalUnavailable'].includes(marker)) throw Error('Invalid marker');
+    if (!['backupStart', 'snapshotCompletion', 'backupFinish', 'faultInjected', 'originalUnavailable'].includes(marker)) throw Error('Invalid marker');
     evidence.clocks[marker] = new Date().toISOString();
-    if (marker === 'backupFinish') evidence.clocks.snapshotBound = 'pg_dump snapshot acquired between backupStart and backupFinish';
+    if (marker === 'snapshotCompletion') evidence.clocks.snapshotBound = 'logical dump complete; pg_dump MVCC snapshot acquired after backupStart';
     if (marker === 'faultInjected') evidence.clocks.outageStart = evidence.clocks.faultInjected;
   } else if (action === 'ingest') {
     evidence.occurrenceTime = new Date(Date.now() - 60000).toISOString(); await save();
@@ -65,8 +71,7 @@ try {
       else if (row.id === item.outcome.eventId) classifications.survived.push({ key: item.idempotencyKey, originalId: row.id, quantity: item.quantity });
       else classifications.unresolved.push({ key: item.idempotencyKey, originalId: item.outcome.eventId, observedId: row.id, reason: 'key points to different ID' });
     }
-    const sum = field => restoredRows.reduce((n, row) => n + Number(row[field] || 0), 0);
-    evidence.preReplay = { at: new Date().toISOString(), classifications, absentOriginalCount: classifications.absent.length, absentOriginalQuantity: classifications.absent.reduce((n, x) => n + x.quantity, 0), restored: { rawCount: restoredRows.length, rawQuantity: sum('amount'), projectedCount: restoredRows.filter(r => r.projection).length, projectedQuantity: sum('projected_quantity'), ratedCount: restoredRows.filter(r => r.rating).length, ratedQuantity: sum('rated_quantity'), ratedAmount: sum('rated_amount'), backlog: { pending: restoredRows.filter(r => r.state === 'PENDING').length, processing: restoredRows.filter(r => r.state === 'PROCESSING').length, failed: restoredRows.filter(r => r.state === 'FAILED').length, unrated: restoredRows.filter(r => r.unrated).length, ratingRetry: restoredRows.filter(r => r.rating_retry).length, ratingFailure: restoredRows.filter(r => r.rating_failure).length } } };
+    evidence.preReplay = { at: new Date().toISOString(), classifications, absentOriginalCount: classifications.absent.length, absentOriginalQuantity: classifications.absent.reduce((n, x) => n + x.quantity, 0), restored: summarizeRows(restoredRows), groups: groupRows(restoredRows) };
     evidence.versions.originalPostgresImageId = imageId(`usageflow-pilot-pg-${runId}`);
     evidence.versions.originalRedisImageId = imageId(`usageflow-pilot-redis-${runId}`);
     evidence.versions.restoredPostgresImageId = imageId(`usageflow-pilot-restore-pg-${runId}`);
@@ -74,17 +79,17 @@ try {
     if (!classifications.absent.some(x => x.key === evidence.deliberatelyLostKey)) throw Error('Deliberately lost accepted event survived backup');
     if (classifications.unresolved.length) throw Error('Unresolved original IDs before replay');
     const oldest = classifications.absent.map(x => Date.parse(x.acceptedAt)).sort()[0];
-    evidence.preReplay.backupGapSeconds = { minimum: (Date.parse(evidence.clocks.outageStart) - Date.parse(evidence.clocks.backupFinish)) / 1000, maximum: (Date.parse(evidence.clocks.outageStart) - Date.parse(evidence.clocks.backupStart)) / 1000 };
+    evidence.preReplay.backupGapSeconds = (Date.parse(evidence.clocks.outageStart) - Date.parse(evidence.clocks.snapshotCompletion)) / 1000;
+    evidence.preReplay.consistencyPointToOutageBoundsSeconds = { minimum: (Date.parse(evidence.clocks.outageStart) - Date.parse(evidence.clocks.snapshotCompletion)) / 1000, maximum: (Date.parse(evidence.clocks.outageStart) - Date.parse(evidence.clocks.backupStart)) / 1000 };
     evidence.preReplay.oldestAbsentAcceptanceToOutageSeconds = oldest === undefined ? null : (Date.parse(evidence.clocks.outageStart) - oldest) / 1000;
   } else if (action === 'probe') {
     const key = `restore-probe-${runId}`;
     const payload = JSON.stringify({ customerId: `customer-${runId}`, metric: 'CALLS', amount: 1, timestamp: evidence.occurrenceTime });
-    const response = await fetch(`${process.env.NEXTAUTH_URL}/api/track`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-usageflow-api-key': apiKey, 'idempotency-key': key }, body: payload, signal: AbortSignal.timeout(30000) });
-    const body = await response.json();
-    if (!response.ok || !body.eventId) throw Error(`Probe was not accepted: ${response.status}`);
-    const found = (await rows()).find(row => row.key === key && row.id === body.eventId && row.intent);
+    const result = await send(0, process.env.NEXTAUTH_URL, 'probe', { payload }, key);
+    if (result.classification !== 'accepted') throw Error(`Probe was not accepted: ${JSON.stringify(result)}`);
+    const found = (await rows()).find(row => row.key === key && row.id === result.eventId && row.intent);
     if (!found) throw Error('Accepted probe not durably readable with intent');
-    evidence.probe = { key, id: body.eventId, acceptedAndReadBackAt: new Date().toISOString() };
+    evidence.probe = { key, id: result.eventId, acceptedAndReadBackAt: new Date().toISOString() };
     evidence.ingestionRtoSeconds = (Date.parse(evidence.probe.acceptedAndReadBackAt) - Date.parse(evidence.clocks.outageStart)) / 1000;
   } else if (action === 'replay') {
     const sent = originals(await records());
@@ -118,9 +123,17 @@ try {
       if (!failures.length) break;
       await new Promise(resolve => setTimeout(resolve, 1000));
     } while (Date.now() < deadline);
-    const total = field => actual.reduce((n, row) => n + Number(row[field] || 0), 0);
+    const summary = summarizeRows(actual);
     const expectedQuantity = sent.reduce((n, item) => n + item.quantity, 0);
-    const post = { at: new Date().toISOString(), expectedCount: expected.size, expectedQuantity, rawCount: actual.length, rawQuantity: total('amount'), projectedCount: actual.filter(row => row.projection).length, projectedQuantity: total('projected_quantity'), ratedCount: actual.filter(row => row.rating).length, ratedQuantity: total('rated_quantity'), ratedAmount: total('rated_amount'), remainingOriginalIdLoss: evidence.preReplay.classifications.absent.map(x => x.originalId).filter(id => !actual.some(row => row.id === id)), replayCreatedReplacementIds: evidence.replay.replacementIds, replayedQuantity: evidence.replay.replacementIds.reduce((n, x) => n + x.quantity, 0), unrecoveredQuantity: expectedQuantity - total('amount'), backlog: { pending: actual.filter(r => r.state === 'PENDING').length, processing: actual.filter(r => r.state === 'PROCESSING').length, failed: actual.filter(r => r.state === 'FAILED').length, unrated: actual.filter(r => r.unrated).length, ratingRetry: actual.filter(r => r.rating_retry).length, ratingFailure: actual.filter(r => r.rating_failure).length }, failures };
+    const groups = groupRows(actual);
+    for (const item of sent) {
+      const key = `org-${runId}|customer-row-${runId}|${item.metric}|${item.occurrenceTime.slice(0, 7)}`;
+      const group = groups[key] ||= summarizeRows([]);
+      group.expectedCount = (group.expectedCount || 0) + 1;
+      group.expectedQuantity = (group.expectedQuantity || 0) + item.quantity;
+    }
+    for (const [key, group] of Object.entries(groups)) if (group.expectedCount !== group.rawCount || group.expectedQuantity !== group.rawQuantity || group.expectedCount !== group.projectedCount || group.expectedQuantity !== group.projectedQuantity || group.expectedCount !== group.ratedCount || group.expectedQuantity !== group.ratedQuantity || group.expectedQuantity !== group.ratedAmount) failures.push(`${key}: group mismatch`);
+    const post = { at: new Date().toISOString(), expectedCount: expected.size, expectedQuantity, ...summary, groups, events: actual.map(row => ({ key: row.key, originalId: expected.get(row.key)?.outcome?.eventId || null, restoredId: row.id, organization: row.org, customer: row.customer, metric: row.metric, utcMonth: row.event_month, quantity: row.amount, hasIntent: row.intent, projectedQuantity: row.projected_quantity, ratedQuantity: row.rated_quantity, ratedAmount: Number(row.rated_amount), currency: row.currency, priceVersionId: row.price_id })).sort((a,b) => a.key.localeCompare(b.key)), remainingOriginalIdLoss: evidence.preReplay.classifications.absent.map(x => x.originalId).filter(id => !actual.some(row => row.id === id)), replayCreatedReplacementIds: evidence.replay.replacementIds, replayedQuantity: evidence.replay.replacementIds.reduce((n, x) => n + x.quantity, 0), unrecoveredQuantity: expectedQuantity - summary.rawQuantity, failures };
     if ([post.rawQuantity, post.projectedQuantity, post.ratedQuantity, post.ratedAmount].some(n => n !== expectedQuantity)) post.failures.push('Quantity or rating total mismatch');
     evidence.postReplay = post;
     evidence.fullReconciliationRtoSeconds = post.failures.length ? null : (Date.parse(post.at) - Date.parse(evidence.clocks.outageStart)) / 1000;
