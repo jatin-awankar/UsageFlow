@@ -58,19 +58,27 @@ for(const id of readdirSync(root).sort()) {
    if(artifact!==basename(artifact)) fail(id,`unsafe declared artifact path ${artifact}`);
    else if(!run.artifacts[artifact]) fail(id,`missing declared artifact ${artifact}`);
   }
-  if(['volume','burst','export','fault','restore'].includes(mode) && !data.journal?.sha256) fail(id,'missing journal hash');
-  if(mode==='restore' && !data.backup?.sha256) fail(id,'missing backup hash');
+  if(['volume','burst','export','fault','restore'].includes(mode)) {
+   if(!data.journal?.sha256) fail(id,'missing journal hash');
+   if(!data.journal?.file) fail(id,'missing journal artifact filename');
+  }
+  if(mode==='restore') {
+   if(!data.backup?.sha256) fail(id,'missing backup hash');
+   if(!data.backup?.file) fail(id,'missing backup artifact filename');
+  }
  }
  if(mode==='volume'||mode==='burst'||mode==='export') {
   Object.assign(run,{requested:data?.requested??null,achieved:data?.achieved??null,latency:data?.latency??null,totals:data?.totals??null,backlogAtSendEnd:data?.backlogAtSendEnd??null,finalBacklog:data?.finalBacklog??null});
   run.targets=targetSummary(data);
-  if(data?.totals && !failures.length) { const q=data.totals; reconcile(id,'quantity', [q.expectedQuantity,q.rawQuantity,q.projectedQuantity,q.ratedQuantity,q.ratedAmount]); }
-  if(data?.achieved?.resolvedCommittedOriginals!=null && !failures.length && data.achieved.resolvedCommittedOriginals!==data.achieved.uniquePersistedEvents) fail(id,'original ID count differs from persisted count');
+  if(data?.totals && Number.isFinite(data.totals.expectedQuantity) && Number.isFinite(data.totals.projectedQuantity)) { const q=data.totals; reconcile(id,'quantity', [q.expectedQuantity,q.rawQuantity,q.projectedQuantity,q.ratedQuantity]); }
+  if(data?.totals?.expectedRatedAmount!=null && data.totals.ratedAmount!==data.totals.expectedRatedAmount) fail(id,'rated amount differs from independently expected amount');
+  if(data?.achieved?.resolvedCommittedOriginals!=null && data?.endedAt && data.achieved.resolvedCommittedOriginals!==data.achieved.uniquePersistedEvents) fail(id,'original ID count differs from persisted count');
   if(mode==='export') {
    run.export=exportData?{creationMs:exportData.creationMs,paginationMs:exportData.paginationMs,pages:exportData.pages,rowCount:exportData.rowCount,uniqueIds:exportData.uniqueIds,httpErrors:exportData.httpErrors,failures:exportData.failures,acceptedDuringCreation:exportData.acceptedDuringCreation,concurrentIncluded:exportData.concurrentIncluded,concurrentExcluded:exportData.concurrentExcluded,rating:exportData.rating,snapshotTotals:exportData.snapshotTotals,groupedTotals:exportData.groupedTotals,rowsHash:run.artifacts['export-rows.jsonl']??null}:null;
-   if(!exportData && !failures.length) fail(id,'missing export scenario');
-   if(exportData && !failures.length) {
-    if(exportData.failures?.length||exportData.httpErrors?.length) fail(id,'export failed');
+   if(!exportData && data?.endedAt) fail(id,'missing export scenario');
+   if(exportData && data?.endedAt) {
+    if(exportData.failures?.length) failures.push(...exportData.failures.map(x=>`export: ${x}`));
+    if(exportData.httpErrors?.length) failures.push(`export HTTP errors: ${exportData.httpErrors.length}`);
     reconcile(id,'export rows',[exportData.rowCount,exportData.uniqueIds,exportData.ids?.length]);
     if(exportData.acceptedDuringCreation!==exportData.concurrentIncluded+exportData.concurrentExcluded) fail(id,'unexplained concurrent export count');
     if(exportData.rating?.ratedAmount!==exportData.rating?.expectedAmount) fail(id,'export rating difference');
@@ -81,20 +89,20 @@ for(const id of readdirSync(root).sort()) {
  if(mode==='fault') {
   run.samplePerScenario=data?.countPerScenario??null;run.scenarios={};
   for(const name of scenarios){const s=data?.scenarios?.[name]; if(s?.failures?.length) failures.push(...s.failures.map(x=>`${name}: ${x}`));run.scenarios[name]=s?{sample:s.sample??null,expected:s.journalExpected??null,workerQueueRecoverySeconds:s.faultToDrainSeconds??s.recoverySeconds??null,fullReconciliationSeconds:s.fullReconciliationSeconds??null,timedOut:s.timedOut??null,queueDrainedAtFinal:s.queueDrainedAtFinal??null,faultAt:s.faultAt??null,recoveryStartedAt:s.recoveryStartedAt??null,recoveryEndedAt:s.recoveryEndedAt??null,checkpoints:s.checkpoints?.map(c=>({at:c.at,name:c.name,totals:c.totals,backlog:c.backlog,queue:c.queue,failures:c.failures}))??null,failures:s.failures??[]}:null;
-   if(data&&!failures.length&&!s)fail(id,`missing ${name} scenario`);
-   if(s&&!failures.length){if(!s.sample?.attempted)fail(id,`${name} missing sample size`);if(s.timedOut===true && Number.isFinite(s.fullReconciliationSeconds))fail(id,`${name} timeout has finite recovery`);if(!Number.isFinite(s.recoverySeconds)&&!Number.isFinite(s.faultToDrainSeconds)&&s.timedOut!==true)fail(id,`${name} missing recovery status`);if(s.journalExpected?.count!=null && s.journalExpected.count!==s.sample?.committedOriginals)fail(id,`${name} reconciliation difference`);}
+   if(data?.endedAt&&!s)fail(id,`missing ${name} scenario`);
+   if(s&&data?.endedAt){if(!s.sample?.attempted)fail(id,`${name} missing sample size`);if(s.timedOut===true && Number.isFinite(s.fullReconciliationSeconds))fail(id,`${name} timeout has finite recovery`);if(!Number.isFinite(s.recoverySeconds)&&!Number.isFinite(s.faultToDrainSeconds)&&s.timedOut!==true)fail(id,`${name} missing recovery status`);if(s.journalExpected?.count!=null && s.journalExpected.count!==s.sample?.committedOriginals)fail(id,`${name} reconciliation difference`);}
   }
  }
  if(mode==='restore'){
-  const pre=data?.preReplay,post=data?.postReplay,c=pre?.classifications;
-  run.sample={acceptedOriginalIds:(c?.survived?.length??0)+(c?.absent?.length??0)+(c?.unresolved?.length??0),preReplayAbsent:c?.absent?.length??null};
-  run.recovery={backupGapSeconds:pre?.backupGapSeconds??null,preReplay:{survivedOriginalIds:c?.survived??null,absentOriginalIds:c?.absent??null,unresolvedOriginalIds:c?.unresolved??null,absentOriginalCount:pre?.absentOriginalCount??null,absentOriginalQuantity:pre?.absentOriginalQuantity??null,oldestAbsentAcceptanceToOutageSeconds:pre?.oldestAbsentAcceptanceToOutageSeconds??null},postReplay:{remainingOriginalIdLoss:post?.remainingOriginalIdLoss??null,replacementIds:post?.replayCreatedReplacementIds??null,replayedQuantity:post?.replayedQuantity??null,unrecoveredQuantity:post?.unrecoveredQuantity??null},ingestionRtoSeconds:data?.ingestionRtoSeconds??null,fullReconciliationRtoSeconds:data?.fullReconciliationRtoSeconds??null,timeoutOrFailure:failures.length?failures:'none',commands:data?.commands??null,versions:data?.versions??null,writesPaused:data?.writesPaused??null,clocks:data?.clocks??null};
+  const preReplay=data?.preReplay,postReplay=data?.postReplay,classifications=preReplay?.classifications;
+  run.sample={acceptedOriginalIds:(classifications?.survived?.length??0)+(classifications?.absent?.length??0)+(classifications?.unresolved?.length??0),preReplayAbsent:classifications?.absent?.length??null};
+  run.recovery={backupGapSeconds:preReplay?.backupGapSeconds??null,preReplay:{survivedOriginalIds:classifications?.survived??null,absentOriginalIds:classifications?.absent??null,unresolvedOriginalIds:classifications?.unresolved??null,absentOriginalCount:preReplay?.absentOriginalCount??null,absentOriginalQuantity:preReplay?.absentOriginalQuantity??null,oldestAbsentAcceptanceToOutageSeconds:preReplay?.oldestAbsentAcceptanceToOutageSeconds??null},postReplay:{remainingOriginalIdLoss:postReplay?.remainingOriginalIdLoss??null,replacementIds:postReplay?.replayCreatedReplacementIds??null,replayedQuantity:postReplay?.replayedQuantity??null,unrecoveredQuantity:postReplay?.unrecoveredQuantity??null},ingestionRtoSeconds:data?.ingestionRtoSeconds??null,fullReconciliationRtoSeconds:data?.fullReconciliationRtoSeconds??null,timeoutOrFailure:failures.length?failures:'none',commands:data?.commands??null,versions:data?.versions??null,writesPaused:data?.writesPaused??null,clocks:data?.clocks??null};
   run.targets={organizationMonthly100000:{status:'unmeasured'},customerMonthly20000:{status:'unmeasured'},burst10PerSecond:{status:'unmeasured'},processingWithin60Seconds:{status:'unmeasured'},ingestionRestorationWithin4Hours:{status:status(data?.ingestionRtoSeconds,data?.ingestionRtoSeconds<=14400&&!failures.length),measured:data?.ingestionRtoSeconds??null,denominator:14400}};
-  if(data&&!failures.length){
-   if(!c || !Array.isArray(c.survived)||!Array.isArray(c.absent)||!Array.isArray(c.unresolved)) fail(id,'missing original ID classifications');
-   else {const all=[...c.survived,...c.absent,...c.unresolved];if(all.some(x=>!x.originalId||!x.key||!Number.isFinite(x.quantity))||new Set(all.map(x=>x.key)).size!==all.length)fail(id,'incomplete or duplicate original ID classifications');reconcile(id,'pre-replay loss count',[c.absent.length,pre.absentOriginalCount]);reconcile(id,'pre-replay loss quantity',[sum(c.absent.map(x=>x.quantity)),pre.absentOriginalQuantity]);if(c.absent.length && post?.remainingOriginalIdLoss?.length===0)fail(id,'unsupported zero original-ID loss claim');}
+  if(data?.endedAt){
+   if(!classifications || !Array.isArray(classifications.survived)||!Array.isArray(classifications.absent)||!Array.isArray(classifications.unresolved)) fail(id,'missing original ID classifications');
+   else {const all=[...classifications.survived,...classifications.absent,...classifications.unresolved];if(all.some(x=>!x.originalId||!x.key||!Number.isFinite(x.quantity))||new Set(all.map(x=>x.key)).size!==all.length)fail(id,'incomplete or duplicate original ID classifications');reconcile(id,'preReplay-replay loss count',[classifications.absent.length,preReplay.absentOriginalCount]);reconcile(id,'preReplay-replay loss quantity',[sum(classifications.absent.map(x=>x.quantity)),preReplay.absentOriginalQuantity]);if(classifications.absent.length && postReplay?.remainingOriginalIdLoss?.length===0)fail(id,'unsupported zero original-ID loss claim');}
    if(!Number.isFinite(data.ingestionRtoSeconds)||!Number.isFinite(data.fullReconciliationRtoSeconds))fail(id,'missing RTO or timeout status');
-   if(post){reconcile(id,'post-replay count',[post.expectedCount,post.rawCount,post.projectedCount,post.ratedCount]);reconcile(id,'post-replay quantity',[post.expectedQuantity,post.rawQuantity,post.projectedQuantity,post.ratedQuantity,post.ratedAmount]);if(post.remainingOriginalIdLoss?.length!==c?.absent?.length)fail(id,'post-replay original ID loss differs from pre-replay absence');if(post.unrecoveredQuantity===0&&post.replayedQuantity!==pre.absentOriginalQuantity)fail(id,'zero unrecovered quantity unsupported by replay');}
+   if(postReplay){reconcile(id,'postReplay-replay count',[postReplay.expectedCount,postReplay.rawCount,postReplay.projectedCount,postReplay.ratedCount]);reconcile(id,'postReplay-replay quantity',[postReplay.expectedQuantity,postReplay.rawQuantity,postReplay.projectedQuantity,postReplay.ratedQuantity]);if(postReplay.remainingOriginalIdLoss?.length!==classifications?.absent?.length)fail(id,'postReplay-replay original ID loss differs from preReplay-replay absence');if(postReplay.unrecoveredQuantity===0&&postReplay.replayedQuantity!==preReplay.absentOriginalQuantity)fail(id,'zero unrecovered quantity unsupported by replay');}
   }
  }
  runs.push(run);
