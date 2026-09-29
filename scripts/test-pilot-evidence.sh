@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [[ "${1:-}" == "--report" ]]; then
+  node scripts/pilot-evidence-report.mjs
+  exit $?
+fi
 if [[ "${1:-}" == "--cleanup" ]]; then
   run_id="${2:-}"
   [[ "$run_id" =~ ^[0-9a-f]{8}-[0-9a-f]{3}$ ]] || { echo 'Invalid pilot run ID' >&2; exit 2; }
