@@ -4,13 +4,18 @@ import { join } from "node:path";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import pg from "pg";
+import { Queue } from "bullmq";
 import { readTraces } from "./pilot-evidence-measurements.mjs";
 
 const [mode, runId, directory, baseUrl, apiKey] = process.argv.slice(2);
-if (!["--volume", "--burst", "--export"].includes(mode) || !runId || !directory || !baseUrl || !apiKey) throw new Error("Invalid load arguments");
+if (!["--volume", "--burst", "--export", "--arrival"].includes(mode) || !runId || !directory || !baseUrl || !apiKey) throw new Error("Invalid load arguments");
 if (process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true") throw new Error("Sender inherited the ingestion gate");
 const volume = mode !== "--burst";
-const count = mode === "--volume" && process.env.PILOT_DIAGNOSTIC_EVENT_COUNT ? Number(process.env.PILOT_DIAGNOSTIC_EVENT_COUNT) : volume ? 100_000 : Number(process.env.PILOT_BURST_SECONDS || 10) * 10;
+const sustainedSeconds = mode === "--arrival" ? Number(process.env.PILOT_SUSTAINED_SECONDS || 60) : 0;
+const burstSeconds = Number(process.env.PILOT_BURST_SECONDS || 10);
+if (mode === "--arrival" && (!Number.isInteger(sustainedSeconds) || sustainedSeconds < 10 || sustainedSeconds > 600 || !Number.isInteger(burstSeconds) || burstSeconds < 1 || burstSeconds > 60)) throw new Error("Arrival durations are outside bounded limits");
+const seedCount = mode === "--arrival" ? 100_000 : 0;
+const count = mode === "--volume" && process.env.PILOT_DIAGNOSTIC_EVENT_COUNT ? Number(process.env.PILOT_DIAGNOSTIC_EVENT_COUNT) : mode === "--arrival" ? seedCount + 10 * (sustainedSeconds + burstSeconds) : volume ? 100_000 : burstSeconds * 10;
 const requestedRate = volume ? null : 10;
 const concurrency = volume ? 8 : 1;
 const sampleEvery = Math.max(1, Math.ceil(count / 100));
@@ -19,6 +24,14 @@ const journalPath = join(directory, "sender-journal.jsonl");
 const journal = await open(journalPath, "wx", 0o600);
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await db.connect();
+const redisAddress = new URL(process.env.REDIS_URL);
+const queue = mode === "--arrival" ? new Queue(process.env.QUEUE_NAME, { connection: { host: redisAddress.hostname, port: Number(redisAddress.port || 6379) } }) : null;
+const queueSamples = [];
+async function sampleQueue(phase) {
+  if (!queue) return;
+  try { queueSamples.push({ at: new Date().toISOString(), phase, ...(await queue.getJobCounts("waiting", "active", "delayed", "failed", "completed")) }); }
+  catch (error) { queueSamples.push({ at: new Date().toISOString(), phase, error: String(error) }); }
+}
 const databaseSamples = [];
 let databaseSamplingMs = 0;
 let activeSample = Promise.resolve();
@@ -53,6 +66,9 @@ function dockerEvidence(name) {
 }
 let next = 0;
 let exportRun;
+let phase = "seed";
+const phases = [];
+const queueTimer = queue ? setInterval(() => { void sampleQueue(phase); }, 1000) : null;
 let journalChain = Promise.resolve();
 function append(record) {
   journalChain = journalChain.then(async () => { const start = performance.now(); await journal.write(`${JSON.stringify(record)}\n`); await journal.sync(); journalOverheadMs += performance.now() - start; });
@@ -69,18 +85,18 @@ async function send(index, variant = "original") {
   const attemptNumber = (attemptNumbers.get(index) || 0) + 1;
   attemptNumbers.set(index, attemptNumber);
   const attempt = `${index}:${attemptNumber}`;
-  await append({ type: "send", runId, organization: `org-${runId}`, externalCustomerId: body.customerId, metric: body.metric, quantity: body.amount, occurrenceTime: occurrence, idempotencyKey: key, payload, attempt, attemptNumber, variant, sendTime: new Date().toISOString() });
+  await append({ type: "send", runId, phase, organization: `org-${runId}`, externalCustomerId: body.customerId, metric: body.metric, quantity: body.amount, occurrenceTime: occurrence, idempotencyKey: key, payload, attempt, attemptNumber, variant, sendTime: new Date().toISOString() });
   let result;
   try {
     const response = await fetch(`${baseUrl}/api/track`, { method: "POST", headers: { "content-type": "application/json", "x-usageflow-api-key": apiKey, "idempotency-key": key, ...(index % sampleEvery === 0 ? { "x-pilot-evidence-trace": "1" } : {}) }, body: payload, signal: AbortSignal.timeout(30_000) });
     const text = await response.text();
     let parsed;
     try { parsed = JSON.parse(text); } catch { parsed = null; }
-    result = { type: "outcome", runId, attempt, variant, completedAt: new Date().toISOString(), classification: response.ok && parsed?.eventId ? "accepted" : "rejected", status: response.status, eventId: parsed?.eventId ?? null, body: text.slice(0, 1000) };
+    result = { type: "outcome", runId, phase, attempt, variant, completedAt: new Date().toISOString(), classification: response.ok && parsed?.eventId ? "accepted" : "rejected", status: response.status, eventId: parsed?.eventId ?? null, body: text.slice(0, 1000) };
     responseCodes[response.status] = (responseCodes[response.status] || 0) + 1;
     if ((variant === "original" || variant === "recovery") && result.classification === "accepted") accepted.set(index, result.eventId);
   } catch (error) {
-    result = { type: "outcome", runId, attempt, variant, completedAt: new Date().toISOString(), classification: "uncertain", transportError: String(error) };
+    result = { type: "outcome", runId, phase, attempt, variant, completedAt: new Date().toISOString(), classification: "uncertain", transportError: String(error) };
   }
   await append(result);
   outcomes.push(result);
@@ -90,7 +106,7 @@ const failures = [];
 try {
   if (volume) {
     await Promise.all(Array.from({ length: concurrency }, async () => {
-      while (next < count) {
+      while (next < (mode === "--arrival" ? seedCount : count)) {
         const index = next++;
         if (mode === "--export" && index >= Math.floor(count / 2) && !exportRun) {
           const { createExportEvidence } = await import("./pilot-evidence-export.mjs");
@@ -99,6 +115,43 @@ try {
         await send(index);
       }
     }));
+    if (mode === "--arrival") {
+      phases.push({ name: "seed", count: seedCount, elapsedSeconds: (performance.now() - startedMs) / 1000 });
+      for (let pass = 0; pass < 4 && accepted.size < seedCount; pass++) {
+        for (let index = 0; index < seedCount; index++) if (!accepted.has(index)) await send(index, "recovery");
+      }
+      const seedDeadline = Date.now() + Number(process.env.PILOT_DRAIN_SECONDS || 1800) * 1000;
+      let seedRows = 0;
+      let seedReconciled = false;
+      while (Date.now() < seedDeadline) {
+        const { rows: [row] } = await db.query(`SELECT count(*)::int AS total, count(p."eventId")::int AS projected, count(r."eventId")::int AS rated, coalesce(sum(e.amount),0)::int AS raw_quantity, coalesce(sum(p.amount),0)::int AS projected_quantity, coalesce(sum(r.quantity),0)::int AS rated_quantity FROM "UsageEvent" e LEFT JOIN "LedgerEventProjection" p ON p."eventId"=e.id LEFT JOIN "RatedEvent" r ON r."eventId"=e.id WHERE e."orgId"=$1`, [`org-${runId}`]);
+        seedRows = row.total;
+        seedReconciled = row.total === seedCount && row.projected === seedCount && row.rated === seedCount && row.raw_quantity === 199999 && row.projected_quantity === 199999 && row.rated_quantity === 199999 && accepted.size === seedCount;
+        if (seedReconciled) break;
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+      if (!seedReconciled) throw new Error(`Seed ledger did not reconcile before arrival phases: ${seedRows}/${seedCount} rows`);
+      async function scheduledPhase(name, firstIndex, seconds) {
+        phase = name;
+        await sampleQueue(phase);
+        const phaseStart = performance.now();
+        const phaseStartedAt = new Date();
+        const pending = [];
+        for (let offset = 0; offset < seconds * 10; offset++) {
+          const delay = phaseStart + offset * 100 - performance.now();
+          if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
+          pending.push(send(firstIndex + offset));
+        }
+        await Promise.all(pending);
+        const elapsedSeconds = (performance.now() - phaseStart) / 1000;
+        const originals = outcomes.filter(o => o.phase === name && o.variant === "original");
+        const acceptedOriginals = originals.filter(o => o.classification === "accepted").length;
+        phases.push({ name, count: seconds * 10, requestedEventsPerSecond: 10, startedAt: phaseStartedAt.toISOString(), endedAt: new Date().toISOString(), elapsedSeconds, achievedOriginalRequestsPerSecond: seconds * 10 / elapsedSeconds, achievedOriginalAcceptancesPerSecond: acceptedOriginals / elapsedSeconds, originalAccepted: acceptedOriginals, originalFailed: originals.length - acceptedOriginals });
+        await sampleQueue(phase);
+      }
+      await scheduledPhase("sustained", seedCount, sustainedSeconds);
+      await scheduledPhase("burst-after-reconciled-seed", seedCount + sustainedSeconds * 10, burstSeconds);
+    }
   } else {
     const pending = [];
     for (let index = 0; index < count; index++) {
@@ -176,6 +229,20 @@ try {
   const projected = latencies("projection_ms");
   const rated = latencies("rating_ms");
   const bothWithinMinute = rows.filter(r => r.projection_ms !== null && r.rating_ms !== null && Number(r.projection_ms) <= 60_000 && Number(r.rating_ms) <= 60_000).length;
+  if (mode === "--arrival") {
+    for (const item of phases.filter(item => item.name !== "seed")) {
+      const first = item.name === "sustained" ? seedCount : seedCount + sustainedSeconds * 10;
+      const phaseRows = Array.from({ length: item.count }, (_, offset) => byKey.get(`event-${runId}-${first + offset}`));
+      item.reconciledIds = phaseRows.filter((row, offset) => row && row.id === accepted.get(first + offset)).length;
+      item.bothWithin60Seconds = phaseRows.filter(row => row && row.projection_ms !== null && row.rating_ms !== null && Number(row.projection_ms) <= 60_000 && Number(row.rating_ms) <= 60_000).length;
+      item.finalMissingProjection = phaseRows.filter(row => !row?.projected).length;
+      item.finalMissingRating = phaseRows.filter(row => !row?.rated).length;
+      if (item.reconciledIds !== item.count || item.bothWithin60Seconds !== item.count || item.finalMissingProjection || item.finalMissingRating) failures.push(`${item.name} did not meet full ID reconciliation and 60-second completion`);
+    }
+    await sampleQueue("final");
+    const finalQueue = queueSamples.at(-1);
+    if (finalQueue?.error || !finalQueue || finalQueue.waiting !== 0 || finalQueue.active !== 0 || finalQueue.delayed !== 0 || finalQueue.failed !== 0) failures.push("Final queue backlog is not zero");
+  }
   if (projected.missing || rated.missing) failures.push(`Missing terminal timestamps: projection=${projected.missing}, rating=${rated.missing}`);
   const bytes = await readFile(journalPath);
   const expectedQuantity = Array.from({ length: count }, (_, index) => index % 3 + 1).reduce((a, b) => a + b, 0);
@@ -196,10 +263,11 @@ try {
   if (correlation.count !== traceIds.size) failures.push(`Correlated ${correlation.count}/${traceIds.size} sampled IDs`);
   for (const sample of correlation.samples) if (!sample.apiDispatchAt || !sample.queueEnteredAt || !sample.workerExecutionAt || !sample.durableClaimAt || sample.queueWaitMs === null || sample.claimToProjectionMs === null || sample.claimToProjectionMs < 0 || !sample.projectedAt || !sample.ratedAt) failures.push(`Incomplete or invalid sampled timing for ${sample.eventId}`);
   const report = {
+    arrival: mode === "--arrival" ? { phases, queueSamples, seedReconciledBeforeBurst: true } : undefined,
     correlation,
     database: { samples: databaseSamples, note: "Container CPU is point sampled; lock waiters are instantaneous. Cumulative database CPU and lock wait duration are unavailable from standard PostgreSQL views." },
     instrumentation: { sampledEvery: sampleEvery, journalSyncWallMs: journalOverheadMs, journalSyncWallMsPerAttempt: journalOverheadMs / outcomes.length, databaseSamplingWallMs: databaseSamplingMs, synchronousTraceEmissionMs: correlation.synchronousTraceMs, traceEmissionCount: correlation.traceEmissionCount, note: "Separate wall times for sender journal writes and fsyncs, database polling including Docker stats, and synchronous trace emission. The recovery scan's sample-membership lookup and indirect scheduling or I/O effects are not separately timed; concurrent work can overlap, so these are not a throughput correction." },
-    mode, runId, startedAt: startedAt.toISOString(), ingestionEndedAt: ingestionEndedAt.toISOString(), endedAt: new Date().toISOString(), requested: { distinctEvents: count, requestsPerSecond: requestedRate, burstDurationSeconds: volume ? null : count / 10, volumeCustomerMinimum: volume && count === 100_000 ? 20_000 : null, diagnosticEventCount: mode === "--volume" && count !== 100_000 ? count : null },
+    mode, runId, startedAt: startedAt.toISOString(), ingestionEndedAt: ingestionEndedAt.toISOString(), endedAt: new Date().toISOString(), requested: { distinctEvents: count, requestsPerSecond: requestedRate, burstDurationSeconds: volume ? null : count / 10, volumeCustomerMinimum: volume && count >= 100_000 ? 20_000 : null, diagnosticEventCount: mode === "--volume" && count !== 100_000 ? count : null },
     achieved: { originalAcceptedResponses: observedAcceptedResponses, resolvedCommittedOriginals: accepted.size, uniquePersistedEvents: rows.length, httpAttempts: outcomes.length, uncertainAttempts: outcomes.filter(o => o.classification === "uncertain").length, unresolvedTransportAttempts, responseCodes, initialSendElapsedSeconds, ingestionElapsedSeconds, originalRequestsPerSecond: count / initialSendElapsedSeconds, acceptedUniquePerSecond: accepted.size / ingestionElapsedSeconds, responseSeconds: volume ? null : responseSeconds, firstReceiptAt: firstReceipt?.toISOString() ?? null, lastReceiptAt: lastReceipt?.toISOString() ?? null, receiptWindowSeconds: firstReceipt && lastReceipt ? (lastReceipt - firstReceipt) / 1000 : null, retryIdsRetained: retries.filter(({ index, outcome }) => outcome.eventId === accepted.get(index)).length, changedFieldConflicts: conflicts.filter(({ outcome }) => outcome.status === 409).length },
     backlogAtSendEnd, finalBacklog: { missingProjection: projected.missing, missingRating: rated.missing, pending: rows.filter(r => r.state === "PENDING").length, processing: rows.filter(r => r.state === "PROCESSING").length, failed: rows.filter(r => r.state === "FAILED").length, unrated: rows.filter(r => r.unrated).length, ratingRetry: rows.filter(r => r.rating_retry).length, ratingFailure: rows.filter(r => r.rating_failure).length },
     latency: { clockPrecision: "JavaScript Date and PostgreSQL timestamp read at millisecond precision", projectedAtMinusReceivedAt: projected, ratedAtMinusReceivedAt: rated, bothWithin60Seconds: bothWithinMinute, bothWithin60SecondsFraction: rows.length ? bothWithinMinute / rows.length : null },
@@ -216,12 +284,14 @@ try {
   }
   report.export = mode === "--export" ? { evidence: exportEvidence ? "export-evidence.json" : null, creationMs: exportEvidence?.creationMs ?? null, paginationMs: exportEvidence?.paginationMs ?? null, pages: exportEvidence?.pages ?? null, rowCount: exportEvidence?.rowCount ?? null } : undefined;
   report.failures = failures;
-  const reportName = `${mode === "--export" ? "export-load" : volume ? "volume" : "burst"}-evidence.json`;
+  const reportName = `${mode === "--export" ? "export-load" : mode === "--arrival" ? "arrival" : volume ? "volume" : "burst"}-evidence.json`;
   await writeFile(join(directory, reportName), `${JSON.stringify(report, null, 2)}\n`, { flag: "wx", mode: 0o600 });
   console.log(JSON.stringify({ runId, mode, report: join(directory, reportName), export: report.export, achieved: report.achieved, latency: report.latency, failures }));
   if (failures.length) process.exitCode = 1;
 } finally {
   clearInterval(databaseTimer);
+  if (queueTimer) clearInterval(queueTimer);
+  if (queue) await queue.close();
   await activeSample;
   await journal.close();
   await db.end();
