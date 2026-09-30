@@ -10,6 +10,25 @@ export const PENDING_DISPATCH_SETTLE_MS = 1_000;
 const SCAN_BATCH_SIZE = 200;
 let scanAfter: { createdAt: Date; eventId: string } | null = null;
 
+type RecoveryCandidate = { eventId: string; createdAt: Date; event: { processingState: "PENDING" | "PROCESSING" | "FAILED" } };
+
+export async function findRecoveryCandidates(now: Date, pendingCutoff: Date, after: typeof scanAfter): Promise<RecoveryCandidate[]> {
+  const cursor = after ? Prisma.sql`AND (i."createdAt", i."eventId") > (${after.createdAt}, ${after.eventId})` : Prisma.empty;
+  const rows = await prisma.$queryRaw<Array<{ eventId: string; createdAt: Date; processingState: "PENDING" | "PROCESSING" | "FAILED" }>>`
+    SELECT i."eventId", i."createdAt", e."processingState"
+    FROM "LedgerProcessingIntent" i
+    JOIN "UsageEvent" e ON e.id = i."eventId"
+    WHERE e."billingTreatment" = 'LEDGER_ONLY'::"BillingTreatment"
+      AND ((e."processingState" = 'PENDING'::"LedgerProcessingState" AND i."createdAt" <= ${pendingCutoff})
+        OR e."processingState" IN ('PROCESSING'::"LedgerProcessingState", 'FAILED'::"LedgerProcessingState"))
+      AND (i."leaseUntil" IS NULL OR i."leaseUntil" <= ${now})
+      ${cursor}
+    ORDER BY i."createdAt" ASC, i."eventId" ASC
+    LIMIT ${SCAN_BATCH_SIZE}
+  `;
+  return rows.map(({ eventId, createdAt, processingState }) => ({ eventId, createdAt, event: { processingState } }));
+}
+
 async function sampledIdsFor(candidateIds: string[]) {
   const sampledIds = new Set<string>();
   const runId = process.env.PILOT_EVIDENCE_RUN_ID;
@@ -28,25 +47,7 @@ async function sampledIdsFor(candidateIds: string[]) {
 export async function recoverLedgerWork() {
   const now = new Date();
   const pendingCutoff = new Date(now.getTime() - PENDING_DISPATCH_SETTLE_MS);
-  const eligible: Prisma.LedgerProcessingIntentWhereInput = {
-    event: { billingTreatment: "LEDGER_ONLY" },
-    AND: [
-      { OR: [
-        { event: { processingState: "PENDING" }, createdAt: { lte: pendingCutoff } },
-        { event: { processingState: { in: ["PROCESSING", "FAILED"] } } },
-      ] },
-      { OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }] },
-    ],
-  };
-  const findBatch = (after: typeof scanAfter) => prisma.ledgerProcessingIntent.findMany({
-    where: after ? { AND: [eligible, { OR: [
-      { createdAt: { gt: after.createdAt } },
-      { createdAt: after.createdAt, eventId: { gt: after.eventId } },
-    ] }] } : eligible,
-    select: { eventId: true, createdAt: true, event: { select: { processingState: true } } },
-    orderBy: [{ createdAt: "asc" }, { eventId: "asc" }],
-    take: SCAN_BATCH_SIZE,
-  });
+  const findBatch = (after: typeof scanAfter) => findRecoveryCandidates(now, pendingCutoff, after);
   let intents = await findBatch(scanAfter);
   if (!intents.length && scanAfter) intents = await findBatch(null);
   const last = intents.at(-1);
