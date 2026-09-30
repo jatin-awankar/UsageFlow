@@ -1,0 +1,53 @@
+PREPARE
+parameters: billing=LEDGER_ONLY state1=PENDING cutoff=2026-09-30 18:00:03.246118 state2=PROCESSING state3=FAILED lease=2026-09-30 18:00:04.246115 limit=200 offset=0
+          captured_at          | database_bytes | accepted | rated | intents 
+-------------------------------+----------------+----------+-------+---------
+ 2026-09-30 18:00:04.247607+00 |       38964371 |    13212 | 10551 |   13212
+(1 row)
+
+                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                   
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=3401.96..3402.46 rows=200 width=45) (actual time=14.975..14.989 rows=200 loops=1)
+   Buffers: shared hit=2344
+   ->  Sort  (cost=3401.96..3407.04 rows=2031 width=45) (actual time=14.974..14.981 rows=200 loops=1)
+         Sort Key: "LedgerProcessingIntent"."createdAt", "LedgerProcessingIntent"."eventId"
+         Sort Method: top-N heapsort  Memory: 39kB
+         Buffers: shared hit=2344
+         ->  Hash Join  (cost=2344.25..3314.18 rows=2031 width=45) (actual time=11.975..14.770 rows=2380 loops=1)
+               Hash Cond: (j0.id = "LedgerProcessingIntent"."eventId")
+               Buffers: shared hit=2338
+               ->  Seq Scan on "UsageEvent" j0  (cost=0.00..908.04 rows=11088 width=37) (actual time=0.004..1.789 rows=13214 loops=1)
+                     Filter: ("billingTreatment" = ('LEDGER_ONLY'::cstring)::"BillingTreatment")
+                     Buffers: shared hit=714
+               ->  Hash  (cost=2318.86..2318.86 rows=2031 width=45) (actual time=11.955..11.957 rows=2380 loops=1)
+                     Buckets: 4096 (originally 2048)  Batches: 1 (originally 1)  Memory Usage: 218kB
+                     Buffers: shared hit=1624
+                     ->  Hash Left Join  (cost=1435.82..2318.86 rows=2031 width=45) (actual time=4.350..11.754 rows=2380 loops=1)
+                           Hash Cond: ("LedgerProcessingIntent"."eventId" = j2.id)
+                           Filter: (((j1."processingState" = ('PENDING'::cstring)::"LedgerProcessingState") AND (j1.id IS NOT NULL) AND ("LedgerProcessingIntent"."createdAt" <= '2026-09-30 18:00:03.246118'::timestamp without time zone)) OR ((j2."processingState" = ANY (ARRAY[('PROCESSING'::cstring)::"LedgerProcessingState", ('FAILED'::cstring)::"LedgerProcessingState"])) AND (j2.id IS NOT NULL)))
+                           Rows Removed by Filter: 10833
+                           Buffers: shared hit=1624
+                           ->  Hash Right Join  (cost=472.34..1326.33 rows=11053 width=86) (actual time=1.897..5.565 rows=13213 loops=1)
+                                 Hash Cond: (j1.id = "LedgerProcessingIntent"."eventId")
+                                 Buffers: shared hit=910
+                                 ->  Seq Scan on "UsageEvent" j1  (cost=0.00..824.88 rows=11088 width=41) (actual time=0.003..1.455 rows=13214 loops=1)
+                                       Buffers: shared hit=714
+                                 ->  Hash  (cost=334.18..334.18 rows=11053 width=45) (actual time=1.881..1.881 rows=13213 loops=1)
+                                       Buckets: 16384  Batches: 1  Memory Usage: 1161kB
+                                       Buffers: shared hit=196
+                                       ->  Seq Scan on "LedgerProcessingIntent"  (cost=0.00..334.18 rows=11053 width=45) (actual time=0.003..0.860 rows=13213 loops=1)
+                                             Filter: (("leaseUntil" IS NULL) OR ("leaseUntil" <= '2026-09-30 18:00:04.246115'::timestamp without time zone))
+                                             Rows Removed by Filter: 1
+                                             Buffers: shared hit=196
+                           ->  Hash  (cost=824.88..824.88 rows=11088 width=41) (actual time=2.404..2.404 rows=13214 loops=1)
+                                 Buckets: 16384  Batches: 1  Memory Usage: 1071kB
+                                 Buffers: shared hit=714
+                                 ->  Seq Scan on "UsageEvent" j2  (cost=0.00..824.88 rows=11088 width=41) (actual time=0.001..1.428 rows=13214 loops=1)
+                                       Buffers: shared hit=714
+ Planning:
+   Buffers: shared hit=167
+ Planning Time: 0.778 ms
+ Execution Time: 15.154 ms
+(41 rows)
+
+queue_waiting_before=2426 queue_waiting_after=2675 sample_interval_seconds=3
