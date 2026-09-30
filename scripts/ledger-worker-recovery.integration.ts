@@ -108,11 +108,13 @@ try {
   await queue.obliterate({ force: true });
   const lostAt = Date.now();
   await waitFor(async () => { await recoverLedgerWork(); return !!(await queue.getJob(`recover-pending-${lost}`)); }, "prompt lost-job recovery");
-  assert(Date.now() - lostAt < 60_000, "lost job recovers within one minute of real elapsed time");
+  const enqueueAfterLossMs = Date.now() - lostAt;
+  assert(enqueueAfterLossMs < 60_000, "lost job recovers within one minute of real elapsed time");
   worker = startWorker();
   await waitFor(async () => (await state(lost)).processingState === "PROCESSED", "queue loss recovery");
+  const projectionAfterLossMs = Date.now() - lostAt;
   await waitFor(async () => (workerOutput.get(worker) || "").split("\n").some((line) => line.startsWith("PILOT_TRACE ") && line.includes(`"eventId":"${lost}"`) && line.includes('"jobKind":"ledger_recovery"')), "sampled recovery-job trace");
-  console.log("Recovered queue-loss event");
+  console.log(JSON.stringify({ lostJobRecovery: { enqueueAfterLossMs, projectionAfterLossMs } }));
   await stopWorker(worker);
 
   const outage = await accept("worker-redis-outage");

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
-import { correlateTraces } from './pilot-evidence-measurements.mjs';
+import { correlateTraces, readTraces } from './pilot-evidence-measurements.mjs';
 import { isSampledPilotEvidenceKey } from '../lib/pilotEvidenceTrace.ts';
 
 test('correlates sampled stages and counts repeated executions', () => {
@@ -54,4 +57,25 @@ test('counts ledger recovery executions but separates rating-only recovery', () 
   assert.equal(result.ratingRecoveryJobExecutions,1);
   assert.equal(result.samples[0].jobExecutions,3);
   assert.equal(result.samples[0].ledgerJobExecutions,2);
+});
+
+test('streams log correlation without changing trace counts', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pilot-traces-'));
+  const api = 'PILOT_TRACE {"stage":"api_dispatch","eventId":"one","at":"2026-01-01T00:00:00.000Z","queueEnteredAt":"2026-01-01T00:00:00.010Z"}\n';
+  const worker = [
+    'unrelated worker output',
+    'PILOT_TRACE {"stage":"worker_execution","eventId":"one","jobKind":"initial","at":"2026-01-01T00:00:00.020Z"}',
+    'PILOT_TRACE_COST {"eventId":"one","synchronousMs":1.25}',
+    'PILOT_TRACE {"stage":"worker_execution","eventId":"one","jobKind":"ledger_recovery","at":"2026-01-01T00:00:00.030Z"}',
+    'PILOT_TRACE {broken',
+  ].join('\n');
+  const ids = new Set(['one']);
+  const rows = new Map([['one', { projected: new Date('2026-01-01T00:00:00.050Z'), rated: new Date('2026-01-01T00:00:00.060Z') }]]);
+  try {
+    await writeFile(join(directory, 'api.log'), api);
+    await writeFile(join(directory, 'worker.log'), worker);
+    assert.deepEqual(await readTraces(directory, ids, rows), correlateTraces(api, worker, ids, rows));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
