@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { spawn, type ChildProcess } from "node:child_process";
-import { Queue } from "bullmq";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { Queue, Worker } from "bullmq";
 import { Client } from "pg";
-import { PENDING_RECOVERY_GRACE_MS, recoverLedgerWork } from "../worker/recoverLedgerWork";
+import { PENDING_DISPATCH_SETTLE_MS, recoverLedgerWork } from "../worker/recoverLedgerWork";
 import prisma from "../lib/prisma";
 import { getUsageFlowQueue } from "../lib/bullmq";
 
@@ -10,6 +10,10 @@ const db = new Client({ connectionString: process.env.DATABASE_URL });
 const queue = new Queue("usageflow", { connection: { url: process.env.REDIS_URL! } });
 const workers: ChildProcess[] = [];
 const workerOutput = new Map<ChildProcess, string>();
+let blockedWorker: Worker | undefined;
+let releaseBlockedJob: (() => void) | undefined;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function waitFor(predicate: () => Promise<boolean>, label: string, timeout = 15_000) {
   const until = Date.now() + timeout;
@@ -71,6 +75,7 @@ try {
   await db.connect();
   const waiting = await accept("worker-original-waiting");
   assert(await queue.getJob(`ledger-${waiting}`), "original dispatch is waiting");
+  await sleep(PENDING_DISPATCH_SETTLE_MS + 100);
   for (let scan = 0; scan < 3; scan++) await recoverLedgerWork();
   const waitingJobs = await queue.getJobs(["waiting", "delayed", "active"]);
   assert.deepEqual(waitingJobs.filter((job) => job.data.eventId === waiting).map((job) => job.id), [`ledger-${waiting}`]);
@@ -78,18 +83,76 @@ try {
   await waitFor(async () => (await state(waiting)).processingState === "PROCESSED", "original waiting job");
   await stopWorker(worker);
 
+  const active = await accept("worker-original-active");
+  const blocked = new Promise<void>((resolve) => { releaseBlockedJob = resolve; });
+  blockedWorker = new Worker("usageflow", async () => { await blocked; }, { connection: { url: process.env.REDIS_URL! } });
+  await waitFor(async () => (await queue.getJobState(`ledger-${active}`)) === "active", "active original job");
+  await sleep(PENDING_DISPATCH_SETTLE_MS + 100);
+  for (let scan = 0; scan < 3; scan++) await recoverLedgerWork();
+  assert.equal((await queue.getJobs(["waiting", "delayed", "active"])).filter((job) => job.data.eventId === active).length, 1);
+  assert.equal((await state(active)).processingState, "PENDING");
+  releaseBlockedJob!();
+  await blockedWorker.close();
+  blockedWorker = undefined;
+  await waitFor(async () => (await queue.getJob(`ledger-${active}`)) === undefined, "completed original removed");
+  await recoverLedgerWork();
+  assert(await queue.getJob(`recover-pending-${active}`), "absent original is recovered");
+  worker = startWorker();
+  await waitFor(async () => (await state(active)).processingState === "PROCESSED", "active original recovery");
+  await stopWorker(worker);
+
   // Redis can lose a dispatched job while the committed PostgreSQL intent survives.
   const lost = await accept("event-abcdef12-345-0");
   console.log("Accepted queue-loss event");
   assert.equal((await state(lost)).processingState, "PENDING");
   await queue.obliterate({ force: true });
-  await recoverLedgerWork();
-  assert.equal((await queue.getJobs(["waiting"])).filter((job) => job.data.eventId === lost).length, 0);
-  await db.query(`UPDATE "LedgerProcessingIntent" SET "createdAt" = now() - ($2::int * interval '1 millisecond') WHERE "eventId" = $1`, [lost, PENDING_RECOVERY_GRACE_MS + 1_000]);
+  const lostAt = Date.now();
+  await waitFor(async () => { await recoverLedgerWork(); return !!(await queue.getJob(`recover-pending-${lost}`)); }, "prompt lost-job recovery");
+  assert(Date.now() - lostAt < 60_000, "lost job recovers within one minute of real elapsed time");
   worker = startWorker();
   await waitFor(async () => (await state(lost)).processingState === "PROCESSED", "queue loss recovery");
   await waitFor(async () => (workerOutput.get(worker) || "").split("\n").some((line) => line.startsWith("PILOT_TRACE ") && line.includes(`"eventId":"${lost}"`) && line.includes('"jobKind":"ledger_recovery"')), "sampled recovery-job trace");
   console.log("Recovered queue-loss event");
+  await stopWorker(worker);
+
+  const outage = await accept("worker-redis-outage");
+  const outageOriginal = await queue.getJob(`ledger-${outage}`);
+  assert(outageOriginal);
+  await outageOriginal.remove();
+  await sleep(PENDING_DISPATCH_SETTLE_MS + 100);
+  const redisContainer = process.env.REDIS_TEST_CONTAINER!;
+  execFileSync("docker", ["pause", redisContainer]);
+  let redisPaused = true;
+  try {
+    const scanDuringOutage = recoverLedgerWork();
+    await sleep(1_000);
+    assert.equal((await state(outage)).processingState, "PENDING");
+    execFileSync("docker", ["unpause", redisContainer]);
+    redisPaused = false;
+    await scanDuringOutage;
+  } finally {
+    if (redisPaused) execFileSync("docker", ["unpause", redisContainer]);
+  }
+  assert(await queue.getJob(`recover-pending-${outage}`), "lost job recovered after Redis resumes");
+  worker = startWorker();
+  await waitFor(async () => (await state(outage)).processingState === "PROCESSED", "Redis outage recovery");
+  await stopWorker(worker);
+
+  // A page of live originals must not hide a missing job behind it forever.
+  const backlogIds: string[] = [];
+  for (let index = 0; index < 200; index++) backlogIds.push(await accept(`worker-scan-page-${index}`));
+  const lastLost = await accept("worker-scan-page-lost");
+  const lastOriginal = await queue.getJob(`ledger-${lastLost}`);
+  assert(lastOriginal);
+  await lastOriginal.remove();
+  await sleep(PENDING_DISPATCH_SETTLE_MS + 100);
+  const pageRecoveryAt = Date.now();
+  await waitFor(async () => { await recoverLedgerWork(); return !!(await queue.getJob(`recover-pending-${lastLost}`)); }, "lost job after live-original scan page");
+  assert(Date.now() - pageRecoveryAt < 60_000);
+  assert.equal((await queue.getJobs(["waiting"])).filter((job) => backlogIds.includes(job.data.eventId)).length, backlogIds.length);
+  worker = startWorker();
+  await waitFor(async () => (await state(lastLost)).processingState === "PROCESSED", "paged queue loss recovery", 45_000);
+  await waitFor(async () => (await db.query(`SELECT count(*)::int AS n FROM "UsageEvent" WHERE id = ANY($1) AND "processingState" = 'PROCESSED'`, [backlogIds])).rows[0].n === backlogIds.length, "live-original backlog processing", 45_000);
   await stopWorker(worker);
 
   const ratingRecovery = await accept("event-abcdef12-345-1");
@@ -111,9 +174,8 @@ try {
   worker = startWorker({ LEDGER_TEST_EXIT_AFTER_CLAIM: "true" });
   await waitFor(async () => (await state(interrupted)).processingState === "PROCESSING", "interrupted claim");
   await waitFor(async () => worker.exitCode !== null || worker.signalCode !== null, "worker crash");
-  await db.query(`UPDATE "LedgerProcessingIntent" SET "leaseUntil" = now() - interval '1 second' WHERE "eventId" = $1`, [interrupted]);
   worker = startWorker();
-  await waitFor(async () => (await state(interrupted)).processingState === "PROCESSED", "expired lease recovery");
+  await waitFor(async () => (await state(interrupted)).processingState === "PROCESSED", "real-time expired lease recovery", 45_000);
   await stopWorker(worker);
 
   const invalid = await accept("worker-invalid-event");
@@ -153,8 +215,8 @@ try {
   await waitFor(async () => (await state(failed)).processingState === "PROCESSED", "failed retry");
   await queue.add("PROCESS_LEDGER_EVENT", { eventId: failed }, { jobId: `duplicate-${failed}`, removeOnComplete: true });
   await waitFor(async () => (await queue.getJob(`duplicate-${failed}`)) === undefined, "duplicate delivery");
-  await assertProjection([waiting, lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]);
-  for (const id of [waiting, lost, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]) {
+  await assertProjection([waiting, active, lost, outage, lastLost, ...backlogIds, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]);
+  for (const id of [waiting, active, lost, outage, lastLost, ...backlogIds, ratingRecovery, restarted, interrupted, invalid, storageFailed, failed]) {
     assert.equal((await state(id)).billingTreatment, "LEDGER_ONLY");
     assert.equal((await state(id)).processingState, "PROCESSED");
   }
@@ -162,6 +224,8 @@ try {
   assert((await state(failed)).attempts >= 2);
   console.log("Ledger worker recovery: queue loss, restart, interruption, duplicate, failed retry, and projection reconciliation passed");
 } finally {
+  releaseBlockedJob?.();
+  await blockedWorker?.close();
   for (const worker of workers) await stopWorker(worker);
   await queue.close();
   await getUsageFlowQueue().close();

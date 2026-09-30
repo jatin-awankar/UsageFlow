@@ -87,7 +87,14 @@ process.on("SIGTERM", () => {
 });
 
 await worker.waitUntilReady();
-await Promise.all([recoverLedgerWork(), recoverBillingWebhooks()]).catch((error) => console.error("Initial recovery scan failed", error));
+recoveryRunning = true;
+try {
+  await Promise.all([recoverLedgerWork(), recoverBillingWebhooks()]);
+} catch (error) {
+  console.error("Initial recovery scan failed", error);
+} finally {
+  recoveryRunning = false;
+}
 
 console.log("UsageFlow worker started", {
   queue: usageFlowQueueName,
