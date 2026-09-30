@@ -25,7 +25,7 @@ const journal = await open(journalPath, "wx", 0o600);
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await db.connect();
 const redisAddress = new URL(process.env.REDIS_URL);
-const queue = mode === "--arrival" ? new Queue(process.env.QUEUE_NAME, { connection: { host: redisAddress.hostname, port: Number(redisAddress.port || 6379) } }) : null;
+const queue = mode === "--arrival" || (mode === "--volume" && count !== 100_000) ? new Queue(process.env.QUEUE_NAME, { connection: { host: redisAddress.hostname, port: Number(redisAddress.port || 6379) } }) : null;
 const queueSamples = [];
 async function sampleQueue(phase) {
   if (!queue) return;
@@ -40,16 +40,19 @@ async function sampleDatabase() {
   activeSample = previous.then(async () => {
   const started = performance.now();
   try {
-    const { rows: [row] } = await db.query(`SELECT count(*) FILTER (WHERE wait_event_type = 'Lock')::int AS lock_waiters FROM pg_stat_activity WHERE datname = current_database()`);
+    const { rows: [row] } = await db.query(`SELECT count(*) FILTER (WHERE wait_event_type = 'Lock')::int AS lock_waiters, count(*) FILTER (WHERE state = 'active')::int AS active_queries, max(EXTRACT(EPOCH FROM (clock_timestamp() - query_start)) * 1000) FILTER (WHERE state = 'active' AND pid <> pg_backend_pid()) AS oldest_active_query_ms FROM pg_stat_activity WHERE datname = current_database()`);
+    const { rows: [database] } = await db.query(`SELECT xact_commit, xact_rollback, blks_read, blks_hit, tup_returned, tup_fetched, tup_inserted, tup_updated, tup_deleted, blk_read_time, blk_write_time FROM pg_stat_database WHERE datname = current_database()`);
+    const { rows: [progress] } = await db.query(`SELECT (SELECT count(*)::int FROM "UsageEvent" WHERE "orgId" = $1) AS accepted, (SELECT count(*)::int FROM "LedgerEventProjection" WHERE "orgId" = $1) AS projected, (SELECT count(*)::int FROM "RatedEvent" WHERE "orgId" = $1) AS rated`, [`org-${runId}`]);
+    const queryTime = mode === "--volume" && count !== 100_000 ? (await db.query(`SELECT queryid, calls, total_exec_time, mean_exec_time, max_exec_time, rows, left(query, 240) AS query FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 20`)).rows : undefined;
     const stats = dockerEvidence(`usageflow-pilot-pg-${runId}`).stats;
-    databaseSamples.push({ at: new Date().toISOString(), lockWaiters: row.lock_waiters, containerCpuPercent: stats?.CPUPerc ?? null, containerMemory: stats?.MemUsage ?? null });
+    databaseSamples.push({ at: new Date().toISOString(), ...row, ...progress, counters: database, queryTime, containerCpuPercent: stats?.CPUPerc ?? null, containerMemory: stats?.MemUsage ?? null });
   } catch (error) { databaseSamples.push({ at: new Date().toISOString(), error: String(error) }); }
   finally { databaseSamplingMs += performance.now() - started; }
   });
   return activeSample;
 }
 await sampleDatabase();
-const databaseTimer = setInterval(sampleDatabase, 15_000);
+const databaseTimer = setInterval(sampleDatabase, 5_000);
 const occurrence = new Date(Date.now() - 60_000).toISOString();
 const startedAt = new Date();
 const startedMs = performance.now();
@@ -200,6 +203,7 @@ try {
   }
   let rows = await snapshot();
   const backlogAtSendEnd = { raw: rows.length, missingProjection: rows.filter(r => !r.projected).length, missingRating: rows.filter(r => !r.rated).length };
+  await sampleQueue("send-end");
   const drainDeadline = Date.now() + Number(process.env.PILOT_DRAIN_SECONDS || 1800) * 1000;
   while (rows.some(r => !r.projected || !r.rated) && Date.now() < drainDeadline) {
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -264,6 +268,7 @@ try {
   for (const sample of correlation.samples) if (!sample.apiDispatchAt || !sample.queueEnteredAt || !sample.workerExecutionAt || !sample.durableClaimAt || sample.queueWaitMs === null || sample.claimToProjectionMs === null || sample.claimToProjectionMs < 0 || !sample.projectedAt || !sample.ratedAt) failures.push(`Incomplete or invalid sampled timing for ${sample.eventId}`);
   const report = {
     arrival: mode === "--arrival" ? { phases, queueSamples, seedReconciledBeforeBurst: true } : undefined,
+    diagnosticQueueSamples: mode === "--volume" && count !== 100_000 ? queueSamples : undefined,
     correlation,
     database: { samples: databaseSamples, note: "Container CPU is point sampled; lock waiters are instantaneous. Cumulative database CPU and lock wait duration are unavailable from standard PostgreSQL views." },
     instrumentation: { sampledEvery: sampleEvery, journalSyncWallMs: journalOverheadMs, journalSyncWallMsPerAttempt: journalOverheadMs / outcomes.length, databaseSamplingWallMs: databaseSamplingMs, synchronousTraceEmissionMs: correlation.synchronousTraceMs, traceEmissionCount: correlation.traceEmissionCount, note: "Separate wall times for sender journal writes and fsyncs, database polling including Docker stats, and synchronous trace emission. The recovery scan's sample-membership lookup and indirect scheduling or I/O effects are not separately timed; concurrent work can overlap, so these are not a throughput correction." },

@@ -49,7 +49,11 @@ trap cleanup EXIT
 db_password="$(node -e 'console.log(require("crypto").randomBytes(24).toString("hex"))')"
 api_key="pilot-$run_id-$(node -e 'console.log(require("crypto").randomBytes(16).toString("hex"))')"
 api_port="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"
-docker run --rm -d --name "$pg_container" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD="$db_password" postgres:17.6-alpine >/dev/null
+if [[ "$mode" == "--volume" && -n "${PILOT_DIAGNOSTIC_EVENT_COUNT:-}" ]]; then
+  docker run --rm -d --name "$pg_container" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD="$db_password" postgres:17.6-alpine -c shared_preload_libraries=pg_stat_statements -c track_io_timing=on >/dev/null
+else
+  docker run --rm -d --name "$pg_container" -p 127.0.0.1::5432 -e POSTGRES_PASSWORD="$db_password" postgres:17.6-alpine >/dev/null
+fi
 redis_port="$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"
 docker run -d --name "$redis_container" -p "127.0.0.1:${redis_port}:6379" redis:7-alpine >/dev/null
 for _ in $(seq 1 60); do
@@ -57,6 +61,9 @@ for _ in $(seq 1 60); do
   sleep 0.5
 done
 docker exec "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -tAc "SELECT 1" | rg -qx 1
+if [[ "$mode" == "--volume" && -n "${PILOT_DIAGNOSTIC_EVENT_COUNT:-}" ]]; then
+  docker exec "$pg_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -c 'CREATE EXTENSION pg_stat_statements' >/dev/null
+fi
 db_port="$(docker port "$pg_container" 5432/tcp | sed 's/.*://')"
 redis_port="$(docker port "$redis_container" 6379/tcp | sed 's/.*://')"
 export DATABASE_URL="postgresql://postgres:${db_password}@127.0.0.1:${db_port}/postgres"
