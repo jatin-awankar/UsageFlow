@@ -96,6 +96,7 @@ test("owner sees independent rating outcomes and worker recovery preserves evide
     try {
       await blocker.query("BEGIN");
       await blocker.query(`LOCK TABLE "RatedEvent" IN ACCESS EXCLUSIVE MODE`);
+      await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%SELECT e.id FROM "UsageEvent" e%' AND query LIKE '%"RatedEvent"%'`)).rows[0].n), { timeout: 30_000 }).toBeGreaterThan(0);
       interrupted = await send("unrated-interrupted", "priced", "2026-10-01T00:00:00.000Z");
       await expect.poll(async () => (await db.query(`SELECT "processingState" FROM "UsageEvent" WHERE id=$1`, [interrupted])).rows[0]?.processingState, { timeout: 30_000 }).toBe("PROCESSED");
       await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%RatedEvent%'`)).rows[0].n), { timeout: 30_000 }).toBeGreaterThan(0);

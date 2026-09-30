@@ -9,7 +9,7 @@ import {
   type UsageFlowJobData,
   type UsageFlowJobName,
 } from "@/lib/jobs/processQueueJob";
-import { recoverLedgerWork } from "@/worker/recoverLedgerWork";
+import { recoverLedgerIntents, recoverUnratedRatings } from "@/worker/recoverLedgerWork";
 import { recoverBillingWebhooks } from "@/worker/recoverBillingWebhooks";
 
 const DEFAULT_CONCURRENCY = 5;
@@ -53,11 +53,23 @@ worker.on("error", (err) => {
 });
 
 let isShuttingDown = false;
-let recoveryRunning = false;
+let ledgerRecoveryRunning = false;
+let ratingRecoveryRunning = false;
+let webhookRecoveryRunning = false;
 const recoveryTimer = setInterval(() => {
-  if (recoveryRunning || isShuttingDown) return;
-  recoveryRunning = true;
-  void Promise.all([recoverLedgerWork(), recoverBillingWebhooks()]).catch((error) => console.error("Recovery scan failed", error)).finally(() => { recoveryRunning = false; });
+  if (isShuttingDown) return;
+  if (!ledgerRecoveryRunning) {
+    ledgerRecoveryRunning = true;
+    void recoverLedgerIntents().catch((error) => console.error("Ledger recovery scan failed", error)).finally(() => { ledgerRecoveryRunning = false; });
+  }
+  if (!ratingRecoveryRunning) {
+    ratingRecoveryRunning = true;
+    void recoverUnratedRatings().catch((error) => console.error("Rating recovery scan failed", error)).finally(() => { ratingRecoveryRunning = false; });
+  }
+  if (!webhookRecoveryRunning) {
+    webhookRecoveryRunning = true;
+    void recoverBillingWebhooks().catch((error) => console.error("Webhook recovery scan failed", error)).finally(() => { webhookRecoveryRunning = false; });
+  }
 }, 1_000);
 
 async function shutdown(signal: string) {
@@ -88,14 +100,14 @@ process.on("SIGTERM", () => {
 });
 
 await worker.waitUntilReady();
-recoveryRunning = true;
-try {
-  await Promise.all([recoverLedgerWork(), recoverBillingWebhooks()]);
-} catch (error) {
-  console.error("Initial recovery scan failed", error);
-} finally {
-  recoveryRunning = false;
-}
+ledgerRecoveryRunning = true;
+ratingRecoveryRunning = true;
+webhookRecoveryRunning = true;
+await Promise.all([
+  recoverLedgerIntents().catch((error) => console.error("Initial ledger recovery scan failed", error)).finally(() => { ledgerRecoveryRunning = false; }),
+  recoverUnratedRatings().catch((error) => console.error("Initial rating recovery scan failed", error)).finally(() => { ratingRecoveryRunning = false; }),
+  recoverBillingWebhooks().catch((error) => console.error("Initial webhook recovery scan failed", error)).finally(() => { webhookRecoveryRunning = false; }),
+]);
 
 console.log("UsageFlow worker started", {
   queue: usageFlowQueueName,
