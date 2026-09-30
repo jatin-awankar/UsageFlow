@@ -26,7 +26,8 @@ if (action === "register") {
     for (const saved of manifest.processes) {
       let current;
       try { current = identity(saved.pid); } catch { continue; }
-      if (current.started !== saved.started || current.command !== saved.command) continue;
+      const nextStartRenamed = saved.role === "api" && saved.command.includes("node ./node_modules/.bin/next start") && current.command.startsWith("next-server (v");
+      if (current.started !== saved.started || (current.command !== saved.command && !nextStartRenamed)) continue;
       const descendants = [];
       const visit = (pid) => { for (const [child, parent] of tree) if (parent === pid) { visit(child); descendants.push(child); } };
       visit(saved.pid);

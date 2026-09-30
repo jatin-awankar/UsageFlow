@@ -93,7 +93,15 @@ INSERT INTO "Subscription" (id, status, "periodStart", "orgId", "planId") VALUES
 INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('metric-' || :'run_id', 'Calls', 'CALLS', 'calls', 'org-' || :'run_id');
 INSERT INTO "PriceVersion" (id, "orgId", "metricId", currency, "unitPriceMicros", "effectiveFrom", "createdById") VALUES ('price-' || :'run_id', 'org-' || :'run_id', 'metric-' || :'run_id', 'USD', 1000000, now() - interval '1 day', 'user-' || :'run_id');
 SQL
-CUSTOMER_LINKED_INGESTION_ENABLED=true ./node_modules/.bin/next dev -p "$api_port" >"$artifact_dir/api.log" 2>&1 & api_pid=$!
+if [[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--export" ]]; then
+  NODE_ENV=production npm run build >"$artifact_dir/build.log" 2>&1 || { cat "$artifact_dir/build.log"; exit 1; }
+  api_command=(./node_modules/.bin/next start -p "$api_port")
+  export PILOT_EVIDENCE_BOUNDED_LOGGING=true
+  export NODE_ENV=production
+else
+  api_command=(./node_modules/.bin/next dev -p "$api_port")
+fi
+CUSTOMER_LINKED_INGESTION_ENABLED=true "${api_command[@]}" >"$artifact_dir/api.log" 2>&1 & api_pid=$!
 node scripts/pilot-evidence-processes.mjs register "$artifact_dir" "$run_id" api "$api_pid"
 PILOT_DIAGNOSTIC_QUIET_PRISMA="${PILOT_DIAGNOSTIC_QUIET_WORKER:-false}" CUSTOMER_LINKED_INGESTION_ENABLED=true ./node_modules/.bin/tsx worker/index.ts >"$artifact_dir/worker.log" 2>&1 & worker_pid=$!
 node scripts/pilot-evidence-processes.mjs register "$artifact_dir" "$run_id" worker "$worker_pid"

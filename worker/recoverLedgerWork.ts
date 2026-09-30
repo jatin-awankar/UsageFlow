@@ -73,7 +73,7 @@ export async function recoverLedgerWork() {
   // A crash after projection commits but before rating must be recoverable.
   const ratingCandidates = await findRateableUnratedEventIds();
   const sampledRatings = await sampledIdsFor(ratingCandidates.map(({ id }) => id));
-  if (ratingCandidates.length) console.log("Recovering unrated Customer events", ratingCandidates.map(({ id }) => id));
+  if (ratingCandidates.length && process.env.PILOT_EVIDENCE_BOUNDED_LOGGING !== "true") console.log("Recovering unrated Customer events", ratingCandidates.map(({ id }) => id));
   for (const { id } of ratingCandidates) {
     await queue.add("PROCESS_LEDGER_EVENT", { eventId: id, ...(sampledRatings.has(id) ? { pilotTrace: true, pilotTraceKind: "rating_recovery" as const } : {}) }, { jobId: `rate-${id}-${Math.floor(now.getTime() / 5000)}`, removeOnComplete: true });
   }

@@ -13,6 +13,7 @@ import { recoverLedgerWork } from "@/worker/recoverLedgerWork";
 import { recoverBillingWebhooks } from "@/worker/recoverBillingWebhooks";
 
 const DEFAULT_CONCURRENCY = 5;
+const boundedPilotLogs = process.env.PILOT_EVIDENCE_BOUNDED_LOGGING === "true";
 
 function getWorkerConcurrency() {
   const raw = Number.parseInt(process.env.WORKER_CONCURRENCY ?? "", 10);
@@ -30,7 +31,7 @@ const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
     if (job.name === "PROCESS_LEDGER_EVENT" && "pilotTrace" in job.data && job.data.pilotTrace === true && process.env.PILOT_EVIDENCE_TRACE === "true") {
       emitPilotEvidenceTrace({ stage: "worker_execution", eventId: String("eventId" in job.data ? job.data.eventId : ""), at: new Date().toISOString(), queueEnteredAt: new Date(job.timestamp).toISOString(), jobId: job.id, jobKind: "pilotTraceKind" in job.data ? job.data.pilotTraceKind : undefined });
     }
-    if (process.env.PILOT_DIAGNOSTIC_QUIET_WORKER !== "true" || process.env.NODE_ENV === "production") console.log(`Processing job: ${job.name}`, job.data);
+    if (!boundedPilotLogs && (process.env.PILOT_DIAGNOSTIC_QUIET_WORKER !== "true" || process.env.NODE_ENV === "production")) console.log(`Processing job: ${job.name}`, job.data);
     return processQueueJob(job);
   },
   {
@@ -40,7 +41,7 @@ const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
 );
 
 worker.on("completed", (job) => {
-  if (process.env.PILOT_DIAGNOSTIC_QUIET_WORKER !== "true" || process.env.NODE_ENV === "production") console.log(`Job completed: ${job.name}`);
+  if (!boundedPilotLogs && (process.env.PILOT_DIAGNOSTIC_QUIET_WORKER !== "true" || process.env.NODE_ENV === "production")) console.log(`Job completed: ${job.name}`);
 });
 
 worker.on("failed", (job, err) => {
