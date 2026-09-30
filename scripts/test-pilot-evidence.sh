@@ -95,7 +95,7 @@ INSERT INTO "PriceVersion" (id, "orgId", "metricId", currency, "unitPriceMicros"
 SQL
 CUSTOMER_LINKED_INGESTION_ENABLED=true ./node_modules/.bin/next dev -p "$api_port" >"$artifact_dir/api.log" 2>&1 & api_pid=$!
 node scripts/pilot-evidence-processes.mjs register "$artifact_dir" "$run_id" api "$api_pid"
-CUSTOMER_LINKED_INGESTION_ENABLED=true ./node_modules/.bin/tsx worker/index.ts >"$artifact_dir/worker.log" 2>&1 & worker_pid=$!
+PILOT_DIAGNOSTIC_QUIET_PRISMA="${PILOT_DIAGNOSTIC_QUIET_WORKER:-false}" CUSTOMER_LINKED_INGESTION_ENABLED=true ./node_modules/.bin/tsx worker/index.ts >"$artifact_dir/worker.log" 2>&1 & worker_pid=$!
 node scripts/pilot-evidence-processes.mjs register "$artifact_dir" "$run_id" worker "$worker_pid"
 for _ in $(seq 1 90); do
   if curl -fsS "$NEXTAUTH_URL/login" >/dev/null 2>&1; then break; fi

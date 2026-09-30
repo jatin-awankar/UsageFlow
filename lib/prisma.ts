@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg"
 import pg from "pg"
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
-const prismaLogLevels: Prisma.PrismaClientOptions["log"] = process.env.NODE_ENV === "development"
+const prismaLogLevels: Prisma.PrismaClientOptions["log"] = process.env.NODE_ENV === "development" && process.env.PILOT_DIAGNOSTIC_QUIET_PRISMA !== "true"
   ? ["query", "error"]
   : ["error"];
 
