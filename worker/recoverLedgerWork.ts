@@ -45,6 +45,12 @@ async function sampledIdsFor(candidateIds: string[]) {
 }
 
 export async function recoverLedgerWork() {
+  const intents = await recoverLedgerIntents();
+  const ratings = await recoverUnratedRatings();
+  return intents + ratings;
+}
+
+export async function recoverLedgerIntents() {
   const now = new Date();
   const pendingCutoff = new Date(now.getTime() - PENDING_DISPATCH_SETTLE_MS);
   const findBatch = (after: typeof scanAfter) => findRecoveryCandidates(now, pendingCutoff, after);
@@ -71,12 +77,18 @@ export async function recoverLedgerWork() {
     const jobId = event.processingState === "PENDING" ? `recover-pending-${eventId}` : `recover-${eventId}-${Math.floor(now.getTime() / 5000)}`;
     await queue.add("PROCESS_LEDGER_EVENT", { eventId, ...(sampledIntents.has(eventId) ? { pilotTrace: true, pilotTraceKind: "ledger_recovery" as const } : {}) }, { jobId, removeOnComplete: true });
   }
-  // A crash after projection commits but before rating must be recoverable.
+  return intents.length;
+}
+
+// A blocked rating table must not stop scans for lost ledger dispatches.
+export async function recoverUnratedRatings() {
+  const now = new Date();
+  const queue = getUsageFlowQueue();
   const ratingCandidates = await findRateableUnratedEventIds();
   const sampledRatings = await sampledIdsFor(ratingCandidates.map(({ id }) => id));
   if (ratingCandidates.length && process.env.PILOT_EVIDENCE_BOUNDED_LOGGING !== "true") console.log("Recovering unrated Customer events", ratingCandidates.map(({ id }) => id));
   for (const { id } of ratingCandidates) {
     await queue.add("PROCESS_LEDGER_EVENT", { eventId: id, ...(sampledRatings.has(id) ? { pilotTrace: true, pilotTraceKind: "rating_recovery" as const } : {}) }, { jobId: `rate-${id}-${Math.floor(now.getTime() / 5000)}`, removeOnComplete: true });
   }
-  return intents.length + ratingCandidates.length;
+  return ratingCandidates.length;
 }
