@@ -20,7 +20,7 @@ INSERT INTO "AggregatedUsage" (id,"metricKey",total,"periodStart","periodEnd","o
 INSERT INTO "Invoice" (id,amount,status,"periodStart","periodEnd","orgId","subscriptionId") VALUES ('unrated-invoice',42,'PENDING','2026-09-01','2026-10-01','unrated-org','unrated-sub');
 SQL
 set_customer_test_environment
-export REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z" LEDGER_TEST_FAIL_DISPATCH=true TZ=UTC
+export REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true LEDGER_TEST_RECEIPT_TIME="$(node -e 'console.log(new Date(Date.now() + 7 * 86400000).toISOString())')" LEDGER_TEST_FAIL_DISPATCH=true TZ=UTC
 start_customer_test_app
 worker_log="$(mktemp)"
 node --import tsx worker/index.ts >"$worker_log" 2>&1 &
