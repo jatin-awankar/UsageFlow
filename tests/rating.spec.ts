@@ -150,7 +150,7 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
     await blocker.connect();
     try {
       await blocker.query("BEGIN");
-      await blocker.query(`SELECT id FROM "Organization" WHERE id='rating-a' FOR NO KEY UPDATE`);
+      await blocker.query(`SELECT pg_advisory_xact_lock(hashtextextended('usageflow:rating:rating-a', 0))`);
       const raced = await send("rating-race", "free", 1, "2026-10-04T00:05:00.000Z");
       const redis = new URL(process.env.REDIS_URL!);
       const queue = new Queue("usageflow", { connection: { host: redis.hostname, port: Number(redis.port) } });
@@ -164,7 +164,7 @@ test("occurrence-time rating preserves exact immutable evidence and legacy billi
       await page.getByLabel("Currency").fill("USD");
       await page.getByLabel("Effective from (UTC, ISO 8601)").fill("2026-10-04T00:04:59.999Z");
       const scheduling = page.getByRole("button", { name: "Publish scheduled price" }).click();
-      await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%Organization%' AND query LIKE '%NO KEY UPDATE%'`)).rows[0].n), { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
+      await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM pg_stat_activity WHERE wait_event_type='Lock' AND state='active'`)).rows[0].n), { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
       await blocker.query("COMMIT");
       await scheduling;
       await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM "RatedEvent" WHERE "eventId"=$1`, [raced])).rows[0].n), { timeout: 30_000 }).toBe(1);

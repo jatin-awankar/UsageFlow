@@ -5,9 +5,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCurrentOrgRole } from "@/lib/authz/requireRole";
 import prisma from "@/lib/prisma";
+import { lockPriceMutation } from "@/lib/rating-serialization-lock";
 
 const PRICE_PATTERN = /^(0|[1-9]\d{0,5})(\.\d{1,6})?$/;
 const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+function currentPriceTime() {
+  const testNow = process.env.NODE_ENV !== "production" ? process.env.PRICING_TEST_NOW : undefined;
+  if (!testNow) return Date.now();
+  const parsed = Date.parse(testNow);
+  if (!Number.isFinite(parsed)) throw new Error("Invalid PRICING_TEST_NOW");
+  return parsed;
+}
 
 export async function getFirstPrice(orgId: string, metricId: string) {
   await requireCurrentOrgRole(orgId, [Role.OWNER, Role.ADMIN, Role.DEVELOPER, Role.VIEWER]);
@@ -50,13 +59,13 @@ async function publishPrice(orgId: string, metricId: string, formData: FormData,
   if (micros > 999_999_999_999n) return fail("invalidPrice");
   if (typeof effective !== "string" || !UTC_INSTANT.test(effective) || !Number.isFinite(Date.parse(effective)) || new Date(effective).toISOString() !== effective) return fail("invalidTime");
   const effectiveFrom = new Date(effective);
-  if (effectiveFrom.getTime() <= Date.now() + 300_000) fail("invalidTime");
+  if (effectiveFrom.getTime() <= currentPriceTime() + 300_000) fail("invalidTime");
   if (typeof currency !== "string") fail("currency");
 
   try {
     await prisma.$transaction(async (tx) => {
-      // Serialize publication and currency decisions for this Organization.
-      await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${orgId} FOR NO KEY UPDATE`;
+      // Exclude in-flight ratings before checking for a changed rating.
+      await lockPriceMutation(tx, orgId);
       const [org, metric, latest] = await Promise.all([
         tx.organization.findUnique({ where: { id: orgId }, select: { currency: true } }),
         tx.metric.findFirst({ where: { id: metricId, orgId }, select: { id: true } }),
@@ -67,7 +76,7 @@ async function publishPrice(orgId: string, metricId: string, formData: FormData,
       if (kind === "first" && latest) throw new Error("exists");
       if (kind === "scheduled" && !latest) throw new Error("missingFirst");
       if (kind === "scheduled" && latest && effectiveFrom <= latest.effectiveFrom) throw new Error("conflict");
-      if (effectiveFrom.getTime() <= Date.now() + 300_000) throw new Error("invalidTime");
+      if (effectiveFrom.getTime() <= currentPriceTime() + 300_000) throw new Error("invalidTime");
       const changedRating = await tx.ratedEvent.findFirst({
         where: { orgId, priceVersion: { metricId }, event: { timestamp: { gte: effectiveFrom } } },
         select: { eventId: true },

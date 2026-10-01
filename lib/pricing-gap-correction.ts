@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { previewPricingGap, parseUtcInstant, verifyGapReview } from "@/lib/pricing-gap-preview";
 import { rateMoney } from "@/lib/money-contract";
+import { lockPriceMutation } from "@/lib/rating-serialization-lock";
 
 type Approval = {
   orgId: string; metricId: string; customerId: string; start: string; end: string;
@@ -22,8 +23,7 @@ export async function approvePricingGap(input: Approval) {
     micros = BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, "0") || "0");
   } catch { throw new CorrectionRejected("Invalid unit price or currency."); }
   return prisma.$transaction(async (tx) => {
-    // This is the same lock used for ordinary publication and rating.
-    const locked = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Organization" WHERE id = ${orgId} FOR NO KEY UPDATE`;
+    const locked = await lockPriceMutation(tx, orgId);
     if (!locked.length) throw new CorrectionRejected("Organization is unavailable.");
     const preview = await previewPricingGap(orgId, metricId, customerId, start, end, actorId, tx);
     if ("error" in preview) throw new CorrectionRejected(preview.error);

@@ -23,7 +23,7 @@ INSERT INTO "UsageEvent" (id,"metricKey",amount,"customerId","billedCustomerId",
 VALUES ('gap-linked-legacy','CALLS',2,'same-external','gap-customer-a','LEGACY','2026-09-30T00:00:00.000Z','gap-a','gap-sub-a','gap-key-a','gap-metric-a');
 SQL
 set_customer_test_environment
-export TZ=UTC REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true BILLING_RECORD_TEST_CLOCK_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z"
+export TZ=UTC REDIS_URL="redis://127.0.0.1:${redis_port}" CUSTOMER_LINKED_INGESTION_ENABLED=true BILLING_RECORD_TEST_CLOCK_ENABLED=true LEDGER_TEST_RECEIPT_TIME="2026-10-04T00:00:00.000Z" PRICING_TEST_NOW="2026-09-29T00:00:00.000Z"
 start_customer_test_app
 worker_log="$(mktemp)"
 ./node_modules/.bin/tsx worker/index.ts >"$worker_log" 2>&1 &

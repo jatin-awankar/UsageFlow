@@ -16,7 +16,9 @@ const burstSeconds = Number(process.env.PILOT_BURST_SECONDS || 10);
 if (mode === "--arrival" && (!Number.isInteger(sustainedSeconds) || sustainedSeconds < 10 || sustainedSeconds > 600 || !Number.isInteger(burstSeconds) || burstSeconds < 1 || burstSeconds > 60)) throw new Error("Arrival durations are outside bounded limits");
 const seedCount = mode === "--arrival" ? 100_000 : 0;
 const count = mode === "--volume" && process.env.PILOT_DIAGNOSTIC_EVENT_COUNT ? Number(process.env.PILOT_DIAGNOSTIC_EVENT_COUNT) : mode === "--arrival" ? seedCount + 10 * (sustainedSeconds + burstSeconds) : volume ? 100_000 : burstSeconds * 10;
-const requestedRate = volume ? null : 10;
+const diagnosticRate = process.env.PILOT_DIAGNOSTIC_TARGET_RPS ? Number(process.env.PILOT_DIAGNOSTIC_TARGET_RPS) : null;
+if (diagnosticRate !== null && (mode !== "--volume" || !process.env.PILOT_DIAGNOSTIC_EVENT_COUNT || !Number.isFinite(diagnosticRate) || diagnosticRate <= 0 || diagnosticRate > 1000)) throw new Error("PILOT_DIAGNOSTIC_TARGET_RPS requires a diagnostic volume run and a rate greater than 0 and at most 1000");
+const requestedRate = diagnosticRate ?? (volume ? null : 10);
 const concurrency = volume ? 8 : 1;
 const sampleEvery = Math.max(1, Math.ceil(count / 100));
 let journalOverheadMs = 0;
@@ -111,6 +113,10 @@ try {
     await Promise.all(Array.from({ length: concurrency }, async () => {
       while (next < (mode === "--arrival" ? seedCount : count)) {
         const index = next++;
+        if (diagnosticRate !== null) {
+          const delay = startedMs + index * 1000 / diagnosticRate - performance.now();
+          if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
+        }
         if (mode === "--export" && index >= Math.floor(count / 2) && !exportRun) {
           const { createExportEvidence } = await import("./pilot-evidence-export.mjs");
           exportRun = createExportEvidence({ db, runId, directory, baseUrl, ownerPassword: process.env.PILOT_OWNER_PASSWORD, occurrence }).then(value => ({ value }), error => ({ error: String(error) }));

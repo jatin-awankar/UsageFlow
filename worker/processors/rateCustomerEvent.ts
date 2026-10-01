@@ -3,6 +3,7 @@ import { displayUnitPrice } from "@/lib/price-format";
 import { rateMoney } from "@/lib/money-contract";
 import { Prisma } from "@prisma/client";
 import { emitPilotEvidenceTrace } from "@/lib/pilotEvidenceTrace";
+import { lockOrdinaryRating } from "@/lib/rating-serialization-lock";
 
 export async function findRateableUnratedEventIds() {
   return prisma.$queryRaw<{ id: string }[]>`
@@ -28,9 +29,9 @@ export async function rateCustomerEvent(eventId: string, pilotTrace = false) {
   const result = await prisma.$transaction(async (tx) => {
     const event = await tx.usageEvent.findUnique({ where: { id: eventId } });
     if (!event || event.billingTreatment !== "LEDGER_ONLY" || event.processingState !== "PROCESSED" || !event.billedCustomerId || !event.metricId) return;
-    // Published schedules and ratings serialize on the Organization row.
+    // Ordinary ratings share an Organization-scoped lock; mutations exclude them.
     lockStarted = performance.now();
-    await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${event.orgId} FOR NO KEY UPDATE`;
+    await lockOrdinaryRating(tx, event.orgId, eventId);
     lockAcquired = performance.now();
     if (await tx.ratedEvent.findUnique({ where: { eventId } }) || await tx.ratingFailure.findUnique({ where: { eventId } }) || await tx.unratedEvent.findUnique({ where: { eventId } })) return;
     const metric = await tx.metric.findFirst({ where: { id: event.metricId, orgId: event.orgId, key: event.metricKey } });
