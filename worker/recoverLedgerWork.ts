@@ -53,7 +53,12 @@ export async function recoverLedgerWork() {
 export async function recoverLedgerIntents() {
   const now = new Date();
   const pendingCutoff = new Date(now.getTime() - PENDING_DISPATCH_SETTLE_MS);
-  const findBatch = (after: typeof scanAfter) => findRecoveryCandidates(now, pendingCutoff, after);
+  const findBatch = async (after: typeof scanAfter) => {
+    const started = performance.now();
+    const rows = await findRecoveryCandidates(now, pendingCutoff, after);
+    if (process.env.PILOT_DIAGNOSTIC_EVENT_COUNT) console.log("RECOVERY_CANDIDATE_SCAN", JSON.stringify({ at: new Date().toISOString(), cursor: Boolean(after), rows: rows.length, ms: performance.now() - started }));
+    return rows;
+  };
   let intents = await findBatch(scanAfter);
   if (!intents.length && scanAfter) intents = await findBatch(null);
   const last = intents.at(-1);
