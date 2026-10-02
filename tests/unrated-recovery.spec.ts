@@ -7,6 +7,10 @@ const base = process.env.CUSTOMER_TEST_BASE_URL!;
 
 test("owner sees independent rating outcomes and worker recovery preserves evidence", async ({ page, request }) => {
   test.setTimeout(120_000);
+  const now = new Date();
+  const firstEffective = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 2));
+  const scheduledEffective = new Date(firstEffective.getTime() + 86_400_000);
+  const missingAt = new Date(firstEffective.getTime() - 1);
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
   let worker: ChildProcess | undefined;
@@ -35,7 +39,7 @@ test("owner sees independent rating outcomes and worker recovery preserves evide
     await page.getByPlaceholder("At least 8 characters").fill("TestPass1");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/app/);
-    const missing = await send("unrated-missing", "calls", "2026-09-30T23:59:59.999Z");
+    const missing = await send("unrated-missing", "calls", missingAt.toISOString());
     await expect.poll(() => outcome(missing)).toMatchObject({ processingState: "PROCESSED", ratingState: "UNRATED", ratingReason: "NO_APPLICABLE_PRICE", amount: null, priceVersionId: null });
     expect((await db.query(`SELECT count(*)::int AS n FROM "LedgerEventProjection" WHERE "eventId"=$1`, [missing])).rows[0].n).toBe(1);
     expect((await db.query(`SELECT count(*)::int AS n FROM "UnratedEvent" WHERE "eventId"=$1`, [missing])).rows[0].n).toBe(1);
@@ -43,10 +47,10 @@ test("owner sees independent rating outcomes and worker recovery preserves evide
     await page.goto(`${base}/app/unrated-org/metrics/priced-metric/pricing`);
     await page.getByLabel("Unit price").fill("3");
     await page.getByLabel("Currency").fill("USD");
-    await page.getByLabel("Effective from (UTC, ISO 8601)").fill("2026-10-01T00:00:00.000Z");
+    await page.getByLabel("Effective from (UTC, ISO 8601)").fill(firstEffective.toISOString());
     await page.getByRole("button", { name: "Publish first price" }).click();
     await expect(page.getByRole("status")).toContainText("Price version published.");
-    const priced = await send("unrated-priced", "priced", "2026-10-01T00:00:00.000Z");
+    const priced = await send("unrated-priced", "priced", firstEffective.toISOString());
     await expect.poll(() => outcome(priced)).toMatchObject({ processingState: "PROCESSED", ratingState: "RATED", ratingReason: null, amount: "6.000", unitPriceMicros: "3000000", priceVersionId: expect.any(String) });
     const first = await outcome(priced);
     const redis = new URL(process.env.REDIS_URL!);
@@ -68,14 +72,14 @@ test("owner sees independent rating outcomes and worker recovery preserves evide
     await page.goto(`${base}/app/unrated-org/metrics/priced-metric/pricing`);
     await page.getByLabel("Unit price").fill("4");
     await page.getByLabel("Currency").fill("USD");
-    await page.getByLabel("Effective from (UTC, ISO 8601)").fill("2026-10-02T00:00:00.000Z");
+    await page.getByLabel("Effective from (UTC, ISO 8601)").fill(scheduledEffective.toISOString());
     await page.getByRole("button", { name: "Publish scheduled price" }).click();
     await expect(page.getByRole("status")).toContainText("Price version published.");
     expect(await outcome(priced)).toMatchObject({ amount: first?.amount, priceVersionId: first?.priceVersionId });
     await page.goto(`${base}/app/unrated-org/metrics/unrated-metric/pricing`);
     await page.getByLabel("Unit price").fill("8");
     await page.getByLabel("Currency").fill("USD");
-    await page.getByLabel("Effective from (UTC, ISO 8601)").fill("2026-10-01T00:00:00.000Z");
+    await page.getByLabel("Effective from (UTC, ISO 8601)").fill(firstEffective.toISOString());
     await page.getByRole("button", { name: "Publish first price" }).click();
     await expect(page.getByRole("status")).toContainText("Price version published.");
     expect(await outcome(missing)).toMatchObject({ ratingState: "UNRATED", amount: null, priceVersionId: null });
@@ -83,7 +87,7 @@ test("owner sees independent rating outcomes and worker recovery preserves evide
     // Failure is visible as retryable, then recovery clears it after restart.
     process.kill(Number(process.env.UNRATED_TEST_WORKER_PID), "SIGKILL");
     startWorker(true);
-    const failed = await send("unrated-retry", "priced", "2026-10-01T00:00:00.000Z");
+    const failed = await send("unrated-retry", "priced", firstEffective.toISOString());
     await expect.poll(() => outcome(failed), { timeout: 30_000 }).toMatchObject({ processingState: "PROCESSED", ratingState: "RETRYABLE_FAILURE", ratingReason: "RATING_WORKER_FAILED", amount: null });
     worker?.kill("SIGKILL");
     startWorker();
@@ -96,7 +100,8 @@ test("owner sees independent rating outcomes and worker recovery preserves evide
     try {
       await blocker.query("BEGIN");
       await blocker.query(`LOCK TABLE "RatedEvent" IN ACCESS EXCLUSIVE MODE`);
-      interrupted = await send("unrated-interrupted", "priced", "2026-10-01T00:00:00.000Z");
+      await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%SELECT e.id FROM "UsageEvent" e%' AND query LIKE '%"RatedEvent"%'`)).rows[0].n), { timeout: 30_000 }).toBeGreaterThan(0);
+      interrupted = await send("unrated-interrupted", "priced", firstEffective.toISOString());
       await expect.poll(async () => (await db.query(`SELECT "processingState" FROM "UsageEvent" WHERE id=$1`, [interrupted])).rows[0]?.processingState, { timeout: 30_000 }).toBe("PROCESSED");
       await expect.poll(async () => Number((await db.query(`SELECT count(*)::int AS n FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%RatedEvent%'`)).rows[0].n), { timeout: 30_000 }).toBeGreaterThan(0);
       worker?.kill("SIGKILL");
