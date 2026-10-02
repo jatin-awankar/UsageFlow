@@ -63,7 +63,7 @@ export function sameTotals(a, b) {
   return JSON.stringify(totalsSignature(a)) === JSON.stringify(totalsSignature(b));
 }
 
-export async function createExportEvidence({ db, runId, directory, baseUrl, ownerPassword, occurrence }) {
+export async function createExportEvidence({ db, runId, directory, baseUrl, ownerPassword, occurrence, expectConcurrent = true }) {
   const orgId = `org-${runId}`;
   const failures = [];
   const httpErrors = [];
@@ -90,7 +90,8 @@ export async function createExportEvidence({ db, runId, directory, baseUrl, owne
   const afterById = new Map(after.map(row => [row.id, row]));
   const persistedById = new Map(persisted.map(row => [row.eventId, row]));
   const acceptedDuringCreation = after.filter(row => !beforeById.has(row.id)).length;
-  if (before.length >= 100_000 || after.length <= before.length) failures.push(`Snapshot did not bracket ongoing acceptance: before=${before.length}, after=${after.length}`);
+  if (expectConcurrent && (before.length >= 100_000 || after.length <= before.length)) failures.push(`Snapshot did not bracket ongoing acceptance: before=${before.length}, after=${after.length}`);
+  if (!expectConcurrent && before.length !== after.length) failures.push(`Ledger changed during steady-state export: before=${before.length}, after=${after.length}`);
   if (created.rowCount < before.length || created.rowCount > after.length) failures.push(`Snapshot count ${created.rowCount} is outside accepted-ledger bracket ${before.length}..${after.length}`);
   if (created.rowCount !== persisted.length || persistedById.size !== persisted.length) failures.push(`Persisted snapshot count/unique IDs ${persisted.length}/${persistedById.size} differs from API ${created.rowCount}`);
   for (const row of before) if (!persistedById.has(row.id)) { if (failures.length < 30) failures.push(`Pre-snapshot accepted ID missing: ${row.id}`); }

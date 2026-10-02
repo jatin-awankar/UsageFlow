@@ -18,6 +18,9 @@ if [[ "${2:-}" != "" ]]; then echo "Unexpected argument: $2" >&2; exit 2; fi
 if [[ -n "${PILOT_DIAGNOSTIC_EVENT_COUNT:-}" ]]; then
   [[ "$mode" == "--volume" && "$PILOT_DIAGNOSTIC_EVENT_COUNT" =~ ^[1-9][0-9]*$ && "$PILOT_DIAGNOSTIC_EVENT_COUNT" -le 100000 ]] || { echo "PILOT_DIAGNOSTIC_EVENT_COUNT requires --volume and an integer from 1 to 100000" >&2; exit 2; }
 fi
+if [[ -n "${PILOT_ARRIVAL_DIAGNOSTIC_SEED_COUNT:-}" ]]; then
+  [[ "$mode" == "--arrival" && "$PILOT_ARRIVAL_DIAGNOSTIC_SEED_COUNT" =~ ^[1-9][0-9]*$ ]] || { echo "PILOT_ARRIVAL_DIAGNOSTIC_SEED_COUNT requires --arrival and a positive integer" >&2; exit 2; }
+fi
 [[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--arrival" || "$mode" == "--faults" || "$mode" == "--export" || "$mode" == "--restore" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--arrival|--faults|--export|--restore]' >&2; exit 2; }
 unset CUSTOMER_LINKED_INGESTION_ENABLED
 for command in docker node npm curl rg; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
@@ -66,7 +69,9 @@ export NEXTAUTH_URL="http://127.0.0.1:${api_port}"
 export NEXTAUTH_SECRET="synthetic-$run_id"
 export PILOT_COMMIT="$(git rev-parse HEAD)"
 export PILOT_EVIDENCE_TRACE=true
-if [[ "$mode" == "--volume" || "$mode" == "--export" || "$mode" == "--arrival" ]]; then
+if [[ "$mode" == "--arrival" ]]; then
+  pilot_evidence_count="$(node --input-type=module -e 'import { admittedArrivalPlan } from "./scripts/pilot-admitted-load.mjs"; console.log(admittedArrivalPlan({ sustainedSeconds: Number(process.env.PILOT_SUSTAINED_SECONDS || 1800), burstSeconds: Number(process.env.PILOT_BURST_SECONDS || 10), diagnosticSeedCount: process.env.PILOT_ARRIVAL_DIAGNOSTIC_SEED_COUNT ? Number(process.env.PILOT_ARRIVAL_DIAGNOSTIC_SEED_COUNT) : undefined }).count)')"
+elif [[ "$mode" == "--volume" || "$mode" == "--export" ]]; then
   pilot_evidence_count="${PILOT_DIAGNOSTIC_EVENT_COUNT:-100000}"
 elif [[ "$mode" == "--burst" ]]; then
   pilot_evidence_count="$(node -e 'console.log(Number(process.env.PILOT_BURST_SECONDS || 10) * 10)')"
@@ -87,13 +92,14 @@ INSERT INTO "Organization" (id, name, currency) VALUES ('org-' || :'run_id', 'Sy
 INSERT INTO "Membership" (id, role, "userId", "orgId") VALUES ('membership-' || :'run_id', 'OWNER', 'user-' || :'run_id', 'org-' || :'run_id');
 INSERT INTO "Customer" (id, "orgId", "externalId") VALUES ('customer-row-' || :'run_id', 'org-' || :'run_id', 'customer-' || :'run_id');
 INSERT INTO "Customer" (id, "orgId", "externalId") VALUES ('customer-row-secondary-' || :'run_id', 'org-' || :'run_id', 'customer-secondary-' || :'run_id');
+INSERT INTO "Customer" (id, "orgId", "externalId") SELECT 'customer-row-' || n || '-' || :'run_id', 'org-' || :'run_id', 'customer-' || n || '-' || :'run_id' FROM generate_series(0,4) AS n;
 INSERT INTO "ApiKey" (id, name, "hashedKey", "orgId") VALUES ('key-' || :'run_id', 'Synthetic', :'key_hash', 'org-' || :'run_id');
 INSERT INTO "Plan" (id, name, "basePrice", "billingPeriod", "orgId") VALUES ('plan-' || :'run_id', 'Synthetic', 0, 'MONTHLY', 'org-' || :'run_id');
 INSERT INTO "Subscription" (id, status, "periodStart", "orgId", "planId") VALUES ('subscription-' || :'run_id', 'ACTIVE', now() - interval '1 day', 'org-' || :'run_id', 'plan-' || :'run_id');
 INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('metric-' || :'run_id', 'Calls', 'CALLS', 'calls', 'org-' || :'run_id');
 INSERT INTO "PriceVersion" (id, "orgId", "metricId", currency, "unitPriceMicros", "effectiveFrom", "createdById") VALUES ('price-' || :'run_id', 'org-' || :'run_id', 'metric-' || :'run_id', 'USD', 1000000, now() - interval '1 day', 'user-' || :'run_id');
 SQL
-if [[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--arrival" || "$mode" == "--export" ]]; then
+if [[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--arrival" || "$mode" == "--export" || "$mode" == "--faults" ]]; then
   NODE_ENV=production npm run build >"$artifact_dir/build.log" 2>&1 || { cat "$artifact_dir/build.log"; exit 1; }
   api_command=(./node_modules/.bin/next start -p "$api_port")
   export PILOT_EVIDENCE_BOUNDED_LOGGING=true
