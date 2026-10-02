@@ -18,7 +18,7 @@ if [[ "${2:-}" != "" ]]; then echo "Unexpected argument: $2" >&2; exit 2; fi
 if [[ -n "${PILOT_DIAGNOSTIC_EVENT_COUNT:-}" ]]; then
   [[ "$mode" == "--volume" && "$PILOT_DIAGNOSTIC_EVENT_COUNT" =~ ^[1-9][0-9]*$ && "$PILOT_DIAGNOSTIC_EVENT_COUNT" -le 100000 ]] || { echo "PILOT_DIAGNOSTIC_EVENT_COUNT requires --volume and an integer from 1 to 100000" >&2; exit 2; }
 fi
-[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--faults" || "$mode" == "--export" || "$mode" == "--restore" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--faults|--export|--restore]' >&2; exit 2; }
+[[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--arrival" || "$mode" == "--faults" || "$mode" == "--export" || "$mode" == "--restore" ]] || { echo 'Usage: npm run test:pilot-evidence -- [--smoke|--volume|--burst|--arrival|--faults|--export|--restore]' >&2; exit 2; }
 unset CUSTOMER_LINKED_INGESTION_ENABLED
 for command in docker node npm curl rg; do command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 2; }; done
 node --test scripts/pilot-evidence-cleanup.test.mjs
@@ -66,7 +66,7 @@ export NEXTAUTH_URL="http://127.0.0.1:${api_port}"
 export NEXTAUTH_SECRET="synthetic-$run_id"
 export PILOT_COMMIT="$(git rev-parse HEAD)"
 export PILOT_EVIDENCE_TRACE=true
-if [[ "$mode" == "--volume" || "$mode" == "--export" ]]; then
+if [[ "$mode" == "--volume" || "$mode" == "--export" || "$mode" == "--arrival" ]]; then
   pilot_evidence_count="${PILOT_DIAGNOSTIC_EVENT_COUNT:-100000}"
 elif [[ "$mode" == "--burst" ]]; then
   pilot_evidence_count="$(node -e 'console.log(Number(process.env.PILOT_BURST_SECONDS || 10) * 10)')"
@@ -93,7 +93,7 @@ INSERT INTO "Subscription" (id, status, "periodStart", "orgId", "planId") VALUES
 INSERT INTO "Metric" (id, name, key, unit, "orgId") VALUES ('metric-' || :'run_id', 'Calls', 'CALLS', 'calls', 'org-' || :'run_id');
 INSERT INTO "PriceVersion" (id, "orgId", "metricId", currency, "unitPriceMicros", "effectiveFrom", "createdById") VALUES ('price-' || :'run_id', 'org-' || :'run_id', 'metric-' || :'run_id', 'USD', 1000000, now() - interval '1 day', 'user-' || :'run_id');
 SQL
-if [[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--export" ]]; then
+if [[ "$mode" == "--smoke" || "$mode" == "--volume" || "$mode" == "--burst" || "$mode" == "--arrival" || "$mode" == "--export" ]]; then
   NODE_ENV=production npm run build >"$artifact_dir/build.log" 2>&1 || { cat "$artifact_dir/build.log"; exit 1; }
   api_command=(./node_modules/.bin/next start -p "$api_port")
   export PILOT_EVIDENCE_BOUNDED_LOGGING=true

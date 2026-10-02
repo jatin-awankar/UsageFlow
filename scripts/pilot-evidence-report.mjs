@@ -42,14 +42,14 @@ const runs=[];
 for(const id of readdirSync(root).sort()) {
  if(!/^[0-9a-f]{8}-[0-9a-f]{3}$/.test(id)) continue;
  const dir=join(root,id); if(!statSync(dir).isDirectory())continue;
- const files=readdirSync(dir), primary=files.find(x=>['volume-evidence.json','burst-evidence.json','fault-evidence.json','export-load-evidence.json','restore-evidence.json'].includes(x));
+ const files=readdirSync(dir), primary=files.find(x=>['volume-evidence.json','burst-evidence.json','arrival-evidence.json','fault-evidence.json','export-load-evidence.json','restore-evidence.json'].includes(x));
  const data=primary?read(join(dir,primary)):null, exportData=files.includes('export-evidence.json')?read(join(dir,'export-evidence.json')):null;
  const mode=primary?.replace('-load-evidence.json','').replace('-evidence.json','') || (files.some(x=>x.includes('fault'))?'fault':files.some(x=>x.includes('restore'))?'restore':files.some(x=>x.includes('sender-journal'))?'unknown':'setup');
  const failures=[...(data?.failures||[])];
  if(!primary) failures.push('No completed evidence report; interrupted setup or run');
  if(primary && !data) failures.push('Evidence JSON cannot be parsed');
  if(primary && !data?.endedAt) failures.push('Interrupted run: no completion timestamp');
- if(['volume','burst','export'].includes(mode) && data?.endedAt && (!Number.isFinite(data.totals?.expectedQuantity)||!Number.isFinite(data.totals?.projectedQuantity))) failures.push('Legacy evidence lacks complete quantity reconciliation');
+ if(['volume','burst','arrival','export'].includes(mode) && data?.endedAt && (!Number.isFinite(data.totals?.expectedQuantity)||!Number.isFinite(data.totals?.projectedQuantity))) failures.push('Legacy evidence lacks complete quantity reconciliation');
  if(mode==='fault' && data?.scenarios && scenarios.some(name=>data.scenarios[name] && !data.scenarios[name].sample?.attempted)) failures.push('Incomplete fault scenario or sample');
  const run={id,mode,command:mode==='setup'||mode==='unknown'?null:`npm run test:pilot-evidence -- --${mode==='fault'?'faults':mode}`,commit:data?.environment?.commit||data?.commit||data?.versions?.applicationCommit||null,startedAt:data?.startedAt||statSync(dir).birthtime.toISOString(),endedAt:data?.endedAt||null,configuration:data?.environment|| (data?.versions ? {versions:data.versions,hostLimits:'unmeasured in this retained run',queueAndNetwork:'local synthetic Docker; exact placement unmeasured'} : null),failures,artifacts:{},targets:null};
  run.artifacts=await artifacts(dir,data,id,exportData);
@@ -58,7 +58,7 @@ for(const id of readdirSync(root).sort()) {
    if(artifact!==basename(artifact)) fail(id,`unsafe declared artifact path ${artifact}`);
    else if(!run.artifacts[artifact]) fail(id,`missing declared artifact ${artifact}`);
   }
-  if(['volume','burst','export','fault','restore'].includes(mode)) {
+  if(['volume','burst','arrival','export','fault','restore'].includes(mode)) {
    if(!data.journal?.sha256) fail(id,'missing journal hash');
    if(!data.journal?.file) fail(id,'missing journal artifact filename');
   }
@@ -67,9 +67,13 @@ for(const id of readdirSync(root).sort()) {
    if(!data.backup?.file) fail(id,'missing backup artifact filename');
   }
  }
- if(mode==='volume'||mode==='burst'||mode==='export') {
+ if(mode==='volume'||mode==='burst'||mode==='arrival'||mode==='export') {
   Object.assign(run,{requested:data?.requested??null,achieved:data?.achieved??null,latency:data?.latency??null,totals:data?.totals??null,backlogAtSendEnd:data?.backlogAtSendEnd??null,finalBacklog:data?.finalBacklog??null});
   run.targets=targetSummary(data);
+  if(mode==='arrival') {
+   run.arrival=data?.arrival??null;
+   if(data?.endedAt && (!data.arrival?.seedReconciledBeforeBurst || data.arrival.phases?.length!==3)) fail(id,'missing reconciled seed or arrival phases');
+  }
   if(data?.totals && Number.isFinite(data.totals.expectedQuantity) && Number.isFinite(data.totals.projectedQuantity)) { const q=data.totals; reconcile(id,'quantity', [q.expectedQuantity,q.rawQuantity,q.projectedQuantity,q.ratedQuantity]); }
   if(data?.totals?.expectedRatedAmount!=null && data.totals.ratedAmount!==data.totals.expectedRatedAmount) fail(id,'rated amount differs from independently expected amount');
   if(data?.achieved?.resolvedCommittedOriginals!=null && data?.endedAt && data.achieved.resolvedCommittedOriginals!==data.achieved.uniquePersistedEvents) fail(id,'original ID count differs from persisted count');
