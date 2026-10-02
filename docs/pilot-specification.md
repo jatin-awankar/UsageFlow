@@ -12,6 +12,6 @@ Each metric has one fixed unit price per effective version and an explicit organ
 
 Finalization and revision durably create `invoice.finalized` or `invoice.revised` webhook events in the same database transaction. Delivery records attempts, retries, terminal failures, and manual replay. Receivers deduplicate by stable event ID. The pilot exposes a ledger export for sender reconciliation and retains billing evidence for a proposed 12 months.
 
-Pilot targets, subject to verification: up to 100,000 accepted events per organization per month, 20,000 per billed customer, and short bursts of 10 events per second; healthy processing within one minute; ingestion restoration within four hours during published support hours. Publish only recovery and capacity guarantees demonstrated by load, restore, and replay drills.
+Pilot targets, subject to verification: up to 100,000 accepted events per organization per month, 20,000 per billed customer, and short bursts of 10 events per second; healthy processing within one minute; ingestion restoration within four hours during published support hours. [The pilot load acceptance contract](pilot-load-acceptance-contract.md) defines the workload and evidence needed to assess these targets. Publish only recovery and capacity guarantees demonstrated by load, restore, and replay drills.
 
 Legacy records remain preserved. Only evidence-backed customer mappings may enter new pilot calculations; ambiguous records remain unmapped and excluded until reviewed and reconciled.
