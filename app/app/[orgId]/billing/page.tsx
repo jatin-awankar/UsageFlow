@@ -19,7 +19,7 @@ import { ArrowRight } from "lucide-react";
 export default async function BillingPage({
   params,
 }: {
-  params: Promise<{ orgId: string }> | { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

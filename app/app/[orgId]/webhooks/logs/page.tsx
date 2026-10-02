@@ -16,7 +16,7 @@ import BillingDeliveryEvents from "@/components/webhooks/BillingDeliveryEvents";
 export default async function WebhookLogsPage({
   params,
 }: {
-  params: Promise<{ orgId: string }> | { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

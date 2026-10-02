@@ -15,10 +15,9 @@ export default async function AuditPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgId: string }> | { orgId: string };
+  params: Promise<{ orgId: string }>;
   searchParams:
-    | Promise<{ cursor?: string; direction?: string }>
-    | { cursor?: string; direction?: string };
+    | Promise<{ cursor?: string; direction?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

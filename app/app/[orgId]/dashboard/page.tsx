@@ -27,7 +27,7 @@ import { getMembership } from "@/lib/authz/getMembership";
 export default async function DashboardPage({
   params,
 }: {
-  params: Promise<{ orgId: string }> | { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

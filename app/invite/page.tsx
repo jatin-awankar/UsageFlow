@@ -33,8 +33,7 @@ export default async function InvitePage({
   searchParams,
 }: {
   searchParams:
-    | Promise<{ token?: string | string[] }>
-    | { token?: string | string[] };
+    | Promise<{ token?: string | string[] }>;
 }) {
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const tokenValue = resolvedSearchParams.token;

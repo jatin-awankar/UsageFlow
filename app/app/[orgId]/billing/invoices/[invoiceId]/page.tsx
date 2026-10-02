@@ -36,8 +36,7 @@ export default async function InvoiceDetailPage({
   params,
 }: {
   params:
-    | Promise<{ orgId: string; invoiceId: string }>
-    | { orgId: string; invoiceId: string };
+    | Promise<{ orgId: string; invoiceId: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");

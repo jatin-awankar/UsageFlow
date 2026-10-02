@@ -10,7 +10,7 @@ export default async function OrgLayout({
   params,
 }: {
   children: ReactNode;
-  params: Promise<{ orgId: string }> | { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
