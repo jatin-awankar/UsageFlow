@@ -1,6 +1,8 @@
 # Production-like disposable pilot load verification — 2026-09-30
 
-This is synthetic local evidence on `codex/pilot-production-load-verification`, based on `codex/pilot-rating-lock-diagnostic`. It does not establish production capacity or open a pilot gate. PRs #91 and #92 remain unmerged, and no pilot traffic was enabled.
+This is synthetic local evidence on `codex/pilot-production-load-verification`, based on `codex/pilot-rating-lock-diagnostic`. It does not establish production capacity or open a pilot gate. At the time of this run, PRs #91 and #92 were unmerged, and no pilot traffic was enabled.
+
+Status on 2026-10-02: PRs #91 and #92 subsequently merged with the scan-guard fix in #102. The pilot load contract now evaluates admitted traffic separately from this 133/s run. The failed one-minute result below remains evidence of a capacity limit under this run's conditions, not a current pilot-enablement decision.
 
 The harness built the Next.js API and ran `next start` with `NODE_ENV=production`; its worker also ran with `NODE_ENV=production`. Prisma query logging was therefore disabled. The harness-only `PILOT_EVIDENCE_BOUNDED_LOGGING` switch suppressed routine per-job worker messages and recovery candidate ID lists while retaining errors, startup/shutdown messages, and sampled traces. The sender journal, same-key recovery, reconciliation, and closed child-process pilot gates were retained. Fresh PostgreSQL 17.6 Alpine and Redis 7 Alpine containers used loopback ports. The production-mode smoke check passed first (`007bc922-6e0`), including stable retry ID, changed-payload conflict, projection, and rating.
 
