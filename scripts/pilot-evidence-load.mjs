@@ -2,20 +2,26 @@ import { createHash } from "node:crypto";
 import { open, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import os from "node:os";
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
+import { promisify } from "node:util";
 import pg from "pg";
 import { Queue } from "bullmq";
 import { readTraces } from "./pilot-evidence-measurements.mjs";
+import { admittedArrivalPlan, arrivalCustomerSlot } from "./pilot-admitted-load.mjs";
 
 const [mode, runId, directory, baseUrl, apiKey] = process.argv.slice(2);
 if (!["--volume", "--burst", "--export", "--arrival"].includes(mode) || !runId || !directory || !baseUrl || !apiKey) throw new Error("Invalid load arguments");
 if (process.env.CUSTOMER_LINKED_INGESTION_ENABLED === "true") throw new Error("Sender inherited the ingestion gate");
 const volume = mode !== "--burst";
-const sustainedSeconds = mode === "--arrival" ? Number(process.env.PILOT_SUSTAINED_SECONDS || 60) : 0;
 const burstSeconds = Number(process.env.PILOT_BURST_SECONDS || 10);
-if (mode === "--arrival" && (!Number.isInteger(sustainedSeconds) || sustainedSeconds < 10 || sustainedSeconds > 600 || !Number.isInteger(burstSeconds) || burstSeconds < 1 || burstSeconds > 60)) throw new Error("Arrival durations are outside bounded limits");
-const seedCount = mode === "--arrival" ? 100_000 : 0;
-const count = mode === "--volume" && process.env.PILOT_DIAGNOSTIC_EVENT_COUNT ? Number(process.env.PILOT_DIAGNOSTIC_EVENT_COUNT) : mode === "--arrival" ? seedCount + 10 * (sustainedSeconds + burstSeconds) : volume ? 100_000 : burstSeconds * 10;
+const arrivalPlan = mode === "--arrival" ? admittedArrivalPlan({
+  sustainedSeconds: Number(process.env.PILOT_SUSTAINED_SECONDS || 1800),
+  burstSeconds,
+  diagnosticSeedCount: process.env.PILOT_ARRIVAL_DIAGNOSTIC_SEED_COUNT ? Number(process.env.PILOT_ARRIVAL_DIAGNOSTIC_SEED_COUNT) : undefined,
+}) : null;
+const sustainedSeconds = arrivalPlan?.sustainedSeconds ?? 0;
+const seedCount = arrivalPlan?.seedCount ?? 0;
+const count = mode === "--volume" && process.env.PILOT_DIAGNOSTIC_EVENT_COUNT ? Number(process.env.PILOT_DIAGNOSTIC_EVENT_COUNT) : arrivalPlan?.count ?? (volume ? 100_000 : burstSeconds * 10);
 const requestedRate = volume ? null : 10;
 const concurrency = volume ? 8 : 1;
 const sampleEvery = Math.max(1, Math.ceil(count / 100));
@@ -33,6 +39,11 @@ async function sampleQueue(phase) {
   catch (error) { queueSamples.push({ at: new Date().toISOString(), phase, error: String(error) }); }
 }
 const databaseSamples = [];
+const execFileAsync = promisify(execFile);
+async function containerStats(name) {
+  const { stdout } = await execFileAsync("docker", ["stats", "--no-stream", "--format", "{{json .}}", name], { encoding: "utf8" });
+  return JSON.parse(stdout.trim());
+}
 let databaseSamplingMs = 0;
 let activeSample = Promise.resolve();
 async function sampleDatabase() {
@@ -41,7 +52,7 @@ async function sampleDatabase() {
   const started = performance.now();
   try {
     const { rows: [row] } = await db.query(`SELECT count(*) FILTER (WHERE wait_event_type = 'Lock')::int AS lock_waiters FROM pg_stat_activity WHERE datname = current_database()`);
-    const stats = dockerEvidence(`usageflow-pilot-pg-${runId}`).stats;
+    const stats = await containerStats(`usageflow-pilot-pg-${runId}`);
     databaseSamples.push({ at: new Date().toISOString(), lockWaiters: row.lock_waiters, containerCpuPercent: stats?.CPUPerc ?? null, containerMemory: stats?.MemUsage ?? null });
   } catch (error) { databaseSamples.push({ at: new Date().toISOString(), error: String(error) }); }
   finally { databaseSamplingMs += performance.now() - started; }
@@ -75,7 +86,8 @@ function append(record) {
   return journalChain;
 }
 function payloadFor(index) {
-  return { customerId: index < (volume ? Math.min(20_000, count) : count) ? `customer-${runId}` : `customer-secondary-${runId}`, metric: "CALLS", amount: index % 3 + 1, timestamp: occurrence };
+  const customerId = arrivalPlan ? `customer-${arrivalCustomerSlot(index)}-${runId}` : index < (volume ? Math.min(20_000, count) : count) ? `customer-${runId}` : `customer-secondary-${runId}`;
+  return { customerId, metric: "CALLS", amount: index % 3 + 1, timestamp: occurrence };
 }
 async function send(index, variant = "original") {
   const original = payloadFor(index);
@@ -126,7 +138,8 @@ try {
       while (Date.now() < seedDeadline) {
         const { rows: [row] } = await db.query(`SELECT count(*)::int AS total, count(p."eventId")::int AS projected, count(r."eventId")::int AS rated, coalesce(sum(e.amount),0)::int AS raw_quantity, coalesce(sum(p.amount),0)::int AS projected_quantity, coalesce(sum(r.quantity),0)::int AS rated_quantity FROM "UsageEvent" e LEFT JOIN "LedgerEventProjection" p ON p."eventId"=e.id LEFT JOIN "RatedEvent" r ON r."eventId"=e.id WHERE e."orgId"=$1`, [`org-${runId}`]);
         seedRows = row.total;
-        seedReconciled = row.total === seedCount && row.projected === seedCount && row.rated === seedCount && row.raw_quantity === 199999 && row.projected_quantity === 199999 && row.rated_quantity === 199999 && accepted.size === seedCount;
+        const seedQuantity = Math.floor(seedCount / 3) * 6 + [0, 1, 3][seedCount % 3];
+        seedReconciled = row.total === seedCount && row.projected === seedCount && row.rated === seedCount && row.raw_quantity === seedQuantity && row.projected_quantity === seedQuantity && row.rated_quantity === seedQuantity && accepted.size === seedCount;
         if (seedReconciled) break;
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
@@ -138,7 +151,7 @@ try {
         const phaseStartedAt = new Date();
         const pending = [];
         for (let offset = 0; offset < seconds * 10; offset++) {
-          const delay = phaseStart + offset * 100 - performance.now();
+          const delay = phaseStart + (name === "sustained" ? offset * 100 : Math.floor(offset / 10) * 1000) - performance.now();
           if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
           pending.push(send(firstIndex + offset));
         }
@@ -217,7 +230,8 @@ try {
   if (rows.length !== count || rawIds.size !== count) failures.push(`Raw count/unique IDs: ${rows.length}/${rawIds.size}; expected ${count}`);
   for (let index = 0; index < count; index++) {
     const row = byKey.get(`event-${runId}-${index}`);
-    if (!row || row.id !== accepted.get(index) || row.amount !== index % 3 + 1 || row.customer !== `customer-row-${index < (volume ? Math.min(20_000, count) : count) ? "" : "secondary-"}${runId}` || !row.has_intent || (row.projected && row.projected_quantity !== row.amount) || (row.rated && (row.rated_quantity !== row.amount || row.price_id !== `price-${runId}` || row.currency !== "USD" || Number(row.rated_amount) !== row.amount))) {
+    const expectedCustomer = arrivalPlan ? `customer-row-${arrivalCustomerSlot(index)}-${runId}` : `customer-row-${index < (volume ? Math.min(20_000, count) : count) ? "" : "secondary-"}${runId}`;
+    if (!row || row.id !== accepted.get(index) || row.amount !== index % 3 + 1 || row.customer !== expectedCustomer || !row.has_intent || (row.projected && row.projected_quantity !== row.amount) || (row.rated && (row.rated_quantity !== row.amount || row.price_id !== `price-${runId}` || row.currency !== "USD" || Number(row.rated_amount) !== row.amount))) {
       if (failures.length < 30) failures.push(`Reconciliation mismatch at index ${index}`);
     }
   }
@@ -238,6 +252,7 @@ try {
       item.finalMissingProjection = phaseRows.filter(row => !row?.projected).length;
       item.finalMissingRating = phaseRows.filter(row => !row?.rated).length;
       if (item.reconciledIds !== item.count || item.bothWithin60Seconds !== item.count || item.finalMissingProjection || item.finalMissingRating) failures.push(`${item.name} did not meet full ID reconciliation and 60-second completion`);
+      if (item.originalAccepted !== item.count || item.originalFailed || item.achievedOriginalAcceptancesPerSecond < 9.9) failures.push(`${item.name} did not achieve 10 accepted originals per second`);
     }
     await sampleQueue("final");
     const finalQueue = queueSamples.at(-1);
@@ -247,6 +262,9 @@ try {
   const bytes = await readFile(journalPath);
   const expectedQuantity = Array.from({ length: count }, (_, index) => index % 3 + 1).reduce((a, b) => a + b, 0);
   if (rows.reduce((n, r) => n + r.amount, 0) !== expectedQuantity || rows.reduce((n, r) => n + (r.projected_quantity || 0), 0) !== expectedQuantity || rows.reduce((n, r) => n + (r.rated_quantity || 0), 0) !== expectedQuantity || rows.reduce((n, r) => n + Number(r.rated_amount || 0), 0) !== expectedQuantity) failures.push("Raw, projection, rating quantity or rated amount total differs from deterministic sender expectation");
+  const customerCounts = Object.fromEntries([...new Set(rows.map(row => row.customer))].sort().map(customer => [customer, rows.filter(row => row.customer === customer).length]));
+  if (arrivalPlan && Object.values(customerCounts).some(value => value > 20_000)) failures.push("A Customer exceeded 20,000 monthly events");
+  if (arrivalPlan?.acceptanceEligible && (Object.keys(customerCounts).length !== 5 || Object.values(customerCounts).some(value => value !== 20_000))) failures.push("Approved workload did not contain five Customers with 20,000 events each");
   const unresolvedTransportAttempts = outcomes.filter(o => o.classification === "uncertain" && !byKey.has(`event-${runId}-${Number(o.attempt.split(":")[0])}`)).length;
   const responseSeconds = Array.from({ length: Math.ceil(initialSendElapsedSeconds) + 1 }, (_, second) => ({ second, responses: 0, acceptedUnique: 0 }));
   for (const outcome of outcomes.filter(o => o.variant === "original")) {
@@ -262,8 +280,18 @@ try {
   const correlation = await readTraces(directory, traceIds, new Map(rows.map(row => [row.id, row])));
   if (correlation.count !== traceIds.size) failures.push(`Correlated ${correlation.count}/${traceIds.size} sampled IDs`);
   for (const sample of correlation.samples) if (!sample.apiDispatchAt || !sample.queueEnteredAt || !sample.workerExecutionAt || !sample.durableClaimAt || sample.queueWaitMs === null || sample.claimToProjectionMs === null || sample.claimToProjectionMs < 0 || !sample.projectedAt || !sample.ratedAt) failures.push(`Incomplete or invalid sampled timing for ${sample.eventId}`);
+  if (mode === "--arrival") {
+    try {
+      const { createExportEvidence, reconcileRatingEvidence } = await import("./pilot-evidence-export.mjs");
+      exportEvidence = await createExportEvidence({ db, runId, directory, baseUrl, ownerPassword: process.env.PILOT_OWNER_PASSWORD, occurrence, expectConcurrent: false });
+      exportEvidence.rating = await reconcileRatingEvidence(db, runId, exportEvidence.ids);
+      failures.push(...exportEvidence.failures, ...exportEvidence.rating.failures);
+      if (exportEvidence.rowCount !== count || exportEvidence.uniqueIds !== count) failures.push(`Owner export contains ${exportEvidence.rowCount}/${exportEvidence.uniqueIds} rows; expected ${count}`);
+      await writeFile(join(directory, "export-evidence.json"), `${JSON.stringify(exportEvidence, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+    } catch (error) { failures.push(`Owner export failed: ${String(error)}`); }
+  }
   const report = {
-    arrival: mode === "--arrival" ? { phases, queueSamples, seedReconciledBeforeBurst: true } : undefined,
+    arrival: mode === "--arrival" ? { plan: arrivalPlan, phases, queueSamples, seedReconciledBeforeBurst: true } : undefined,
     correlation,
     database: { samples: databaseSamples, note: "Container CPU is point sampled; lock waiters are instantaneous. Cumulative database CPU and lock wait duration are unavailable from standard PostgreSQL views." },
     instrumentation: { sampledEvery: sampleEvery, journalSyncWallMs: journalOverheadMs, journalSyncWallMsPerAttempt: journalOverheadMs / outcomes.length, databaseSamplingWallMs: databaseSamplingMs, synchronousTraceEmissionMs: correlation.synchronousTraceMs, traceEmissionCount: correlation.traceEmissionCount, note: "Separate wall times for sender journal writes and fsyncs, database polling including Docker stats, and synchronous trace emission. The recovery scan's sample-membership lookup and indirect scheduling or I/O effects are not separately timed; concurrent work can overlap, so these are not a throughput correction." },
@@ -271,7 +299,7 @@ try {
     achieved: { originalAcceptedResponses: observedAcceptedResponses, resolvedCommittedOriginals: accepted.size, uniquePersistedEvents: rows.length, httpAttempts: outcomes.length, uncertainAttempts: outcomes.filter(o => o.classification === "uncertain").length, unresolvedTransportAttempts, responseCodes, initialSendElapsedSeconds, ingestionElapsedSeconds, originalRequestsPerSecond: count / initialSendElapsedSeconds, acceptedUniquePerSecond: accepted.size / ingestionElapsedSeconds, responseSeconds: volume ? null : responseSeconds, firstReceiptAt: firstReceipt?.toISOString() ?? null, lastReceiptAt: lastReceipt?.toISOString() ?? null, receiptWindowSeconds: firstReceipt && lastReceipt ? (lastReceipt - firstReceipt) / 1000 : null, retryIdsRetained: retries.filter(({ index, outcome }) => outcome.eventId === accepted.get(index)).length, changedFieldConflicts: conflicts.filter(({ outcome }) => outcome.status === 409).length },
     backlogAtSendEnd, finalBacklog: { missingProjection: projected.missing, missingRating: rated.missing, pending: rows.filter(r => r.state === "PENDING").length, processing: rows.filter(r => r.state === "PROCESSING").length, failed: rows.filter(r => r.state === "FAILED").length, unrated: rows.filter(r => r.unrated).length, ratingRetry: rows.filter(r => r.rating_retry).length, ratingFailure: rows.filter(r => r.rating_failure).length },
     latency: { clockPrecision: "JavaScript Date and PostgreSQL timestamp read at millisecond precision", projectedAtMinusReceivedAt: projected, ratedAtMinusReceivedAt: rated, bothWithin60Seconds: bothWithinMinute, bothWithin60SecondsFraction: rows.length ? bothWithinMinute / rows.length : null },
-    totals: { expectedQuantity, rawQuantity: rows.reduce((n, r) => n + r.amount, 0), projectedQuantity: rows.reduce((n, r) => n + (r.projected_quantity || 0), 0), ratedQuantity: rows.reduce((n, r) => n + (r.rated_quantity || 0), 0), ratedAmount: rows.reduce((n, r) => n + Number(r.rated_amount || 0), 0), primaryCustomerCount: rows.filter(r => r.customer === `customer-row-${runId}`).length },
+    totals: { expectedQuantity, rawQuantity: rows.reduce((n, r) => n + r.amount, 0), projectedQuantity: rows.reduce((n, r) => n + (r.projected_quantity || 0), 0), ratedQuantity: rows.reduce((n, r) => n + (r.rated_quantity || 0), 0), ratedAmount: rows.reduce((n, r) => n + Number(r.rated_amount || 0), 0), primaryCustomerCount: rows.filter(r => r.customer === (arrivalPlan ? `customer-row-0-${runId}` : `customer-row-${runId}`)).length, customerCounts },
     environment: { commit: process.env.PILOT_COMMIT || null, host: os.hostname(), cpuCount: os.cpus().length, cpuModel: os.cpus()[0]?.model, memoryBytes: os.totalmem(), freeMemoryBytesAtReport: os.freemem(), loadAverageAtReport: os.loadavg(), apiProcesses: 1, workerConcurrency: Number(process.env.WORKER_CONCURRENCY || 5), queue: process.env.QUEUE_NAME, databaseImage: "postgres:17.6-alpine", redisImage: "redis:7-alpine", network: "host loopback published container ports", postgres: dockerEvidence(`usageflow-pilot-pg-${runId}`), redis: dockerEvidence(`usageflow-pilot-redis-${runId}`), saturation: "single Docker stats sample; peak saturation unmeasured" },
     journal: { file: "sender-journal.jsonl", bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") }, failures,
   };
@@ -282,7 +310,7 @@ try {
     failures.push(...exportEvidence.failures, ...rating.failures);
     await writeFile(join(directory, "export-evidence.json"), `${JSON.stringify(exportEvidence, null, 2)}\n`, { flag: "wx", mode: 0o600 });
   }
-  report.export = mode === "--export" ? { evidence: exportEvidence ? "export-evidence.json" : null, creationMs: exportEvidence?.creationMs ?? null, paginationMs: exportEvidence?.paginationMs ?? null, pages: exportEvidence?.pages ?? null, rowCount: exportEvidence?.rowCount ?? null } : undefined;
+  report.export = mode === "--export" || mode === "--arrival" ? { evidence: exportEvidence ? "export-evidence.json" : null, creationMs: exportEvidence?.creationMs ?? null, paginationMs: exportEvidence?.paginationMs ?? null, pages: exportEvidence?.pages ?? null, rowCount: exportEvidence?.rowCount ?? null } : undefined;
   report.failures = failures;
   const reportName = `${mode === "--export" ? "export-load" : mode === "--arrival" ? "arrival" : volume ? "volume" : "burst"}-evidence.json`;
   await writeFile(join(directory, reportName), `${JSON.stringify(report, null, 2)}\n`, { flag: "wx", mode: 0o600 });

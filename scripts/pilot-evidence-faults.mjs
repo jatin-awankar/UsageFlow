@@ -8,14 +8,16 @@ import { execFileSync } from 'node:child_process';
 const [action, label, runId, directory, baseUrl, apiKey, faultTimestamp] = process.argv.slice(2);
 const scenario = label.split(':')[0];
 const count = Number(process.env.PILOT_FAULT_COUNT || 20);
+const requestedRate = process.env.PILOT_FAULT_RATE ? Number(process.env.PILOT_FAULT_RATE) : null;
 if (!['fault', 'injected', 'send', 'send-one', 'send-rest', 'wait-claim', 'checkpoint', 'recover', 'replay', 'finish'].includes(action) || !/^[0-9a-f]{8}-[0-9a-f]{3}$/.test(runId) || !Number.isSafeInteger(count) || count < 1 || count > 100000) throw Error('Invalid fault arguments');
+if (requestedRate !== null && (!Number.isFinite(requestedRate) || requestedRate <= 0 || requestedRate > 10)) throw Error('PILOT_FAULT_RATE must be greater than zero and at most 10');
 if (process.env.CUSTOMER_LINKED_INGESTION_ENABLED === 'true') throw Error('Sender inherited ingestion gate');
 const journalFile = join(directory, 'fault-sender-journal.jsonl');
 const evidenceFile = join(directory, 'fault-evidence.json');
 const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await db.connect();
 let evidence;
-try { evidence = JSON.parse(await readFile(evidenceFile, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; evidence = { runId, commit: process.env.PILOT_COMMIT, startedAt: new Date().toISOString(), countPerScenario: count, scenarios: {}, failures: [], gates: { customerLinkedIngestion: 'child processes only', finalization: 'closed' }, environment: { host: os.hostname(), cpuCount: os.cpus().length, memoryBytes: os.totalmem(), workerConcurrency: Number(process.env.WORKER_CONCURRENCY || 5), apiProcesses: 1, queue: process.env.QUEUE_NAME, postgresImage: 'postgres:17.6-alpine', redisImage: 'redis:7-alpine', network: 'loopback container ports', containerLimits: 'Docker defaults; per-container limits not set', saturation: 'unmeasured' }, postgresRestoreRto: 'unmeasured; separate ticket' }; }
+try { evidence = JSON.parse(await readFile(evidenceFile, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; evidence = { runId, commit: process.env.PILOT_COMMIT, startedAt: new Date().toISOString(), countPerScenario: count, requestedRate, scenarios: {}, failures: [], gates: { customerLinkedIngestion: 'child processes only', finalization: 'closed' }, environment: { host: os.hostname(), cpuCount: os.cpus().length, memoryBytes: os.totalmem(), workerConcurrency: Number(process.env.WORKER_CONCURRENCY || 5), apiProcesses: 1, queue: process.env.QUEUE_NAME, postgresImage: 'postgres:17.6-alpine', redisImage: 'redis:7-alpine', network: 'loopback container ports', containerLimits: 'Docker defaults; per-container limits not set', saturation: 'unmeasured' }, postgresRestoreRto: 'unmeasured; separate ticket' }; }
 const current = action === 'finish' ? null : (evidence.scenarios[scenario] ||= { checkpoints: [], attempts: [], acceptedOriginalIds: {}, resolvedOriginalIds: {}, replacementIds: {}, failures: [] });
 async function save() { await writeFile(evidenceFile, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 }); }
 async function append(record) { const file = await open(journalFile, 'a', 0o600); try { await file.write(`${JSON.stringify(record)}\n`); await file.sync(); } finally { await file.close(); } }
@@ -98,7 +100,16 @@ try {
     current.occurrenceTime ||= new Date(Date.now() - 60000).toISOString();
     const first = action === 'send-rest' ? 1 : 0;
     const last = action === 'send-one' ? 1 : count;
-    for (let i=first;i<last;i++) await send(i, 'original');
+    const started = performance.now();
+    for (let i=first;i<last;i++) {
+      if (requestedRate !== null) {
+        const delay = started + (i - first) * 1000 / requestedRate - performance.now();
+        if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      await send(i, 'original');
+    }
+    const elapsedSeconds = (performance.now() - started) / 1000;
+    (current.sendPhases ||= []).push({ action, count: last - first, requestedRate, elapsedSeconds, achievedRate: (last - first) / elapsedSeconds });
     if (action !== 'send-one') current.sendEndedAt = new Date().toISOString();
     if (process.env.PILOT_FAULT_TEST_EXTRA_EVENT === 'true' && scenario === 'baseline') {
       const response = await fetch(`${baseUrl}/api/track`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-usageflow-api-key': apiKey, 'idempotency-key': `unrecorded-${runId}` }, body: JSON.stringify(payloadFor(0)), signal: AbortSignal.timeout(30000) });
@@ -170,6 +181,7 @@ try {
     evidence.journal = { file: 'fault-sender-journal.jsonl', bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
     for (const [name, item] of Object.entries(evidence.scenarios)) {
       item.sample = { attempted: item.attempts.filter(a => a.kind === 'original').length, acceptedResponses: item.attempts.filter(a => a.kind === 'original' && a.classification === 'accepted').length, uncertainResponses: item.attempts.filter(a => a.kind === 'original' && a.classification === 'uncertain').length, committedOriginals: Object.keys(item.resolvedOriginalIds).length, absentBeforeReplay: Object.values(item.attemptClassifications || {}).filter(value => value.classification.startsWith('absent')).length, unresolvedAttempts: Object.values(item.attemptClassifications || {}).filter(value => value.classification === 'unresolved').length, replacementIds: Object.keys(item.replacementIds).length };
+      if (requestedRate !== null && item.sendPhases.some(phase => phase.count >= 10 && phase.achievedRate < requestedRate * 0.99)) item.failures.push('Fault sender did not achieve its requested rate');
       if (item.sample.unresolvedAttempts) item.failures.push(`${item.sample.unresolvedAttempts} original attempts unresolved before replay`);
       const originalSends = journalRecords.filter(record => record.type === 'send' && record.scenario === name && record.attemptNumber === 1);
       item.journalExpected = { count: originalSends.length, quantity: originalSends.reduce((total, record) => total + record.quantity, 0), uniqueKeys: new Set(originalSends.map(record => record.idempotencyKey)).size };
