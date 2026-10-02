@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 export default async function CreateOrgPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }> | { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/onboarding/create-org");

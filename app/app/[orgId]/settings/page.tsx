@@ -18,7 +18,7 @@ export default async function SettingsPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgId: string }> | { orgId: string };
+  params: Promise<{ orgId: string }>;
   searchParams: Promise<{ currencyError?: string; currencySaved?: string }>;
 }) {
   const user = await getCurrentUser();
