@@ -76,7 +76,7 @@ export function verifyRole(row, manifest) {
   if (!row.can_select || row.can_insert || row.can_update || row.can_delete || row.can_truncate || row.can_references || row.can_trigger) throw Error('Inventory role must have SELECT only on the inventoried tables');
 }
 
-const ROLE_SQL = `SELECT current_database() AS database, current_user AS role, inet_server_addr()::text AS server_address,
+const ROLE_SQL = `SELECT current_database() AS database, current_user AS role, host(inet_server_addr()) AS server_address,
   current_setting('transaction_read_only') AS transaction_read_only,
   current_setting('default_transaction_read_only') AS default_transaction_read_only,
   (coalesce('default_transaction_read_only=on' = ANY(r.rolconfig), false) OR EXISTS (
