@@ -40,7 +40,7 @@ export async function processLedgerEvent(eventId: string, pilotTrace = false) {
   });
   if (claimed) trace("durable_claim");
   if (!claimed) {
-    await attemptCustomerRating(eventId);
+    await attemptCustomerRating(eventId, pilotTrace);
     return;
   }
 
@@ -69,7 +69,7 @@ export async function processLedgerEvent(eventId: string, pilotTrace = false) {
     });
     trace("projection_committed");
     if (process.env.NODE_ENV !== "production" && process.env.LEDGER_TEST_EXIT_BEFORE_RATING === "true") process.exit(92);
-    await attemptCustomerRating(eventId);
+    await attemptCustomerRating(eventId, pilotTrace);
     trace("rating_attempt_finished");
   } catch (error) {
     console.error("Ledger projection failed", { eventId, error });

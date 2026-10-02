@@ -30,7 +30,7 @@ const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
     if (job.name === "PROCESS_LEDGER_EVENT" && "pilotTrace" in job.data && job.data.pilotTrace === true && process.env.PILOT_EVIDENCE_TRACE === "true") {
       emitPilotEvidenceTrace({ stage: "worker_execution", eventId: String("eventId" in job.data ? job.data.eventId : ""), at: new Date().toISOString(), queueEnteredAt: new Date(job.timestamp).toISOString(), jobId: job.id, jobKind: "pilotTraceKind" in job.data ? job.data.pilotTraceKind : undefined });
     }
-    console.log(`Processing job: ${job.name}`, job.data);
+    if (process.env.PILOT_DIAGNOSTIC_QUIET_WORKER !== "true" || process.env.NODE_ENV === "production") console.log(`Processing job: ${job.name}`, job.data);
     return processQueueJob(job);
   },
   {
@@ -40,7 +40,7 @@ const worker = new Worker<UsageFlowJobData, unknown, UsageFlowJobName>(
 );
 
 worker.on("completed", (job) => {
-  console.log(`Job completed: ${job.name}`);
+  if (process.env.PILOT_DIAGNOSTIC_QUIET_WORKER !== "true" || process.env.NODE_ENV === "production") console.log(`Job completed: ${job.name}`);
 });
 
 worker.on("failed", (job, err) => {

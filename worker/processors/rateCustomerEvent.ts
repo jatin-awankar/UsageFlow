@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { displayUnitPrice } from "@/lib/price-format";
 import { rateMoney } from "@/lib/money-contract";
 import { Prisma } from "@prisma/client";
+import { emitPilotEvidenceTrace } from "@/lib/pilotEvidenceTrace";
 
 export async function findRateableUnratedEventIds() {
   return prisma.$queryRaw<{ id: string }[]>`
@@ -17,15 +18,20 @@ export async function findRateableUnratedEventIds() {
     ORDER BY e."createdAt" ASC LIMIT 100`;
 }
 
-export async function rateCustomerEvent(eventId: string) {
+export async function rateCustomerEvent(eventId: string, pilotTrace = false) {
   if (process.env.NODE_ENV !== "production" && process.env.RATING_TEST_FAIL_ATTEMPT === "true") {
     throw new Error("injected transient rating failure");
   }
-  return prisma.$transaction(async (tx) => {
+  const started = performance.now();
+  let lockStarted = started;
+  let lockAcquired = started;
+  const result = await prisma.$transaction(async (tx) => {
     const event = await tx.usageEvent.findUnique({ where: { id: eventId } });
     if (!event || event.billingTreatment !== "LEDGER_ONLY" || event.processingState !== "PROCESSED" || !event.billedCustomerId || !event.metricId) return;
     // Published schedules and ratings serialize on the Organization row.
+    lockStarted = performance.now();
     await tx.$queryRaw`SELECT id FROM "Organization" WHERE id = ${event.orgId} FOR NO KEY UPDATE`;
+    lockAcquired = performance.now();
     if (await tx.ratedEvent.findUnique({ where: { eventId } }) || await tx.ratingFailure.findUnique({ where: { eventId } }) || await tx.unratedEvent.findUnique({ where: { eventId } })) return;
     const metric = await tx.metric.findFirst({ where: { id: event.metricId, orgId: event.orgId, key: event.metricKey } });
     if (!metric) return;
@@ -54,11 +60,15 @@ export async function rateCustomerEvent(eventId: string) {
     } });
     await tx.ratingRetry.deleteMany({ where: { eventId } });
   });
+  if (pilotTrace && process.env.PILOT_EVIDENCE_TRACE === "true") {
+    emitPilotEvidenceTrace({ stage: "rating_timing", eventId, at: new Date().toISOString(), preLockMs: lockStarted - started, lockWaitMs: lockAcquired - lockStarted, transactionMs: performance.now() - started });
+  }
+  return result;
 }
 
-export async function attemptCustomerRating(eventId: string) {
+export async function attemptCustomerRating(eventId: string, pilotTrace = false) {
   try {
-    await rateCustomerEvent(eventId);
+    await rateCustomerEvent(eventId, pilotTrace);
   } catch (error) {
     console.error("Customer rating failed", { eventId, error });
     const reason = error instanceof Prisma.PrismaClientKnownRequestError ||
