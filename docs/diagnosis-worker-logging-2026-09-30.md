@@ -31,4 +31,6 @@ Increasing worker concurrency from five to ten in a separate 10,000-event diagno
 
 Do not merge PR #91 or #92 based on these diagnostics. First run a production-like, disposable 100,000-event verification with query logging disabled and bounded operational logs. Keep the sender journal, sampled traces, ID reconciliation, and failure evidence. Compare the result with `5d1346e5-e5a` while recording sender rate and host limits; the changed logging means this is a new environment comparison, not a same-condition speedup claim. If the one-minute target still fails, instrument sustained queue depth and PostgreSQL lock duration at the 100,000-event scale before changing the billing or recovery algorithms.
 
+Status on 2026-10-02: PRs #91 and #92 subsequently merged with the separate scan-guard fix in #102. Their recovery checks, rather than this logging experiment, supported that merge. The production-like 100,000-event run later failed the one-minute target; this note remains a record of the earlier diagnostic decision, not a current rollout recommendation.
+
 No production data or deployed gate was changed.
