@@ -45,4 +45,4 @@ Backend quantity discrepancy remains separately recorded in [contract verificati
 
 ## Next checkpoint
 
-Review the [proposed browser acceptance approach](public-showcase-test-proposal.md) before publishing the complete specification. No implementation tickets have been started, and no prototype code has been promoted to production.
+The user approved the [browser acceptance approach](public-showcase-test-proposal.md) on 2026-10-04. The [complete showcase specification](../.scratch/public-showcase/spec.md) is now published as `ready-for-agent` and must be shown before running `to-tickets`. No implementation tickets have been started, and no prototype code has been promoted to production.
