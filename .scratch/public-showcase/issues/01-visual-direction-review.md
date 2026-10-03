@@ -15,3 +15,4 @@ Agent recommendation: Annotated Ledger for product-first clarity and distinctive
 ## Comments
 
 - 2026-10-04: Both prototypes built and inspected. Actual participant usability evaluation and full accessibility assessment remain pending. No database changes, production route edits, backend changes, or deployment performed.
+- 2026-10-04, subsequent user review: Annotated Ledger approved as primary direction. Preserve the original comparison on `codex/prototype-showcase-directions`; no wholesale code promotion. Inspector refinements and prototype reuse assessment are recorded in [the direction decision](../../../docs/public-showcase-direction-decision.md). Test-approach review precedes full specification publication; implementation tickets remain on hold.
