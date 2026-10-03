@@ -76,3 +76,4 @@ Source inspection, not runtime usability certification: Customer list/create, Pr
 ## Comments
 
 - 2026-10-03: User approved the scope with usability treated as a measured target and accessibility as a documented target, not an automated conformance claim. Requested code verification before fixture definition, then references and direction selection before prototypes.
+- 2026-10-04: User subsequently authorized isolated throwaway prototypes of both directions, covering landing and main workspace plus bounded acceptance/retry/rating interactions. Full implementation and deployment remain out of scope. See [design review](issues/01-visual-direction-review.md); direction selection is pending.

@@ -28,7 +28,8 @@
     "test:ledger-export": "bash scripts/test-ledger-export.sh",
     "test:customer-month-draft": "bash scripts/test-customer-month-draft.sh",
     "test:legacy-exclusion-report": "bash scripts/test-legacy-exclusion-report.sh",
-    "test:webhook-secret-rotation": "bash scripts/test-webhook-secret-rotation.sh"
+    "test:webhook-secret-rotation": "bash scripts/test-webhook-secret-rotation.sh",
+    "prototype:showcase": "next dev .scratch/public-showcase/prototype --hostname 127.0.0.1 --port 3210 --webpack"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
