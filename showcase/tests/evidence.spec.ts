@@ -99,7 +99,7 @@ test("domain, simulation and dated readiness boundaries have traceable destinati
     "Pilot gates remain closed.",
     "Human usability sessions",
     "assessment remain pending",
-    "contact destination awaits verification",
+    "jatinawankar02@gmail.com",
     "zero-cost static hosting is not confirmed",
     "Firefox failed to launch",
     "Later follow-ups supersede",
@@ -114,7 +114,7 @@ test("domain, simulation and dated readiness boundaries have traceable destinati
   await expect(
     page.getByRole("link", { name: "Inspect the implementation", exact: true }),
   ).toHaveAttribute("href", "https://github.com/jatin-awankar/UsageFlow");
-  await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Discuss a pilot", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 2 })).toHaveText([
     "Who owns the usage?",

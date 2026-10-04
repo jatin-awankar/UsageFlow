@@ -215,20 +215,14 @@ for (const width of [360, 768, 1440])
     await expect(completion).toContainText(
       "Pilot discussions are exploratory. Onboarding is subject to readiness review.",
     );
-    const contact =
-      process.env.SHOWCASE_TEST_BUILD === "1"
-        ? page.getByRole("link", { name: "Discuss a pilot" })
-        : page.getByRole("button", { name: "Discuss a pilot" });
+    const contact = page.getByRole("link", { name: "Discuss a pilot" });
     await expect(contact).toBeFocused();
-    if (process.env.SHOWCASE_TEST_BUILD === "1")
-      await expect(contact).toHaveAttribute(
-        "href",
-        "mailto:pilot@example.invalid",
-      );
-    else {
-      await expect(contact).toBeDisabled();
-      await expect(completion).toContainText("Publication remains blocked");
-    }
+    await expect(contact).toHaveAttribute(
+      "href",
+      process.env.SHOWCASE_TEST_BUILD === "1"
+        ? "mailto:pilot@example.invalid"
+        : "mailto:jatinawankar02@gmail.com",
+    );
     await page.keyboard.press(tab);
     await expect(
       page.getByRole("link", {

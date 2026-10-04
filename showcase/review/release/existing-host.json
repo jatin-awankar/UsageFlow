@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-04T10:45:35.474006+00:00",
+  "method": "read-only GET",
+  "origin": "https://usageflow.vercel.app",
+  "results": [
+    {
+      "path": "/",
+      "status": 200,
+      "finalUrl": "https://usageflow.vercel.app/",
+      "contentType": "text/html; charset=utf-8",
+      "showcaseHeading": false,
+      "bytes": 75429
+    },
+    {
+      "path": "/demo/",
+      "status": 308,
+      "finalUrl": "https://usageflow.vercel.app/demo/",
+      "contentType": "text/plain"
+    },
+    {
+      "path": "/evidence/",
+      "status": 308,
+      "finalUrl": "https://usageflow.vercel.app/evidence/",
+      "contentType": "text/plain"
+    },
+    {
+      "path": "/fonts/inter-400.woff2",
+      "status": 404,
+      "finalUrl": "https://usageflow.vercel.app/fonts/inter-400.woff2",
+      "contentType": "text/html; charset=utf-8"
+    }
+  ],
+  "followedRedirects": [
+    {
+      "path": "/demo/",
+      "status": 404,
+      "finalUrl": "https://usageflow.vercel.app/demo"
+    },
+    {
+      "path": "/evidence/",
+      "status": 404,
+      "finalUrl": "https://usageflow.vercel.app/evidence"
+    }
+  ],
+  "dashboardReadOnly": {
+    "observed": "2026-10-04",
+    "plan": "Hobby",
+    "project": "usage-flow",
+    "framework": "Next.js",
+    "rootDirectory": "repository root (empty field)",
+    "buildOutputInstallOverrides": false,
+    "node": "24.x",
+    "buildMachine": "Basic (2 vCPUs, 8 GB)",
+    "onDemandConcurrentBuilds": "Disabled",
+    "ignoredBuildStep": "Automatic",
+    "productionBranch": "main",
+    "productionCommit": "4e46dc2cda1469cac56776255c63564db5c018f4",
+    "settingsChanged": false
+  }
+}

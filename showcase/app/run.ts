@@ -1,3 +1,4 @@
+import { pilotContact } from "./contact";
 import { freezeFinalization, type Finalization } from "./finalization";
 import { afterClose, monthlyDraft } from "./monthly";
 import { baselineEvents, type BaselineSource } from "./demo/baseline";
@@ -68,7 +69,7 @@ export function freshRun(): Run {
       url: "https://receiver.example.invalid/usageflow",
     }),
     deliveryAttempt: null,
-    contactDestination: null,
+    contactDestination: pilotContact,
     prices: [septemberPrice],
     baseline: baselineEvents,
     error: "",

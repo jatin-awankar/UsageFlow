@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pilotContact } from "../contact";
 
 // Pin claims to reviewed, merged evidence rather than a moving branch.
 const source =
@@ -227,10 +228,10 @@ export default function Evidence() {
               Pilot discussions are exploratory and subject to readiness review.
             </p>
             <p>
-              <strong>Publication blockers:</strong> the contact destination
-              awaits verification, and zero-cost static hosting is not
-              confirmed. No public contact link is available yet.
+              Contact jatinawankar02@gmail.com for an exploratory discussion.
+              Publication remains blocked: zero-cost static hosting is not confirmed.
             </p>
+            <a className="primary" href={pilotContact}>Discuss a pilot</a>
             <a
               className="secondary"
               href="https://github.com/jatin-awankar/UsageFlow"
