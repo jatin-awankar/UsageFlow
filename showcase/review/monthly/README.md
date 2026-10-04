@@ -49,3 +49,5 @@ No findings. The diff preserves documented domain terminology, browser-local sim
 No actionable findings. Ticket 06 requirements are implemented within scope: inspectable monthly sources, accepted/rated reconciliation, literal-expected exact amounts, per-event rounding, occurrence-month boundaries, inclusive close, unresolved-evidence blocking, explicit time advancement, and guarded readiness. Tests are sensitive to these conditions and mismatched identity. Keyboard, responsive, reduced-motion and announcement checks exercise visible UI. Validation limitations are disclosed; finalization stays disabled.
 
 Standards: 0 findings; Spec: 0 findings. Human PR review remains pending. No merge or deployment performed.
+
+Draft PR: [#113](https://github.com/jatin-awankar/UsageFlow/pull/113). Open as draft; human review pending. Implementation commit `0682156`.
