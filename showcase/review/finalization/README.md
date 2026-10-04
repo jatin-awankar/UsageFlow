@@ -62,3 +62,5 @@ Reviewed finalization construction, reducer/session changes, approval/evidence c
 Initial review found one P2: the parent specification requires event creation time, which the event inspector omitted. Added immutable `createdAt` from the scenario clock, exposed in the existing JSON inspector. An independent literal assertion failed before the fix; version/event equality assertions cover its preservation through retries and navigation. Re-review confirms the creation-time requirement is resolved; zero remaining actionable Spec findings.
 
 Standards: 0 actionable findings; Spec: 1 P2 resolved, 0 remaining findings. Human PR review pending. No merge or deployment authorized by this evidence.
+
+Draft PR: [#114](https://github.com/jatin-awankar/UsageFlow/pull/114). Open as draft; human review pending. Implementation commit `c0b6a16`. No merge or deployment.
