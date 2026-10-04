@@ -68,3 +68,5 @@ Unresolved findings: 0; one nonblocking maintainability finding fixed.
 Independent review found no actionable missing, incorrect or out-of-scope implementation. Pending/rated distinctions, occurrence-time pricing, exact money representations, stable retries, failure recovery, isolated fixtures and margin/mobile evidence satisfy ticket 05. Contribution totals belong to this slice; full monthly reconciliation and the aggregate-rounding fixture remain ticket 06. Browser/accessibility limitations are explicitly recorded.
 
 Findings: 0. Review totals: Standards 0 unresolved (1 fixed); Spec 0. Human PR review remains pending.
+
+Draft PR: [#112](https://github.com/jatin-awankar/UsageFlow/pull/112). Open as draft; human review pending. No merge or deployment performed.
