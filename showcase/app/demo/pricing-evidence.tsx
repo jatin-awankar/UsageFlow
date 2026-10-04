@@ -1,8 +1,8 @@
 import type { Run } from "../run";
 import { contributionTotal } from "../pricing";
-import { baselineEvents } from "./baseline";
+
 export function PricingEvidence({ run }: { run: Run }) {
-  const { event, rating } = run;
+  const { event, rating, baseline: baselineEvents } = run;
   const total = contributionTotal([
     ...baselineEvents.map((source) => source.exact),
     ...(rating ? [rating.exact] : []),

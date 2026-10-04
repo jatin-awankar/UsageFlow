@@ -6,7 +6,13 @@ import { useSession } from "../session";
 import { validDemoQuantity } from "../run";
 import { PricingEvidence } from "./pricing-evidence";
 import { AcceptedEvidence } from "./accepted-evidence";
-import { baselineEvents } from "./baseline";
+import {
+  MonthlyEvidence,
+  MonthlySources,
+  MonthlyTime,
+} from "./monthly-evidence";
+import { monthlyDraft } from "../monthly";
+import { contributionTotal } from "../pricing";
 const chapters = [
   {
     name: "Accept usage",
@@ -47,7 +53,18 @@ const chapters = [
 ];
 export default function Demo() {
   const { run, dispatch } = useSession();
-  const { quantity, chapter, error, event, retries, announcement } = run;
+  const {
+    quantity,
+    chapter,
+    error,
+    event,
+    retries,
+    announcement,
+    baseline: baselineEvents,
+  } = run;
+  const baselineTotal = contributionTotal(
+    baselineEvents.map((source) => source.exact),
+  );
   const heading = useRef<HTMLHeadingElement>(null);
   const quantityInput = useRef<HTMLInputElement>(null);
   const cancelReset = useRef<HTMLButtonElement>(null);
@@ -180,7 +197,9 @@ export default function Demo() {
                     ? run.rating
                       ? "Rated evidence"
                       : "Inspect & simulate"
-                    : "Not yet available"}
+                    : index === 2
+                      ? "Review the draft"
+                      : "Not yet available"}
               </small>
             </span>
           </button>
@@ -205,7 +224,9 @@ export default function Demo() {
                         ? "Awaiting rating"
                         : "Awaiting processing"
                       : "Accept usage first"
-                  : "Not yet created"}
+                  : chapter === 2
+                    ? monthlyDraft(run).state
+                    : "Not yet created"}
             </span>
           </div>
           <h2 id="chapter-title" ref={heading} tabIndex={-1}>
@@ -283,20 +304,10 @@ export default function Demo() {
               )}
             </>
           ) : chapter === 2 ? (
-            <dl className="facts">
-              <div>
-                <dt>UTC month</dt>
-                <dd>01 Sep → 01 Oct 2026 (end excluded)</dd>
-              </div>
-              <div>
-                <dt>Inclusive late close</dt>
-                <dd>04 Oct 2026, 00:00 UTC</dd>
-              </div>
-              <div>
-                <dt>Scenario time</dt>
-                <dd>28 Sep 2026, 14:32:02 UTC</dd>
-              </div>
-            </dl>
+            <>
+              <MonthlyEvidence run={run} />
+              <MonthlyTime run={run} dispatch={dispatch} />
+            </>
           ) : null}
           {chapter === 0 && event && <AcceptedEvidence run={run} />}
           <div className="unavailable">
@@ -377,62 +388,78 @@ export default function Demo() {
           aria-label="Synthetic pricing and baseline evidence"
         >
           {chapter === 1 && <PricingEvidence run={run} />}
-          <p className="eyebrow">Before this event / Source notes</p>
-          <h2>Already in the ledger.</h2>
-          <p className="small">
-            Two synthetic, previously rated events. Visitor usage is not
-            included in this baseline total.
-          </p>
-          <div className="ledger-block">
-            {baselineEvents.map((event) => (
-              <article key={event.id} className="baseline-event">
-                <div className="ledger-row">
-                  <h3>{event.quantity.toLocaleString("en-IN")} calls</h3>
-                  <strong>INR {event.display}</strong>
+          {chapter === 2 ? (
+            <MonthlySources run={run} />
+          ) : (
+            <>
+              <p className="eyebrow">Before this event / Source notes</p>
+              <h2>Already in the ledger.</h2>
+              <p className="small">
+                Synthetic, previously rated events. Visitor usage is not
+                included in this baseline total.
+              </p>
+              <div className="ledger-block">
+                {baselineEvents.map((event) => (
+                  <article key={event.id} className="baseline-event">
+                    <div className="ledger-row">
+                      <h3>{event.quantity.toLocaleString("en-IN")} calls</h3>
+                      <strong>INR {event.display}</strong>
+                    </div>
+                    <p className="source-id">{event.id}</p>
+                    <p className="small">{event.occurred}</p>
+                    <details>
+                      <summary>
+                        Inspect {event.quantity.toLocaleString("en-IN")}-call
+                        source
+                      </summary>
+                      <dl className="facts">
+                        <div>
+                          <dt>Occurred / received</dt>
+                          <dd>{event.exactTime}</dd>
+                        </div>
+                        <div>
+                          <dt>Customer</dt>
+                          <dd>orbit_studio</dd>
+                        </div>
+                        <div>
+                          <dt>Metric</dt>
+                          <dd>API_CALL</dd>
+                        </div>
+                        <div>
+                          <dt>Ledger / rating</dt>
+                          <dd>PROCESSED / RATED</dd>
+                        </div>
+                        <div>
+                          <dt>PriceVersion</dt>
+                          <dd>pv_api_sep_01</dd>
+                        </div>
+                        <div>
+                          <dt>Exact rated amount</dt>
+                          <dd>INR {event.exact}</dd>
+                        </div>
+                      </dl>
+                    </details>
+                  </article>
+                ))}
+                <div className="ledger-total">
+                  <span>
+                    Baseline total
+                    <small>
+                      {baselineEvents.length} events ·{" "}
+                      {baselineEvents
+                        .reduce((sum, source) => sum + source.quantity, 0)
+                        .toLocaleString("en-IN")}{" "}
+                      calls
+                    </small>
+                  </span>
+                  <strong>INR {baselineTotal.display}</strong>
                 </div>
-                <p className="source-id">{event.id}</p>
-                <p className="small">{event.occurred}</p>
-                <details>
-                  <summary>
-                    Inspect {event.quantity.toLocaleString("en-IN")}-call source
-                  </summary>
-                  <dl className="facts">
-                    <div>
-                      <dt>Occurred / received</dt>
-                      <dd>{event.exactTime}</dd>
-                    </div>
-                    <div>
-                      <dt>Customer</dt>
-                      <dd>orbit_studio</dd>
-                    </div>
-                    <div>
-                      <dt>Metric</dt>
-                      <dd>API_CALL</dd>
-                    </div>
-                    <div>
-                      <dt>Ledger / rating</dt>
-                      <dd>PROCESSED / RATED</dd>
-                    </div>
-                    <div>
-                      <dt>PriceVersion</dt>
-                      <dd>pv_api_sep_01</dd>
-                    </div>
-                    <div>
-                      <dt>Exact rated amount</dt>
-                      <dd>INR {event.exact}</dd>
-                    </div>
-                  </dl>
-                </details>
-              </article>
-            ))}
-            <div className="ledger-total">
-              <span>
-                Baseline total<small>2 events · 10,000 calls</small>
-              </span>
-              <strong>INR 25.00</strong>
-            </div>
-            <p className="small">Exact baseline amount: INR 25.000</p>
-          </div>
+                <p className="small">
+                  Exact baseline amount: INR {baselineTotal.exact}
+                </p>
+              </div>
+            </>
+          )}
         </aside>
       </div>
     </div>

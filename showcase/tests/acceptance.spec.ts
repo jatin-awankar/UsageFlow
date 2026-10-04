@@ -136,8 +136,8 @@ test("accepted run survives pages, chapters, disclosures and history; reload sta
   ).toBeVisible();
   await page.getByRole("button", { name: "03 Monthly record" }).click();
   await expect(
-    page.getByText("28 Sep 2026, 14:32:02 UTC", { exact: true }),
-  ).toBeVisible();
+    page.getByRole("region", { name: "Scenario time transition" }),
+  ).toContainText("Current scenario time2026-09-28T14:32:02.000Z");
 });
 
 test("contexts and sibling tabs retain independent accepted runs after reset", async ({
