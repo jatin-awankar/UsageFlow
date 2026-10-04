@@ -23,6 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <nav aria-label="Main navigation">
                 <Link href="/">Landing</Link>
                 <Link href="/demo/">Demo workspace</Link>
+                <Link href="/evidence/">How it works &amp; evidence</Link>
               </nav>
             </header>
             <div className="simulation-band">
