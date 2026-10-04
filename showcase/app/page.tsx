@@ -94,11 +94,13 @@ export default function Landing() {
       </section>
       <section className="release-note">
         <p>
-          <strong>Start with the prepared workspace.</strong> Quantity editing
-          and source inspection are available. Acceptance, pricing, monthly
-          review and delivery interactions are not implemented yet.
+          <strong>Start with the prepared workspace.</strong> Explore simulated
+          acceptance, pricing, monthly review, owner finalization and delivery
+          with traceable synthetic evidence.
         </p>
-        <p>How it works &amp; evidence — not available yet.</p>
+        <p>
+          <Link href="/evidence/">How it works &amp; evidence</Link>
+        </p>
         <a href="https://github.com/jatin-awankar/UsageFlow">
           Inspect the implementation{" "}
           <ArrowUpRight size={16} aria-hidden="true" />
