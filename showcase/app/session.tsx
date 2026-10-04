@@ -6,24 +6,37 @@ import {
   useEffect,
   useRef,
 } from "react";
-import { createInitializer } from "./initialization";
+import { createInitializer, createRatingAction } from "./initialization";
 import { freshRun, reduceRun, type Run, type Action } from "./run";
 const Session = createContext<{
   run: Run;
   dispatch: React.Dispatch<Action>;
 } | null>(null);
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [run, dispatch] = useReducer(reduceRun, undefined, freshRun);
+  const [run, send] = useReducer(reduceRun, undefined, freshRun);
   const initialize = useRef<ReturnType<typeof createInitializer> | null>(null);
+  const ratingAction = useRef<ReturnType<typeof createRatingAction> | null>(
+    null,
+  );
+  function dispatch(action: Action) {
+    if (action.type === "rate" && run.event && !run.rating) {
+      ratingAction.current ??= createRatingAction();
+      if (!ratingAction.current()) {
+        send({ type: "rating-action-failed" });
+        return;
+      }
+    }
+    send(action);
+  }
   useEffect(() => {
     let active = true;
     initialize.current ??= createInitializer();
     initialize.current(run.attempt).then(
-      () => {
-        if (active) dispatch({ type: "initialized" });
+      (seed) => {
+        if (active) send({ type: "initialized", seed });
       },
       () => {
-        if (active) dispatch({ type: "initialization-failed" });
+        if (active) send({ type: "initialization-failed" });
       },
     );
     return () => {

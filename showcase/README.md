@@ -1,6 +1,6 @@
 # Annotated Ledger — public entry
 
-Tickets [02 — Entry](../.scratch/public-showcase/issues/02-entry.md) and [04 — Acceptance](../.scratch/public-showcase/issues/04-acceptance.md). A separate Next/React static export with Landing (`/`) and Demo (`/demo/`). The production application and original throwaway prototype are unchanged.
+Tickets [02 — Entry](../.scratch/public-showcase/issues/02-entry.md), [04 — Acceptance](../.scratch/public-showcase/issues/04-acceptance.md), and [05 — Pricing](../.scratch/public-showcase/issues/05-pricing.md). A separate Next/React static export with Landing (`/`) and Demo (`/demo/`). The production application and original throwaway prototype are unchanged.
 
 ## Install, build, inspect
 
@@ -23,25 +23,27 @@ npm test
 npm test -- --project chromium
 ```
 
-Playwright starts a static HTTP server itself; stop any manually started server first. Test artifacts are in `../test-results/showcase`. Tests use UI roles/labels and independent literal money values. Normal builds ignore fixture, clock and fault query parameters. To test delayed initialization and recoverable failure in an isolated export:
+Playwright starts a static HTTP server itself; stop any manually started server first. Test artifacts are in `../test-results/showcase`. Tests use UI roles/labels and independent literal money values. Normal builds ignore fixture, clock and fault query parameters. To test delayed initialization, pricing boundaries and recoverable failures in an isolated export:
 
 ```sh
 SHOWCASE_TEST_BUILD=1 npm run build
-SHOWCASE_TEST_BUILD=1 npm test -- --project chromium --project webkit initialization.spec.ts
+SHOWCASE_TEST_BUILD=1 npm test -- --project chromium --project webkit initialization.spec.ts pricing.spec.ts
 # Always recreate the normal export after fault testing:
 npm run build
 npm test -- --project chromium --project webkit
 ```
 
-The webpack alias selects the fixture module only for the explicit test build; the normal browser bundle excludes its query parser and fault configuration. Never publish the test export. The test-only `test-init=delay` and `test-init=fail-once` parameters are initial configurations, not runtime controls. Initialization has no network dependency.
+The webpack alias and mode-specific cache version select the fixture module only for the explicit test build; the normal browser bundle excludes its query parser and fault configuration. Never publish the test export. The test-only `test-init=delay` and `test-init=fail-once` parameters are initial configurations, not runtime controls. Pricing fixtures use `test-pricing=processed` (accepted and processed, no rating), `occurrence` (October receipt and a newer October price), or `fail-once` (first local rating action fails). All are initial test-build configurations, absent from normal exports. Initialization and rating have no network dependency.
 
 ## Scope and state
 
 A layout-level provider holds the run in memory for the current tab. Next links, chapters, disclosures and browser history within the live app retain it; reload and new tabs start fresh. Quantity validation permits 1–10,000 whole calls as a demo range, not an ingestion API limit. The separate ingestion/rating cap discrepancy remains documented in [contract verification](../docs/public-showcase-contract-verification.md).
 
-Acceptance freezes one visitor event and its source evidence. Processing is PENDING, reconciliation is LEDGER_PENDING, rating awaits processing and no contribution exists. Identical retries return the original evidence and increment only the retry count. Reset is the only way to edit accepted quantity; confirmation clears the visitor event/retries, resets chapter/clock/quantity and focuses quantity. Cancellation and Escape preserve the run and restore trigger focus. Baseline sources remain fixed at two rated events / 10,000 calls / INR 25.00.
+Acceptance freezes one visitor event and its source evidence. Initially processing is PENDING, reconciliation is LEDGER_PENDING, rating awaits processing and no contribution exists. Identical retries return the original evidence and increment only the retry count. Reset is the only way to edit accepted quantity; confirmation clears the visitor event/retries, resets chapter/clock/quantity and focuses quantity. Cancellation and Escape preserve the run and restore trigger focus. Baseline sources remain fixed at two rated events / 10,000 calls / INR 25.00.
 
-The evidence page remains unavailable pending ticket 03. Processing/rating, monthly reconciliation, finalization, time advancement and delivery remain disabled for later tickets. No deployment, backend migration, or gate changes are part of this package.
+Explicit simulated processing/rating adds PROCESSED / RATED evidence, using occurrence-time PriceVersion selection and the existing pure `lib/money-contract.ts` BigInt contract. The margin inspector separates exact multiplication, half-up currency rounding and three-place persisted-form evidence. This representation is in memory, not a database write. Contributions are summed as exact integers without another rounding pass. A processed event with no rating shows RATING_PENDING and no amount. Retrying preserves both accepted and rated evidence; reset clears rating too.
+
+The evidence page remains unavailable pending ticket 03. Monthly reconciliation, finalization, time advancement and delivery remain disabled for later tickets. No deployment, backend migration, or gate changes are part of this package.
 
 ## Prototype assessment and design
 
@@ -49,8 +51,10 @@ Reviewed prototype commit `e2ef35e`, the approved direction decision, and planni
 
 Chapters occupy a horizontal editorial index so the active chapter and its evidence form only two content columns. At small widths the index wraps and evidence follows its associated chapter; nothing is fixed over content. Technical labels are 12–14px rather than prototype fine print. Motion is unnecessary for entry; reduced-motion explicitly preserves all controls/content.
 
-Only Fraunces 500 and Inter 400/600 are self-hosted, unmodified from the prototype's licensed assets: three files, approximately 700 KiB rather than the eleven-file ~2.3 MB comparison bundle. No font network request. Font sources and OFL notices are retained in `public/fonts`; provenance is in the [prototype notes](../.scratch/public-showcase/prototype/README.md#font-provenance-and-notices). Tailwind utilities support layout/spacing; Radix supplies the needed dialog primitive; only ArrowRight, ArrowUpRight, Fingerprint, LockKeyhole and RotateCcw are used from Lucide. No component kit or animation framework.
+Only Fraunces 500 and Inter 400/600 are self-hosted, unmodified from the prototype's licensed assets: three files, approximately 700 KiB rather than the eleven-file ~2.3 MB comparison bundle. No font network request. Font sources and OFL notices are retained in `public/fonts`; provenance is in the [prototype notes](../.scratch/public-showcase/prototype/README.md#font-provenance-and-notices). Tailwind utilities support layout/spacing; Radix supplies the needed dialog primitive; only ArrowRight, ArrowUpRight, Fingerprint, LockKeyhole, Calculator and RotateCcw are used from Lucide. No component kit or animation framework.
 
 See [review evidence](review/README.md) for browser captures, checks and limitations.
 
 See [ticket 04 acceptance review](review/acceptance/README.md) for current browser evidence and limitations.
+
+See [ticket 05 pricing review](review/pricing/README.md) for browser evidence, fixture expectations, accessibility findings and limitations.
