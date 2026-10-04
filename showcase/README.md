@@ -65,3 +65,5 @@ See [ticket 06 monthly review](review/monthly/README.md) for browser evidence an
 See [ticket 07 finalization evidence](review/finalization/README.md) for acceptance results, browser captures and accessibility limitations. The isolated initial `test-finalization=fail-once` configuration fails once after preparing the candidate version and before creating its event; neither is published to the run. Reapproval succeeds without losing draft evidence. The configuration is unavailable in normal builds. Reset clears the frozen version and event as well as usage, rating and clock.
 
 See [ticket 08 delivery evidence](review/delivery/README.md) for browser results and accessibility limitations. Isolated initial fixtures use `test-delivery=no-target` or `test-delivery=contact`; neither is available in normal builds. The contact fixture is test-only and cannot become a published destination. Reset also clears delivery evidence.
+
+See [ticket 03 evidence-page review](review/evidence/README.md) for navigation checks, claim/destination audit, responsive captures and accessibility limitations.

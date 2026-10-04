@@ -1,6 +1,6 @@
 # 03: Inspect how UsageFlow works and its evidence
 
-Status: ready-for-agent
+Status: resolved
 
 Parent: [Approved three-page showcase specification](../spec.md).
 
@@ -10,11 +10,11 @@ Parent: [Approved three-page showcase specification](../spec.md).
 
 ## Acceptance checks
 
-- [ ] Playwright: reach all three pages through ordinary links and direct entry; browser Back/Forward and returning from evidence preserve the quantity already edited in the current run. Later acceptance/finalization progress is covered by downstream integration checks.
-- [ ] Playwright: assert Customer/Organization and comparison-calculation semantics, synthetic boundaries, processing/rating distinctions, and scoped readiness claims. No tax invoice, payment collection, instant onboarding, or production-ready claim is introduced.
-- [ ] Playwright: verify intended source and implementation link destinations; separately check that referenced evidence resolves and actually supports its claim. Pending gates and verification limitations remain visible.
-- [ ] Playwright: navigate the complete page by keyboard with clear focus, landmarks, headings, descriptive links, and a usable return action. Check 360px, 768px, and 1440px layouts, reduced motion, and no page overflow or color-only meaning.
-- [ ] Record manual readability and accessibility findings. Do not invent a public contact address or ship a placeholder; keep the missing verified destination explicitly recorded as a publication blocker.
+- [x] Playwright: reach all three pages through ordinary links and direct entry; browser Back/Forward and returning from evidence preserve the quantity already edited in the current run. Later acceptance/finalization progress is covered by downstream integration checks.
+- [x] Playwright: assert Customer/Organization and comparison-calculation semantics, synthetic boundaries, processing/rating distinctions, and scoped readiness claims. No tax invoice, payment collection, instant onboarding, or production-ready claim is introduced.
+- [x] Playwright: verify intended source and implementation link destinations; separately check that referenced evidence resolves and actually supports its claim. Pending gates and verification limitations remain visible.
+- [x] Playwright: navigate the complete page by keyboard with clear focus, landmarks, headings, descriptive links, and a usable return action. Check 360px, 768px, and 1440px layouts, reduced motion, and no page overflow or color-only meaning.
+- [x] Record manual readability and accessibility findings. Do not invent a public contact address or ship a placeholder; keep the missing verified destination explicitly recorded as a publication blocker.
 
 ## Shared acceptance boundary and constraints
 
@@ -32,3 +32,5 @@ Keep backend integration, database/schema changes, real webhook delivery, produc
 ## Comments
 
 - 2026-10-04: User approved this slice and dependency order for publication. Processing/rating terminology and exact-versus-display money representations follow the clarified specification. Publication of this ticket does not authorize implementation in the current session.
+
+- 2026-10-04 implementation: completed ticket 03 on `codex/showcase-03-evidence` from updated `main` at `f6adc01`, after verifying PRs #110–115 merged. [Acceptance, claim audit, browser captures and manual inspection findings](../../../showcase/review/evidence/README.md). Chromium/WebKit focused 10 pass; full normal 138 pass / 48 mode-specific skips; isolated 160 pass / 26 mode-specific skips. Firefox launch failed (profile folder unavailable), so Firefox behavior remains unverified. Standards review: zero findings; spec review: zero material findings. Human usability/full accessibility assessment and contact/hosting publication blockers remain pending. Draft PR URL to be recorded after creation; human review pending. No merge or deployment.
