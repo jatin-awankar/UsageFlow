@@ -97,4 +97,4 @@ Documented general limits include 100 deployments/day, one concurrent Hobby buil
 
 ## Review and handoff
 
-Ticket status remains ready-for-human, not resolved: static-host publication prerequisites and Firefox coverage remain incomplete. [Independent Standards and Spec review](CODE-REVIEW.md): zero remaining findings on either axis, including the final public-contact copy correction. The draft PR is recorded in ticket 09. Human PR review and any publication approval are separate. No merge or deployment occurred.
+Ticket status remains ready-for-human, not resolved: static-host publication prerequisites and Firefox coverage remain incomplete. [Independent Standards and Spec review](CODE-REVIEW.md): zero remaining findings on either axis, including the final public-contact copy correction. [Draft PR #117](https://github.com/jatin-awankar/UsageFlow/pull/117), implementation commit `b897f41`, is open for human review. Human PR review and any publication approval are separate. No merge or deployment occurred.
