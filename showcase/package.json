@@ -6,16 +6,18 @@
     "build": "next build --webpack",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
-    "serve": "python3 serve.py"
+    "serve": "python3 serve.py",
+    "verify:export": "node scripts/verify-export.mjs"
   },
   "dependencies": {
-    "next": "16.1.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
     "lucide-react": "0.562.0",
-    "radix-ui": "1.4.3"
+    "next": "16.1.1",
+    "radix-ui": "1.4.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
     "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.27",

@@ -1,0 +1,3403 @@
+{
+  "stats": {
+    "startTime": "2026-10-04T10:54:15.688Z",
+    "duration": 104072.303,
+    "expected": 146,
+    "skipped": 48,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "errors": [],
+  "tests": [
+    {
+      "file": "acceptance.spec.ts",
+      "line": 3,
+      "test": "invalid demo quantities have associated feedback and cannot create evidence",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 967,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 27,
+      "test": "accept 1 once and retain immutable evidence through rapid retries",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 677,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 27,
+      "test": "accept 10000 once and retain immutable evidence through rapid retries",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 674,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 27,
+      "test": "accept 1250 once and retain immutable evidence through rapid retries",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 634,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 90,
+      "test": "accepted run survives pages, chapters, disclosures and history; reload starts fresh",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1003,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 143,
+      "test": "contexts and sibling tabs retain independent accepted runs after reset",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1163,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 189,
+      "test": "keyboard validation, acceptance, retry and reset with containment and restored focus",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 753,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 265,
+      "test": "reset from a later chapter preserves state on cancel and restores the first chapter on confirmation",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 741,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 320px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 749,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 360px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 715,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 768px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 761,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 1440px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 807,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 3,
+      "test": "invalid demo quantities have associated feedback and cannot create evidence",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 2014,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 27,
+      "test": "accept 1 once and retain immutable evidence through rapid retries",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1034,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 27,
+      "test": "accept 10000 once and retain immutable evidence through rapid retries",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 856,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 27,
+      "test": "accept 1250 once and retain immutable evidence through rapid retries",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 884,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 90,
+      "test": "accepted run survives pages, chapters, disclosures and history; reload starts fresh",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1391,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 143,
+      "test": "contexts and sibling tabs retain independent accepted runs after reset",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 3826,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 189,
+      "test": "keyboard validation, acceptance, retry and reset with containment and restored focus",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1212,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 265,
+      "test": "reset from a later chapter preserves state on cancel and restores the first chapter on confirmation",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 991,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 320px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1017,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 360px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1133,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 768px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1348,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "acceptance.spec.ts",
+      "line": 296,
+      "test": "accepted evidence and reset at 1440px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1599,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 19,
+      "test": "delivery requires finalization and an explicit simulated attempt",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 717,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 52,
+      "test": "1250: exact payload and frozen references survive delivery, retries and navigation",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 992,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 52,
+      "test": "1500: exact payload and frozen references survive delivery, retries and navigation",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 907,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 143,
+      "test": "no target never reports success; normal builds ignore fixture",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 561,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 170,
+      "test": "keyboard delivery, completion and reset at 360px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1449,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 170,
+      "test": "keyboard delivery, completion and reset at 768px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1613,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 170,
+      "test": "keyboard delivery, completion and reset at 1440px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1652,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 19,
+      "test": "delivery requires finalization and an explicit simulated attempt",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1494,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 52,
+      "test": "1250: exact payload and frozen references survive delivery, retries and navigation",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1338,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 52,
+      "test": "1500: exact payload and frozen references survive delivery, retries and navigation",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1153,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 143,
+      "test": "no target never reports success; normal builds ignore fixture",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 942,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 170,
+      "test": "keyboard delivery, completion and reset at 360px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 3405,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 170,
+      "test": "keyboard delivery, completion and reset at 768px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 2717,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "delivery.spec.ts",
+      "line": 170,
+      "test": "keyboard delivery, completion and reset at 1440px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 3215,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 2,
+      "test": "public entry explains the product and opens an editable prepared demo",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 442,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 21,
+      "test": "direct demo exposes baseline sources and guards every future action",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 604,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 82,
+      "test": "quantity survives navigation and history, but resets on reload and is independent in tabs",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 871,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 108,
+      "test": "keyboard skip, navigation, quantity, chapters and reset have visible focus",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 671,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 179,
+      "test": "responsive 360px with reduced motion and visual evidence",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 829,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 179,
+      "test": "responsive 768px with reduced motion and visual evidence",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 807,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 179,
+      "test": "responsive 1440px with reduced motion and visual evidence",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 926,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 220,
+      "test": "320px reflow retains the form, source disclosure and unobscured focus",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 318,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 2,
+      "test": "public entry explains the product and opens an editable prepared demo",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 755,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 21,
+      "test": "direct demo exposes baseline sources and guards every future action",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1013,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 82,
+      "test": "quantity survives navigation and history, but resets on reload and is independent in tabs",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1465,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 108,
+      "test": "keyboard skip, navigation, quantity, chapters and reset have visible focus",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1286,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 179,
+      "test": "responsive 360px with reduced motion and visual evidence",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1215,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 179,
+      "test": "responsive 768px with reduced motion and visual evidence",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1598,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 179,
+      "test": "responsive 1440px with reduced motion and visual evidence",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1432,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "entry.spec.ts",
+      "line": 220,
+      "test": "320px reflow retains the form, source disclosure and unobscured focus",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 550,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 36,
+      "test": "three direct entries and ordinary navigation preserve quantity and browser history",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 932,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 81,
+      "test": "domain, simulation and dated readiness boundaries have traceable destinations",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 443,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 129,
+      "test": "evidence keyboard and readable reduced-motion layout 360px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1083,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 129,
+      "test": "evidence keyboard and readable reduced-motion layout 768px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1059,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 129,
+      "test": "evidence keyboard and readable reduced-motion layout 1440px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1708,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 36,
+      "test": "three direct entries and ordinary navigation preserve quantity and browser history",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1193,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 81,
+      "test": "domain, simulation and dated readiness boundaries have traceable destinations",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 816,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 129,
+      "test": "evidence keyboard and readable reduced-motion layout 360px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1612,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 129,
+      "test": "evidence keyboard and readable reduced-motion layout 768px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1643,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "evidence.spec.ts",
+      "line": 129,
+      "test": "evidence keyboard and readable reduced-motion layout 1440px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1853,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 25,
+      "test": "explicit owner approval freezes one linked version and pending event",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 964,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 54,
+      "test": "1250: repeats, retries and navigation preserve frozen references and amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1594,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 54,
+      "test": "1500: repeats, retries and navigation preserve frozen references and amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1289,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "close-before: blocked activation creates neither version nor event",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 64,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "close-exact: blocked activation creates neither version nor event",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 76,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "pending: blocked activation creates neither version nor event",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 80,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "processed: blocked activation creates neither version nor event",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 77,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "inconsistent: blocked activation creates neither version nor event",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 68,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 249,
+      "test": "recoverable failure discards candidate version and event, retaining valid draft for reapproval",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 69,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 252,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 282,
+      "test": "reset cancellation preserves finalization; confirmation resets only this tab",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1521,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 328,
+      "test": "keyboard approval and result inspection at 360px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 898,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 328,
+      "test": "keyboard approval and result inspection at 768px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 937,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 328,
+      "test": "keyboard approval and result inspection at 1440px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1150,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 444,
+      "test": "normal export ignores finalization fault configuration",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 852,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 25,
+      "test": "explicit owner approval freezes one linked version and pending event",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1136,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 54,
+      "test": "1250: repeats, retries and navigation preserve frozen references and amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1850,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 54,
+      "test": "1500: repeats, retries and navigation preserve frozen references and amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1686,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "close-before: blocked activation creates neither version nor event",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 305,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "close-exact: blocked activation creates neither version nor event",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 296,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "pending: blocked activation creates neither version nor event",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 295,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "processed: blocked activation creates neither version nor event",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 289,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 198,
+      "test": "inconsistent: blocked activation creates neither version nor event",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 298,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 201,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 249,
+      "test": "recoverable failure discards candidate version and event, retaining valid draft for reapproval",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 289,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/finalization.spec.ts",
+            "line": 252,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 282,
+      "test": "reset cancellation preserves finalization; confirmation resets only this tab",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 2784,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 328,
+      "test": "keyboard approval and result inspection at 360px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1191,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 328,
+      "test": "keyboard approval and result inspection at 768px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1271,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 328,
+      "test": "keyboard approval and result inspection at 1440px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1898,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "finalization.spec.ts",
+      "line": 444,
+      "test": "normal export ignores finalization fault configuration",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 951,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 3,
+      "test": "delayed initialization prevents partial acceptance",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 98,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated test build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/initialization.spec.ts",
+            "line": 4,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 28,
+      "test": "recoverable initialization failure supports Retry initialization",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 90,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated test build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/initialization.spec.ts",
+            "line": 31,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 28,
+      "test": "recoverable initialization failure supports Reset initialization",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 90,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated test build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/initialization.spec.ts",
+            "line": 31,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 60,
+      "test": "normal build ignores initialization, fixture and clock parameters",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 390,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 3,
+      "test": "delayed initialization prevents partial acceptance",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 314,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated test build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/initialization.spec.ts",
+            "line": 4,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 28,
+      "test": "recoverable initialization failure supports Retry initialization",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 308,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated test build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/initialization.spec.ts",
+            "line": 31,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 28,
+      "test": "recoverable initialization failure supports Reset initialization",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 281,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated test build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/initialization.spec.ts",
+            "line": 31,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "initialization.spec.ts",
+      "line": 60,
+      "test": "normal build ignores initialization, fixture and clock parameters",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 522,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 11,
+      "test": "default monthly draft reconciles inspectable source and line evidence",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 566,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 46,
+      "test": "1500 calls retain independently specified event and monthly amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 519,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 46,
+      "test": "1 calls retain independently specified event and monthly amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 464,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 46,
+      "test": "2 calls retain independently specified event and monthly amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 524,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 83,
+      "test": "explicit time jump preserves evidence, announces readiness and creates no approval or outbound event",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 924,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 152,
+      "test": "round each event before summing: 6,001 + 4,001 + 1 never becomes INR 25.01",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 71,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 155,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 193,
+      "test": "half-open occurrence month ignores differing receipt dates",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 74,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 196,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-before in UTC is independent of wall clock",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-exact in UTC is independent of wall clock",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-after in UTC is independent of wall clock",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-before in Asia/Kolkata is independent of wall clock",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-exact in Asia/Kolkata is independent of wall clock",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-after in Asia/Kolkata is independent of wall clock",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 273,
+      "test": "after-close pending evidence stays blocked until explicit processing/rating",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 69,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 276,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 273,
+      "test": "after-close processed evidence stays blocked until explicit processing/rating",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 81,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 276,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 320,
+      "test": "inconsistent rated evidence cannot become ready just because counts agree",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 82,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 323,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 337,
+      "test": "monthly keyboard review, announcements and reduced motion at 360px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 875,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 337,
+      "test": "monthly keyboard review, announcements and reduced motion at 768px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 865,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 337,
+      "test": "monthly keyboard review, announcements and reduced motion at 1440px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 928,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture rounding",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 644,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture month-boundaries",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 484,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture close-before",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 419,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture close-exact",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 402,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture close-after",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 387,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture pending",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 383,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture processed",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 373,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture inconsistent",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 382,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 479,
+      "test": "public time transition cannot resolve accepted pending usage",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 446,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 11,
+      "test": "default monthly draft reconciles inspectable source and line evidence",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 774,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 46,
+      "test": "1500 calls retain independently specified event and monthly amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 783,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 46,
+      "test": "1 calls retain independently specified event and monthly amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 764,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 46,
+      "test": "2 calls retain independently specified event and monthly amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 876,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 83,
+      "test": "explicit time jump preserves evidence, announces readiness and creates no approval or outbound event",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1459,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 152,
+      "test": "round each event before summing: 6,001 + 4,001 + 1 never becomes INR 25.01",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 292,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 155,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 193,
+      "test": "half-open occurrence month ignores differing receipt dates",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 339,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 196,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-before in UTC is independent of wall clock",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-exact in UTC is independent of wall clock",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-after in UTC is independent of wall clock",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-before in Asia/Kolkata is independent of wall clock",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-exact in Asia/Kolkata is independent of wall clock",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 1,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 238,
+      "test": "close-after in Asia/Kolkata is independent of wall clock",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 241,
+            "column": 12
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 273,
+      "test": "after-close pending evidence stays blocked until explicit processing/rating",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 325,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 276,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 273,
+      "test": "after-close processed evidence stays blocked until explicit processing/rating",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 303,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 276,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 320,
+      "test": "inconsistent rated evidence cannot become ready just because counts agree",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 313,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/monthly.spec.ts",
+            "line": 323,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 337,
+      "test": "monthly keyboard review, announcements and reduced motion at 360px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1281,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 337,
+      "test": "monthly keyboard review, announcements and reduced motion at 768px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1443,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 337,
+      "test": "monthly keyboard review, announcements and reduced motion at 1440px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1210,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture rounding",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 593,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture month-boundaries",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 633,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture close-before",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 691,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture close-exact",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 650,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture close-after",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 639,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture pending",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 537,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture processed",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 640,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 460,
+      "test": "normal export ignores monthly fixture inconsistent",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 668,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "monthly.spec.ts",
+      "line": 479,
+      "test": "public time transition cannot resolve accepted pending usage",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 724,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 3,
+      "test": "default event is explicitly rated with exact evidence",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 533,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 31,
+      "test": "1500 calls retain independently specified rounded amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 671,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 31,
+      "test": "1 calls retain independently specified rounded amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 593,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 31,
+      "test": "2 calls retain independently specified rounded amounts",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 645,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 89,
+      "test": "processed fixture is rating-pending with no contribution until explicit rating",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 83,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 92,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 113,
+      "test": "price selection follows occurrence across a later price boundary in UTC",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 116,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 113,
+      "test": "price selection follows occurrence across a later price boundary in Asia/Kolkata",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 116,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 146,
+      "test": "a recoverable rating action preserves accepted and baseline evidence",
+      "browser": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 81,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 149,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 185,
+      "test": "keyboard pricing and inline disclosures at 360px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 677,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 185,
+      "test": "keyboard pricing and inline disclosures at 768px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 730,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 185,
+      "test": "keyboard pricing and inline disclosures at 1440px with reduced motion",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 772,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 290,
+      "test": "rated evidence survives navigation and retry, and reset clears only this run",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 857,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 339,
+      "test": "normal build ignores pricing fixture processed",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 410,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 339,
+      "test": "normal build ignores pricing fixture occurrence",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 444,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 339,
+      "test": "normal build ignores pricing fixture fail-once",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 445,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 3,
+      "test": "default event is explicitly rated with exact evidence",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 717,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 31,
+      "test": "1500 calls retain independently specified rounded amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1003,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 31,
+      "test": "1 calls retain independently specified rounded amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1054,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 31,
+      "test": "2 calls retain independently specified rounded amounts",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 935,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 89,
+      "test": "processed fixture is rating-pending with no contribution until explicit rating",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 293,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 92,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 113,
+      "test": "price selection follows occurrence across a later price boundary in UTC",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 116,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 113,
+      "test": "price selection follows occurrence across a later price boundary in Asia/Kolkata",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 0,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 116,
+            "column": 10
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 146,
+      "test": "a recoverable rating action preserves accepted and baseline evidence",
+      "browser": "webkit",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "durationMs": 316,
+          "errors": []
+        }
+      ],
+      "annotations": [
+        {
+          "type": "skip",
+          "description": "Isolated build only",
+          "location": {
+            "file": "/Users/jatinawankar/Development/projects/UsageFlow/showcase/tests/pricing.spec.ts",
+            "line": 149,
+            "column": 8
+          }
+        }
+      ]
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 185,
+      "test": "keyboard pricing and inline disclosures at 360px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1194,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 185,
+      "test": "keyboard pricing and inline disclosures at 768px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1126,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 185,
+      "test": "keyboard pricing and inline disclosures at 1440px with reduced motion",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1380,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 290,
+      "test": "rated evidence survives navigation and retry, and reset clears only this run",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 1264,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 339,
+      "test": "normal build ignores pricing fixture processed",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 799,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 339,
+      "test": "normal build ignores pricing fixture occurrence",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 728,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "pricing.spec.ts",
+      "line": 339,
+      "test": "normal build ignores pricing fixture fail-once",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 848,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 17,
+      "test": "release complete keyboard journey, network, accessibility and layout 360px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 6383,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 17,
+      "test": "release complete keyboard journey, network, accessibility and layout 768px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 6558,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 17,
+      "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 7036,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 94,
+      "test": "static direct pages, font decoding and licence asset serving",
+      "browser": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 523,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 17,
+      "test": "release complete keyboard journey, network, accessibility and layout 360px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 7458,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 17,
+      "test": "release complete keyboard journey, network, accessibility and layout 768px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 5453,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 17,
+      "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 6723,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    },
+    {
+      "file": "release.spec.ts",
+      "line": 94,
+      "test": "static direct pages, font decoding and licence asset serving",
+      "browser": "webkit",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "durationMs": 488,
+          "errors": []
+        }
+      ],
+      "annotations": []
+    }
+  ]
+}

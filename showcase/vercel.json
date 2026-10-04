@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --ignore-scripts",
+  "buildCommand": "npm run build && npm run verify:export",
+  "outputDirectory": "out",
+  "trailingSlash": true,
+  "git": {
+    "deploymentEnabled": false
+  }
+}

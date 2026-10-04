@@ -80,6 +80,7 @@ export function DeliveryEvidence() {
         <>
           <div
             className="reconciliation"
+            role="region"
             aria-label="Successful simulated attempt"
           >
             <h3>Successful simulated attempt</h3>
@@ -138,7 +139,7 @@ export function DeliveryEvidence() {
             </a>
             <p id="contact-blocker" className="small">
               {run.contactDestination
-                ? "Test-only contact destination. Not for publication."
+                ? "Opens your email app. No message is sent automatically."
                 : "Contact destination awaiting verification. Publication remains blocked."}
             </p>
           </section>

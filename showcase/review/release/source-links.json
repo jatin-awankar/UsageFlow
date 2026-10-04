@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-04",
+  "repository": "https://github.com/jatin-awankar/UsageFlow",
+  "visibility": "public",
+  "snapshot": "f6adc01f89a620d5a42d5790a759ff95af165d69",
+  "paths": [
+    {
+      "path": "CONTEXT.md",
+      "exists": true
+    },
+    {
+      "path": "app/api/track/route.ts",
+      "exists": true
+    },
+    {
+      "path": "docs/billing-webhook-readiness.md",
+      "exists": true
+    },
+    {
+      "path": "docs/public-showcase-contract-verification.md",
+      "exists": true
+    },
+    {
+      "path": "docs/rollout-item-3-rehearsal-2026-10-02.md",
+      "exists": true
+    },
+    {
+      "path": "lib/billing-record-calculation.ts",
+      "exists": true
+    },
+    {
+      "path": "lib/billing-record-finalization.ts",
+      "exists": true
+    },
+    {
+      "path": "lib/money-contract.ts",
+      "exists": true
+    },
+    {
+      "path": "lib/webhooks/billing-status.ts",
+      "exists": true
+    },
+    {
+      "path": "showcase/app/run.ts",
+      "exists": true
+    },
+    {
+      "path": "showcase/review/delivery/README.md",
+      "exists": true
+    },
+    {
+      "path": "worker/processors/rateCustomerEvent.ts",
+      "exists": true
+    }
+  ]
+}

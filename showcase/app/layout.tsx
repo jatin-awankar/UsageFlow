@@ -41,6 +41,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 Production readiness requires a separate review. Pilot gates
                 remain closed.
               </span>
+              <a href="/THIRD-PARTY-NOTICES.txt">Third-party notices</a>
             </footer>
           </div>
         </SessionProvider>

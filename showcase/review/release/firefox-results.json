@@ -1,0 +1,233 @@
+{
+  "stats": {
+    "startTime": "2026-10-04T10:39:02.125Z",
+    "duration": 1328.699,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 4,
+    "flaky": 0
+  },
+  "errors": [],
+  "suites": [
+    {
+      "title": "release.spec.ts",
+      "file": "release.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "release complete keyboard journey, network, accessibility and layout 360px",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 0,
+                  "error": {
+                    "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-vs71fn -juggler-pipe -silent\n<launched> pid=71595\n[pid=71595][err] *** You are running in headless mode.\n[pid=71595][err] Could not find profile folder.\n[pid=71595] <process did exit: exitCode=1, signal=null>\n[pid=71595] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-vs71fn -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71595\u001b[22m\n\u001b[2m  - [pid=71595][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71595][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71595] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71595] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71595] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71595] <kill>\u001b[22m\n\u001b[2m  - [pid=71595] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71595] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71595] <gracefully close end>\u001b[22m\n",
+                    "stack": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-vs71fn -juggler-pipe -silent\n<launched> pid=71595\n[pid=71595][err] *** You are running in headless mode.\n[pid=71595][err] Could not find profile folder.\n[pid=71595] <process did exit: exitCode=1, signal=null>\n[pid=71595] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-vs71fn -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71595\u001b[22m\n\u001b[2m  - [pid=71595][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71595][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71595] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71595] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71595] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71595] <kill>\u001b[22m\n\u001b[2m  - [pid=71595] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71595] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71595] <gracefully close end>\u001b[22m\n"
+                  },
+                  "errors": [
+                    {
+                      "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-vs71fn -juggler-pipe -silent\n<launched> pid=71595\n[pid=71595][err] *** You are running in headless mode.\n[pid=71595][err] Could not find profile folder.\n[pid=71595] <process did exit: exitCode=1, signal=null>\n[pid=71595] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-vs71fn -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71595\u001b[22m\n\u001b[2m  - [pid=71595][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71595][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71595] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71595] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71595] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71595] <kill>\u001b[22m\n\u001b[2m  - [pid=71595] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71595] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71595] <gracefully close end>\u001b[22m\n"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:39:02.430Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-release-complete-k-42f30-essibility-and-layout-360px-firefox/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-release-complete-k-42f30-essibility-and-layout-360px-firefox/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "7324964a6aa193ebd049-eb75b5aa73f5f12bdd19",
+          "file": "release.spec.ts",
+          "line": 17,
+          "column": 7
+        },
+        {
+          "title": "release complete keyboard journey, network, accessibility and layout 768px",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 0,
+                  "error": {
+                    "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-QsEvSf -juggler-pipe -silent\n<launched> pid=71597\n[pid=71597][err] *** You are running in headless mode.\n[pid=71597][err] Could not find profile folder.\n[pid=71597] <process did exit: exitCode=1, signal=null>\n[pid=71597] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-QsEvSf -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71597\u001b[22m\n\u001b[2m  - [pid=71597][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71597][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71597] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71597] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71597] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71597] <kill>\u001b[22m\n\u001b[2m  - [pid=71597] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71597] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71597] <gracefully close end>\u001b[22m\n",
+                    "stack": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-QsEvSf -juggler-pipe -silent\n<launched> pid=71597\n[pid=71597][err] *** You are running in headless mode.\n[pid=71597][err] Could not find profile folder.\n[pid=71597] <process did exit: exitCode=1, signal=null>\n[pid=71597] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-QsEvSf -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71597\u001b[22m\n\u001b[2m  - [pid=71597][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71597][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71597] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71597] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71597] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71597] <kill>\u001b[22m\n\u001b[2m  - [pid=71597] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71597] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71597] <gracefully close end>\u001b[22m\n"
+                  },
+                  "errors": [
+                    {
+                      "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-QsEvSf -juggler-pipe -silent\n<launched> pid=71597\n[pid=71597][err] *** You are running in headless mode.\n[pid=71597][err] Could not find profile folder.\n[pid=71597] <process did exit: exitCode=1, signal=null>\n[pid=71597] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-QsEvSf -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71597\u001b[22m\n\u001b[2m  - [pid=71597][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71597][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71597] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71597] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71597] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71597] <kill>\u001b[22m\n\u001b[2m  - [pid=71597] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71597] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71597] <gracefully close end>\u001b[22m\n"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:39:02.753Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-release-complete-k-868fc-essibility-and-layout-768px-firefox/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-release-complete-k-868fc-essibility-and-layout-768px-firefox/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "7324964a6aa193ebd049-45686be36eec38ee5ae7",
+          "file": "release.spec.ts",
+          "line": 17,
+          "column": 7
+        },
+        {
+          "title": "release complete keyboard journey, network, accessibility and layout 1440px",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 0,
+                  "error": {
+                    "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-V3jt5o -juggler-pipe -silent\n<launched> pid=71600\n[pid=71600][err] *** You are running in headless mode.\n[pid=71600][err] Could not find profile folder.\n[pid=71600] <process did exit: exitCode=1, signal=null>\n[pid=71600] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-V3jt5o -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71600\u001b[22m\n\u001b[2m  - [pid=71600][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71600][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71600] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71600] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71600] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71600] <kill>\u001b[22m\n\u001b[2m  - [pid=71600] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71600] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71600] <gracefully close end>\u001b[22m\n",
+                    "stack": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-V3jt5o -juggler-pipe -silent\n<launched> pid=71600\n[pid=71600][err] *** You are running in headless mode.\n[pid=71600][err] Could not find profile folder.\n[pid=71600] <process did exit: exitCode=1, signal=null>\n[pid=71600] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-V3jt5o -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71600\u001b[22m\n\u001b[2m  - [pid=71600][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71600][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71600] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71600] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71600] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71600] <kill>\u001b[22m\n\u001b[2m  - [pid=71600] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71600] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71600] <gracefully close end>\u001b[22m\n"
+                  },
+                  "errors": [
+                    {
+                      "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-V3jt5o -juggler-pipe -silent\n<launched> pid=71600\n[pid=71600][err] *** You are running in headless mode.\n[pid=71600][err] Could not find profile folder.\n[pid=71600] <process did exit: exitCode=1, signal=null>\n[pid=71600] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-V3jt5o -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71600\u001b[22m\n\u001b[2m  - [pid=71600][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71600][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71600] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71600] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71600] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71600] <kill>\u001b[22m\n\u001b[2m  - [pid=71600] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71600] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71600] <gracefully close end>\u001b[22m\n"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:39:03.041Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-release-complete-k-0ba43-ssibility-and-layout-1440px-firefox/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-release-complete-k-0ba43-ssibility-and-layout-1440px-firefox/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "7324964a6aa193ebd049-d29d3cd90e956b71be09",
+          "file": "release.spec.ts",
+          "line": 17,
+          "column": 7
+        },
+        {
+          "title": "static direct pages, font decoding and licence asset serving",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 0,
+                  "error": {
+                    "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-xpuaSn -juggler-pipe -silent\n<launched> pid=71602\n[pid=71602][err] *** You are running in headless mode.\n[pid=71602][err] Could not find profile folder.\n[pid=71602] <process did exit: exitCode=1, signal=null>\n[pid=71602] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-xpuaSn -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71602\u001b[22m\n\u001b[2m  - [pid=71602][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71602][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71602] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71602] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71602] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71602] <kill>\u001b[22m\n\u001b[2m  - [pid=71602] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71602] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71602] <gracefully close end>\u001b[22m\n",
+                    "stack": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-xpuaSn -juggler-pipe -silent\n<launched> pid=71602\n[pid=71602][err] *** You are running in headless mode.\n[pid=71602][err] Could not find profile folder.\n[pid=71602] <process did exit: exitCode=1, signal=null>\n[pid=71602] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-xpuaSn -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71602\u001b[22m\n\u001b[2m  - [pid=71602][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71602][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71602] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71602] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71602] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71602] <kill>\u001b[22m\n\u001b[2m  - [pid=71602] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71602] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71602] <gracefully close end>\u001b[22m\n"
+                  },
+                  "errors": [
+                    {
+                      "message": "Error: browserType.launch: Failed to launch the browser process.\nBrowser logs:\n\n<launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-xpuaSn -juggler-pipe -silent\n<launched> pid=71602\n[pid=71602][err] *** You are running in headless mode.\n[pid=71602][err] Could not find profile folder.\n[pid=71602] <process did exit: exitCode=1, signal=null>\n[pid=71602] starting temporary directories cleanup\nCall log:\n\u001b[2m  - <launching> /Users/jatinawankar/Library/Caches/ms-playwright/firefox-1543/firefox/Nightly.app/Contents/MacOS/firefox -no-remote -headless -profile /var/folders/nj/zjbh4x4n7x94yrnl30tjz0xm0000gn/T/playwright_firefoxdev_profile-xpuaSn -juggler-pipe -silent\u001b[22m\n\u001b[2m  - <launched> pid=71602\u001b[22m\n\u001b[2m  - [pid=71602][err] *** You are running in headless mode.\u001b[22m\n\u001b[2m  - [pid=71602][err] Could not find profile folder.\u001b[22m\n\u001b[2m  - [pid=71602] <process did exit: exitCode=1, signal=null>\u001b[22m\n\u001b[2m  - [pid=71602] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71602] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=71602] <kill>\u001b[22m\n\u001b[2m  - [pid=71602] <skipped force kill spawnedProcess.killed=false processClosed=true>\u001b[22m\n\u001b[2m  - [pid=71602] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=71602] <gracefully close end>\u001b[22m\n"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:39:03.323Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-static-direct-page-4b93f-g-and-licence-asset-serving-firefox/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/jatinawankar/Development/projects/UsageFlow/test-results/showcase/release-static-direct-page-4b93f-g-and-licence-asset-serving-firefox/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "7324964a6aa193ebd049-b6278d0b58a1f3ab7036",
+          "file": "release.spec.ts",
+          "line": 92,
+          "column": 5
+        }
+      ]
+    }
+  ]
+}

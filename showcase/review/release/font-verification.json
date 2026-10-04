@@ -1,0 +1,23 @@
+[
+  {
+    "font": "fraunces-500",
+    "glyphCount": 683,
+    "sameGlyphOrder": true,
+    "sameCharacterMap": true,
+    "sameAdvanceMetrics": true
+  },
+  {
+    "font": "inter-400",
+    "glyphCount": 2871,
+    "sameGlyphOrder": true,
+    "sameCharacterMap": true,
+    "sameAdvanceMetrics": true
+  },
+  {
+    "font": "inter-600",
+    "glyphCount": 2871,
+    "sameGlyphOrder": true,
+    "sameCharacterMap": true,
+    "sameAdvanceMetrics": true
+  }
+]
