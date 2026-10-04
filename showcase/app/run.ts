@@ -1,3 +1,9 @@
+import {
+  rateEvent,
+  septemberPrice,
+  type Rating,
+  type PriceVersion,
+} from "./pricing";
 // The run belongs to one mounted provider. Accepted facts never change on retries.
 export const initialClock = "2026-09-28T14:32:02.000Z";
 export function validDemoQuantity(value: string): boolean {
@@ -20,6 +26,10 @@ export type Run = {
   clock: string;
   event: AcceptedEvent | null;
   retries: number;
+  processed: boolean;
+  rating: Rating | null;
+  ratingError: string;
+  prices: readonly PriceVersion[];
   error: string;
   announcement: string;
 };
@@ -32,29 +42,44 @@ export function freshRun(): Run {
     clock: initialClock,
     event: null,
     retries: 0,
+    processed: false,
+    rating: null,
+    ratingError: "",
+    prices: [septemberPrice],
     error: "",
     announcement: "",
   };
 }
 export type Action =
-  | { type: "initialized" }
+  | { type: "initialized"; seed?: Run }
   | { type: "initialization-failed" }
   | { type: "recover" }
   | { type: "quantity"; value: string }
   | { type: "chapter"; value: number }
   | { type: "accept" }
   | { type: "retry" }
+  | { type: "rate" }
+  | { type: "rating-action-failed" }
   | { type: "reset" };
+const ratingActionError =
+  "The local rating action could not finish. Prior evidence is unchanged. Try again or reset the demo.";
 export function reduceRun(run: Run, action: Action): Run {
   // No editing or acceptance can race initialization or a failed setup.
   if (
     run.phase !== "ready" &&
-    ["quantity", "chapter", "accept", "retry"].includes(action.type)
+    [
+      "quantity",
+      "chapter",
+      "accept",
+      "retry",
+      "rate",
+      "rating-action-failed",
+    ].includes(action.type)
   )
     return run;
   switch (action.type) {
     case "initialized":
-      return { ...run, phase: "ready" };
+      return { ...(action.seed ?? run), phase: "ready" };
     case "initialization-failed":
       return { ...run, phase: "error" };
     case "recover":
@@ -97,6 +122,23 @@ export function reduceRun(run: Run, action: Action): Run {
         announcement:
           "Event evt_demo_0125 accepted. Awaiting processing; no contribution created.",
       };
+    }
+    case "rating-action-failed":
+      return { ...run, ratingError: ratingActionError };
+    case "rate": {
+      if (!run.event || run.rating) return run;
+      try {
+        const rating = rateEvent(run.event, run.prices);
+        return {
+          ...run,
+          processed: true,
+          rating,
+          ratingError: "",
+          announcement: `Event ${run.event.id} processed and rated. Contribution INR ${rating.display}.`,
+        };
+      } catch {
+        return { ...run, ratingError: ratingActionError };
+      }
     }
     case "retry":
       return run.event

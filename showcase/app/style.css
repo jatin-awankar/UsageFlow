@@ -150,7 +150,8 @@ summary:focus-visible,
 .text-button:hover {
   text-decoration: underline;
 }
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
   background: #e2e0d5;
   color: #62685f;
   border-color: #a9ac9e;
@@ -734,4 +735,25 @@ input[readonly] {
 #quantity-error {
   color: var(--accent);
   margin-top: 12px;
+}
+.pricing-evidence {
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 24px;
+  margin-bottom: 26px;
+}
+.contribution-total {
+  margin-top: 16px;
+  font-weight: 600;
+}
+@media (min-width: 651px) and (max-width: 900px) {
+  .margin-evidence .facts > div {
+    display: block;
+  }
+  .margin-evidence .facts dd {
+    text-align: left;
+    margin-top: 6px;
+  }
+}
+button[aria-disabled="true"] {
+  color: var(--ink);
 }

@@ -1,9 +1,10 @@
 "use client";
 import { useRef, useEffect } from "react";
 import { Dialog } from "radix-ui";
-import { ArrowRight, RotateCcw, LockKeyhole } from "lucide-react";
+import { ArrowRight, RotateCcw, LockKeyhole, Calculator } from "lucide-react";
 import { useSession } from "../session";
 import { validDemoQuantity } from "../run";
+import { PricingEvidence } from "./pricing-evidence";
 import { AcceptedEvidence } from "./accepted-evidence";
 import { baselineEvents } from "./baseline";
 const chapters = [
@@ -23,7 +24,7 @@ const chapters = [
       "Occurrence time selects the applicable PriceVersion. Processing and rating are separate from acceptance.",
     action: "Process & rate event",
     reason:
-      "Not available yet. Requires an accepted event, then processing and rating. No visitor rating or contribution exists.",
+      "Simulate processing and rating explicitly. Acceptance alone does not create a contribution.",
   },
   {
     name: "Monthly record",
@@ -121,10 +122,10 @@ export default function Demo() {
             >
               <Dialog.Title>Reset this demonstration?</Dialog.Title>
               <Dialog.Description>
-                This clears your accepted event and retry history, restores
-                quantity 1,250, the initial scenario clock and the first
-                chapter. The two synthetic baseline events stay unchanged. No
-                real data is affected.
+                This clears your accepted event, rating evidence and retry
+                history, restores quantity 1,250, the initial scenario clock and
+                the first chapter. The two synthetic baseline events stay
+                unchanged. No real data is affected.
               </Dialog.Description>
               <div className="flex flex-wrap gap-3 mt-6">
                 <Dialog.Close asChild>
@@ -175,7 +176,11 @@ export default function Demo() {
                   ? event
                     ? "Event accepted"
                     : "Prepare your event"
-                  : "Not yet available"}
+                  : index === 1
+                    ? run.rating
+                      ? "Rated evidence"
+                      : "Inspect & simulate"
+                    : "Not yet available"}
               </small>
             </span>
           </button>
@@ -192,7 +197,15 @@ export default function Demo() {
                 ? event
                   ? "Accepted"
                   : "Prepared"
-                : "Not yet created"}
+                : chapter === 1
+                  ? run.rating
+                    ? "Rated"
+                    : event
+                      ? run.processed
+                        ? "Awaiting rating"
+                        : "Awaiting processing"
+                      : "Accept usage first"
+                  : "Not yet created"}
             </span>
           </div>
           <h2 id="chapter-title" ref={heading} tabIndex={-1}>
@@ -248,30 +261,27 @@ export default function Demo() {
                   </div>
                   <div>
                     <dt>Prepared receipt time</dt>
-                    <dd>28 Sep 2026, 14:32:02 UTC</dd>
+                    <dd>{run.clock}</dd>
                   </div>
                 </dl>
               )}
             </>
           ) : chapter === 1 ? (
-            <dl className="facts">
-              <div>
-                <dt>Prepared PriceVersion</dt>
-                <dd>pv_api_sep_01</dd>
-              </div>
-              <div>
-                <dt>Effective from</dt>
-                <dd>01 Sep 2026, 00:00 UTC</dd>
-              </div>
-              <div>
-                <dt>Unit price</dt>
-                <dd>INR 0.0025 / API call</dd>
-              </div>
-              <div>
-                <dt>Visitor contribution</dt>
-                <dd>Not created</dd>
-              </div>
-            </dl>
+            <>
+              <p className="small">
+                Price applies from 01 Sep 2026, 00:00 UTC. The event’s
+                occurrence selects its version, not receipt or the time you
+                click Rate.
+              </p>
+              {event ? (
+                <AcceptedEvidence run={run} />
+              ) : (
+                <p>
+                  No visitor rating or contribution exists. Accept usage in
+                  chapter 01.
+                </p>
+              )}
+            </>
           ) : chapter === 2 ? (
             <dl className="facts">
               <div>
@@ -288,29 +298,46 @@ export default function Demo() {
               </div>
             </dl>
           ) : null}
-          {chapter === 0 && event && <AcceptedEvidence event={event} />}
+          {chapter === 0 && event && <AcceptedEvidence run={run} />}
           <div className="unavailable">
-            <LockKeyhole size={19} aria-hidden="true" />
-            <p id="prerequisite">{current.reason}</p>
+            {chapter === 1 ? (
+              <Calculator size={19} aria-hidden="true" />
+            ) : (
+              <LockKeyhole size={19} aria-hidden="true" />
+            )}
+            <p id="prerequisite">
+              {chapter === 1 && run.rating
+                ? "Already rated. Identical retries retain this event and its contribution."
+                : current.reason}
+            </p>
           </div>
           <button
-            className="primary mt-5"
-            disabled={chapter !== 0 || Boolean(event)}
+            className="primary mt-5 mr-3"
+            disabled={
+              chapter === 0 ? Boolean(event) : chapter === 1 ? !event : true
+            }
+            aria-disabled={
+              chapter === 1 && Boolean(run.rating) ? true : undefined
+            }
             onClick={() => {
-              dispatch({ type: "accept" });
-              if (!validDemoQuantity(quantity)) quantityInput.current?.focus();
+              dispatch({ type: chapter === 1 ? "rate" : "accept" });
+              if (chapter === 0 && !validDemoQuantity(quantity))
+                quantityInput.current?.focus();
             }}
             aria-describedby="prerequisite"
           >
             {current.action} <ArrowRight size={17} aria-hidden="true" />
           </button>
-          {chapter === 0 && event && (
+          {chapter <= 1 && event && (
             <button
               className="secondary mt-5"
               onClick={() => dispatch({ type: "retry" })}
             >
               Retry identical event
             </button>
+          )}
+          {chapter === 1 && run.ratingError && (
+            <p role="alert">{run.ratingError}</p>
           )}
           <p
             role="status"
@@ -347,8 +374,9 @@ export default function Demo() {
         </section>
         <aside
           className="margin-evidence"
-          aria-label="Synthetic baseline evidence"
+          aria-label="Synthetic pricing and baseline evidence"
         >
+          {chapter === 1 && <PricingEvidence run={run} />}
           <p className="eyebrow">Before this event / Source notes</p>
           <h2>Already in the ledger.</h2>
           <p className="small">
@@ -359,13 +387,15 @@ export default function Demo() {
             {baselineEvents.map((event) => (
               <article key={event.id} className="baseline-event">
                 <div className="ledger-row">
-                  <h3>{event.quantity} calls</h3>
+                  <h3>{event.quantity.toLocaleString("en-IN")} calls</h3>
                   <strong>INR {event.display}</strong>
                 </div>
                 <p className="source-id">{event.id}</p>
                 <p className="small">{event.occurred}</p>
                 <details>
-                  <summary>Inspect {event.quantity}-call source</summary>
+                  <summary>
+                    Inspect {event.quantity.toLocaleString("en-IN")}-call source
+                  </summary>
                   <dl className="facts">
                     <div>
                       <dt>Occurred / received</dt>
