@@ -1,6 +1,6 @@
 # 07: Finalize one immutable BillingRecord
 
-Status: ready-for-agent
+Status: resolved
 
 Parent: [Approved three-page showcase specification](../spec.md).
 
@@ -10,12 +10,12 @@ Parent: [Approved three-page showcase specification](../spec.md).
 
 ## Acceptance checks
 
-- [ ] Playwright: fully rated drafts at close minus 1 ms and exactly close remain OPEN and cannot finalize; blocked activation creates neither version nor event. At close plus 1 ms unresolved processing PENDING / LEDGER_PENDING or PROCESSED / RATING_PENDING still prevents approval. Recheck eligibility when invoked.
-- [ ] Playwright: after close and reconciliation, explicit owner approval creates exactly one version and one linked pending invoice.finalized event. Rapid double activation and repeats preserve identities and amounts; event existence does not show delivery success.
-- [ ] Playwright: independently assert frozen source INR 3.13 / exact 3.130 and total INR 28.13 / exact 28.130 for 1,250; 1,500 yields INR 3.75 / 3.750 and INR 28.75 / 28.750. Two-decimal currency display must not truncate three-decimal persisted-form or outbound payload evidence. Freeze the source, price, line and amount references together.
-- [ ] Playwright: identical event retries after close and after finalization, and revisiting earlier chapters, cannot change accepted/rated counts, quantities, source contributions, version or outbound event. Pending processing/rating is never relabeled UNRATED / NO_APPLICABLE_PRICE.
-- [ ] Playwright: a narrowly scoped test-only recoverable finalization failure leaves no partial version/event and retains valid draft evidence with usable recovery. Reset cancellation retains the final result; confirmation clears version/event, restores baseline and clock, and affects no other tab.
-- [ ] Playwright: complete approval and result inspection by keyboard, including any confirmation dialogue and focus restoration; announce finalized outcome without implying payment or tax invoice. Verify 360px, 768px, 1440px and reduced motion; record manual focus, contrast and reading-order findings.
+- [x] Playwright: fully rated drafts at close minus 1 ms and exactly close remain OPEN and cannot finalize; blocked activation creates neither version nor event. At close plus 1 ms unresolved processing PENDING / LEDGER_PENDING or PROCESSED / RATING_PENDING still prevents approval. Recheck eligibility when invoked.
+- [x] Playwright: after close and reconciliation, explicit owner approval creates exactly one version and one linked pending invoice.finalized event. Rapid double activation and repeats preserve identities and amounts; event existence does not show delivery success.
+- [x] Playwright: independently assert frozen source INR 3.13 / exact 3.130 and total INR 28.13 / exact 28.130 for 1,250; 1,500 yields INR 3.75 / 3.750 and INR 28.75 / 28.750. Two-decimal currency display must not truncate three-decimal persisted-form or outbound payload evidence. Freeze the source, price, line and amount references together.
+- [x] Playwright: identical event retries after close and after finalization, and revisiting earlier chapters, cannot change accepted/rated counts, quantities, source contributions, version or outbound event. Pending processing/rating is never relabeled UNRATED / NO_APPLICABLE_PRICE.
+- [x] Playwright: a narrowly scoped test-only recoverable finalization failure leaves no partial version/event and retains valid draft evidence with usable recovery. Reset cancellation retains the final result; confirmation clears version/event, restores baseline and clock, and affects no other tab.
+- [x] Playwright: complete approval and result inspection by keyboard, including any confirmation dialogue and focus restoration; announce finalized outcome without implying payment or tax invoice. Verify 360px, 768px, 1440px and reduced motion; record manual focus, contrast and reading-order findings.
 
 ## Shared acceptance boundary and constraints
 
@@ -33,3 +33,5 @@ Keep backend integration, database/schema changes, real webhook delivery, produc
 ## Comments
 
 - 2026-10-04: User approved this slice and dependency order for publication. Processing/rating terminology and exact-versus-display money representations follow the clarified specification. Publication of this ticket does not authorize implementation in the current session.
+
+- 2026-10-04, implementation: Verified ticket 06 / PR #113 merged and a clean working tree; created `codex/showcase-07-finalization` from updated main `b21815c`. Ticket 07 browser acceptance passes in Chromium/WebKit: full isolated suite 136 passed / 26 normal-only skips; full normal suite 114 passed / 48 isolated-only skips. Firefox fails before page creation (“Could not find profile folder”), including a direct temporary-path retry; its smoke checks remain unverified. See [browser evidence and accessibility findings](../../../showcase/review/finalization/README.md). Manual screen-reader/native zoom/physical touch, human usability and full accessibility assessment remain pending. Standards review: zero actionable findings. Spec review identified a missing event creation time; added immutable createdAt evidence and an independent literal/preservation check. Re-review confirms zero remaining findings. Draft PR [#114](https://github.com/jatin-awankar/UsageFlow/pull/114) is open; human review pending. Implementation commit `c0b6a16`. No delivery implementation, backend/gate changes or deployment.

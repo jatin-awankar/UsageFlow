@@ -6,7 +6,12 @@ import {
   useEffect,
   useRef,
 } from "react";
-import { createInitializer, createRatingAction } from "./initialization";
+import {
+  createInitializer,
+  createRatingAction,
+  createFinalizationAction,
+} from "./initialization";
+import { monthlyDraft } from "./monthly";
 import { freshRun, reduceRun, type Run, type Action } from "./run";
 const Session = createContext<{
   run: Run;
@@ -18,7 +23,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const ratingAction = useRef<ReturnType<typeof createRatingAction> | null>(
     null,
   );
+  const finalizationAction = useRef<ReturnType<
+    typeof createFinalizationAction
+  > | null>(null);
   function dispatch(action: Action) {
+    if (
+      action.type === "finalize" &&
+      !run.finalization &&
+      monthlyDraft(run).state === "READY_FOR_REVIEW"
+    ) {
+      finalizationAction.current ??= createFinalizationAction();
+      send({ ...action, failBeforeEvent: !finalizationAction.current() });
+      return;
+    }
     if (action.type === "rate" && run.event && !run.rating) {
       ratingAction.current ??= createRatingAction();
       if (!ratingAction.current()) {

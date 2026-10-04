@@ -1,6 +1,6 @@
 # Annotated Ledger — public entry
 
-Tickets [02 — Entry](../.scratch/public-showcase/issues/02-entry.md), [04 — Acceptance](../.scratch/public-showcase/issues/04-acceptance.md), [05 — Pricing](../.scratch/public-showcase/issues/05-pricing.md), and [06 — Monthly review](../.scratch/public-showcase/issues/06-monthly-review.md). A separate Next/React static export with Landing (`/`) and Demo (`/demo/`). The production application and original throwaway prototype are unchanged.
+Tickets [02 — Entry](../.scratch/public-showcase/issues/02-entry.md), [04 — Acceptance](../.scratch/public-showcase/issues/04-acceptance.md), [05 — Pricing](../.scratch/public-showcase/issues/05-pricing.md), [06 — Monthly review](../.scratch/public-showcase/issues/06-monthly-review.md), and [07 — Finalization](../.scratch/public-showcase/issues/07-finalization.md). A separate Next/React static export with Landing (`/`) and Demo (`/demo/`). The production application and original throwaway prototype are unchanged.
 
 ## Install, build, inspect
 
@@ -43,7 +43,7 @@ Acceptance freezes one visitor event and its source evidence. Initially processi
 
 Explicit simulated processing/rating adds PROCESSED / RATED evidence, using occurrence-time PriceVersion selection and the existing pure `lib/money-contract.ts` BigInt contract. The margin inspector separates exact multiplication, half-up currency rounding and three-place persisted-form evidence. This representation is in memory, not a database write. Contributions are summed as exact integers without another rounding pass. A processed event with no rating shows RATING_PENDING and no amount. Retrying preserves both accepted and rated evidence; reset clears rating too.
 
-The evidence page remains unavailable pending ticket 03. Monthly review now shows the September BillingRecord draft, inspectable sources, accepted/rated counts and quantities, exact line/record totals and reconciliation. The public clock transition explicitly moves from the prepared September instant to October 4 at 00:00:00.001 UTC. At or before the inclusive close the draft stays OPEN; after it, resolved and reconciled evidence is READY_FOR_REVIEW, otherwise BLOCKED. Readiness does not approve the record. Finalization and delivery remain disabled for later tickets. No deployment, backend migration, or gate changes are part of this package.
+The evidence page remains unavailable pending ticket 03. Monthly review now shows the September BillingRecord draft, inspectable sources, accepted/rated counts and quantities, exact line/record totals and reconciliation. The public clock transition explicitly moves from the prepared September instant to October 4 at 00:00:00.001 UTC. At or before the inclusive close the draft stays OPEN; after it, resolved and reconciled evidence is READY_FOR_REVIEW, otherwise BLOCKED. Readiness does not approve the record. Explicit simulated owner confirmation now freezes one version and creates one linked pending invoice.finalized event in the same local transition. Source, price, line and exact amount evidence stays immutable across retries and navigation. Delivery remains disabled for ticket 08. No deployment, backend migration, or gate changes are part of this package.
 
 ## Prototype assessment and design
 
@@ -61,3 +61,5 @@ See [ticket 05 pricing review](review/pricing/README.md) for browser evidence, f
 
 
 See [ticket 06 monthly review](review/monthly/README.md) for browser evidence and accessibility limitations. Isolated initial fixtures use `test-monthly=rounding`, `month-boundaries`, `close-before`, `close-exact`, `close-after`, `pending`, `processed`, or `inconsistent`. They are unavailable in normal exports, along with arbitrary clock controls. Run `SHOWCASE_TEST_BUILD=1 npm run build` then `SHOWCASE_TEST_BUILD=1 npm test -- monthly.spec.ts --project=chromium --project=webkit`, and restore the normal build afterward.
+
+See [ticket 07 finalization evidence](review/finalization/README.md) for acceptance results, browser captures and accessibility limitations. The isolated initial `test-finalization=fail-once` configuration fails once after preparing the candidate version and before creating its event; neither is published to the run. Reapproval succeeds without losing draft evidence. The configuration is unavailable in normal builds. Reset clears the frozen version and event as well as usage, rating and clock.

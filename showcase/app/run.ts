@@ -1,3 +1,4 @@
+import { freezeFinalization, type Finalization } from "./finalization";
 import { afterClose, monthlyDraft } from "./monthly";
 import { baselineEvents, type BaselineSource } from "./demo/baseline";
 import {
@@ -31,6 +32,8 @@ export type Run = {
   processed: boolean;
   rating: Rating | null;
   ratingError: string;
+  finalization: Finalization | null;
+  finalizationError: string;
   prices: readonly PriceVersion[];
   baseline: readonly BaselineSource[];
   error: string;
@@ -48,6 +51,8 @@ export function freshRun(): Run {
     processed: false,
     rating: null,
     ratingError: "",
+    finalization: null,
+    finalizationError: "",
     prices: [septemberPrice],
     baseline: baselineEvents,
     error: "",
@@ -65,6 +70,7 @@ export type Action =
   | { type: "rate" }
   | { type: "advance-time" }
   | { type: "rating-action-failed" }
+  | { type: "finalize"; failBeforeEvent?: boolean }
   | { type: "reset" };
 const ratingActionError =
   "The local rating action could not finish. Prior evidence is unchanged. Try again or reset the demo.";
@@ -79,6 +85,7 @@ export function reduceRun(run: Run, action: Action): Run {
       "retry",
       "rate",
       "advance-time",
+      "finalize",
       "rating-action-failed",
     ].includes(action.type)
   )
@@ -91,7 +98,9 @@ export function reduceRun(run: Run, action: Action): Run {
     case "recover":
       return { ...freshRun(), attempt: run.attempt + 1 };
     case "quantity":
-      return run.event ? run : { ...run, quantity: action.value, error: "" };
+      return run.event || run.finalization
+        ? run
+        : { ...run, quantity: action.value, error: "" };
     case "chapter":
       return { ...run, chapter: action.value };
     case "reset":
@@ -103,7 +112,7 @@ export function reduceRun(run: Run, action: Action): Run {
           "Demo reset. Two baseline events restored. Quantity is editable.",
       };
     case "accept": {
-      if (run.event) return run;
+      if (run.event || run.finalization) return run;
       const quantity = Number(run.quantity);
       if (!validDemoQuantity(run.quantity)) {
         return {
@@ -132,7 +141,7 @@ export function reduceRun(run: Run, action: Action): Run {
     case "rating-action-failed":
       return { ...run, ratingError: ratingActionError };
     case "rate": {
-      if (!run.event || run.rating) return run;
+      if (!run.event || run.rating || run.finalization) return run;
       try {
         const rating = rateEvent(run.event, run.prices);
         return {
@@ -153,6 +162,31 @@ export function reduceRun(run: Run, action: Action): Run {
         ...advanced,
         announcement: `Scenario time advanced from ${run.clock} to ${afterClose}. Draft ${monthlyDraft(advanced).state}. Time advancement does not approve or resolve usage.`,
       };
+    }
+    case "finalize": {
+      if (run.finalization) return run;
+      if (monthlyDraft(run).state !== "READY_FOR_REVIEW")
+        return {
+          ...run,
+          announcement:
+            "Finalization blocked. Review the close and unresolved evidence; no version or event was created.",
+        };
+      try {
+        const finalization = freezeFinalization(run, action.failBeforeEvent);
+        return {
+          ...run,
+          finalization,
+          finalizationError: "",
+          announcement:
+            "Simulated owner approval complete. BillingRecord version 1 finalized; one pending invoice.finalized event created. No delivery attempt, payment or tax invoice.",
+        };
+      } catch {
+        return {
+          ...run,
+          finalizationError:
+            "Local finalization could not finish. No version or event was created. Draft evidence is unchanged. Try finalization again or reset the demo.",
+        };
+      }
     }
     case "retry":
       return run.event

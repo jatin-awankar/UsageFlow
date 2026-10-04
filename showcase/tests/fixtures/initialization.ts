@@ -122,3 +122,16 @@ function monthlyFixture(name: string): Run | undefined {
         : rated.rating,
   };
 }
+
+export function createFinalizationAction(): () => boolean {
+  let fail =
+    new URLSearchParams(window.location.search).get("test-finalization") ===
+    "fail-once";
+  return () => {
+    if (fail) {
+      fail = false;
+      return false;
+    }
+    return true;
+  };
+}

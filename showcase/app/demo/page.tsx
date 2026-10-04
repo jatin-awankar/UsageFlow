@@ -4,6 +4,7 @@ import { Dialog } from "radix-ui";
 import { ArrowRight, RotateCcw, LockKeyhole, Calculator } from "lucide-react";
 import { useSession } from "../session";
 import { validDemoQuantity } from "../run";
+import { FinalizeApproval, FinalizedEvidence } from "./finalization";
 import { PricingEvidence } from "./pricing-evidence";
 import { AcceptedEvidence } from "./accepted-evidence";
 import {
@@ -39,7 +40,7 @@ const chapters = [
       "A monthly BillingRecord sums individually rounded contributions for one Customer. It is a comparison calculation.",
     action: "Finalize monthly record",
     reason:
-      "Not available yet. Requires reconciled usage, time strictly after the inclusive close, and explicit owner approval. No finalized version exists.",
+      "Requires reconciled usage, time strictly after the inclusive close, and explicit simulated owner approval.",
   },
   {
     name: "Webhook delivery",
@@ -139,10 +140,11 @@ export default function Demo() {
             >
               <Dialog.Title>Reset this demonstration?</Dialog.Title>
               <Dialog.Description>
-                This clears your accepted event, rating evidence and retry
-                history, restores quantity 1,250, the initial scenario clock and
-                the first chapter. The two synthetic baseline events stay
-                unchanged. No real data is affected.
+                This clears your accepted event, rating evidence, frozen
+                version, pending event and retry history, restores quantity
+                1,250, the initial scenario clock and the first chapter. The two
+                synthetic baseline events stay unchanged. No real data is
+                affected.
               </Dialog.Description>
               <div className="flex flex-wrap gap-3 mt-6">
                 <Dialog.Close asChild>
@@ -198,7 +200,9 @@ export default function Demo() {
                       ? "Rated evidence"
                       : "Inspect & simulate"
                     : index === 2
-                      ? "Review the draft"
+                      ? run.finalization
+                        ? "Version 1 finalized"
+                        : "Review the draft"
                       : "Not yet available"}
               </small>
             </span>
@@ -225,8 +229,12 @@ export default function Demo() {
                         : "Awaiting processing"
                       : "Accept usage first"
                   : chapter === 2
-                    ? monthlyDraft(run).state
-                    : "Not yet created"}
+                    ? run.finalization
+                      ? "Finalized version 1"
+                      : monthlyDraft(run).state
+                    : run.finalization
+                      ? "Pending event"
+                      : "Not yet created"}
             </span>
           </div>
           <h2 id="chapter-title" ref={heading} tabIndex={-1}>
@@ -243,7 +251,7 @@ export default function Demo() {
                     ref={quantityInput}
                     inputMode="numeric"
                     value={quantity}
-                    readOnly={Boolean(event)}
+                    readOnly={Boolean(event || run.finalization)}
                     onChange={(event) =>
                       dispatch({ type: "quantity", value: event.target.value })
                     }
@@ -305,40 +313,62 @@ export default function Demo() {
             </>
           ) : chapter === 2 ? (
             <>
-              <MonthlyEvidence run={run} />
-              <MonthlyTime run={run} dispatch={dispatch} />
+              {run.finalization ? (
+                <FinalizedEvidence result={run.finalization} />
+              ) : (
+                <>
+                  <MonthlyEvidence run={run} />
+                  <MonthlyTime run={run} dispatch={dispatch} />
+                </>
+              )}
             </>
+          ) : run.finalization ? (
+            <FinalizedEvidence result={run.finalization} />
           ) : null}
           {chapter === 0 && event && <AcceptedEvidence run={run} />}
-          <div className="unavailable">
-            {chapter === 1 ? (
-              <Calculator size={19} aria-hidden="true" />
-            ) : (
-              <LockKeyhole size={19} aria-hidden="true" />
-            )}
-            <p id="prerequisite">
-              {chapter === 1 && run.rating
-                ? "Already rated. Identical retries retain this event and its contribution."
-                : current.reason}
-            </p>
-          </div>
-          <button
-            className="primary mt-5 mr-3"
-            disabled={
-              chapter === 0 ? Boolean(event) : chapter === 1 ? !event : true
-            }
-            aria-disabled={
-              chapter === 1 && Boolean(run.rating) ? true : undefined
-            }
-            onClick={() => {
-              dispatch({ type: chapter === 1 ? "rate" : "accept" });
-              if (chapter === 0 && !validDemoQuantity(quantity))
-                quantityInput.current?.focus();
-            }}
-            aria-describedby="prerequisite"
-          >
-            {current.action} <ArrowRight size={17} aria-hidden="true" />
-          </button>
+          {chapter !== 2 && (
+            <div className="unavailable">
+              {chapter === 1 ? (
+                <Calculator size={19} aria-hidden="true" />
+              ) : (
+                <LockKeyhole size={19} aria-hidden="true" />
+              )}
+              <p id="prerequisite">
+                {chapter === 1 && run.rating
+                  ? "Already rated. Identical retries retain this event and its contribution."
+                  : chapter === 0 && run.finalization
+                    ? "The month is frozen. Reset the demo to prepare another usage event."
+                    : chapter === 3 && run.finalization
+                      ? "Delivery is not available yet. A pending event exists; no delivery attempt has occurred."
+                      : current.reason}
+              </p>
+            </div>
+          )}
+          {chapter === 2 ? (
+            <FinalizeApproval />
+          ) : (
+            <button
+              className="primary mt-5 mr-3"
+              disabled={
+                chapter === 0
+                  ? Boolean(event || run.finalization)
+                  : chapter === 1
+                    ? !event
+                    : true
+              }
+              aria-disabled={
+                chapter === 1 && Boolean(run.rating) ? true : undefined
+              }
+              onClick={() => {
+                dispatch({ type: chapter === 1 ? "rate" : "accept" });
+                if (chapter === 0 && !validDemoQuantity(quantity))
+                  quantityInput.current?.focus();
+              }}
+              aria-describedby="prerequisite"
+            >
+              {current.action} <ArrowRight size={17} aria-hidden="true" />
+            </button>
+          )}
           {chapter <= 1 && event && (
             <button
               className="secondary mt-5"
