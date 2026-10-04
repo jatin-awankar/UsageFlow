@@ -115,7 +115,8 @@ test("domain, simulation and dated readiness boundaries have traceable destinati
     page.getByRole("link", { name: "Inspect the implementation", exact: true }),
   ).toHaveAttribute("href", "https://github.com/jatin-awankar/UsageFlow");
   await page.getByRole("button", { name: "Discuss a pilot", exact: true }).click();
-  await expect(page.getByRole("link", { name: "Open email app", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
+  await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText("jatinawankar02@gmail.com");
+  await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 2 })).toHaveText([
     "Who owns the usage?",

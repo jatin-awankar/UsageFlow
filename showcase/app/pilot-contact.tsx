@@ -26,8 +26,7 @@ export function PilotContact({ destination }: { destination: string }) {
         <section id={id} aria-label="Pilot contact details">
           <p>Email <strong style={{ overflowWrap: "anywhere", userSelect: "text" }}>{email}</strong> to discuss a pilot.</p>
           <button className="secondary" onClick={copyEmail}>Copy email address</button>
-          <a className="secondary" href={destination}>Open email app</a>
-          <p className="small">If your browser cannot open an email app, copy the address into your preferred email service. No message is sent automatically.</p>
+          <p className="small">Copy the address into your preferred email service. No message is sent automatically.</p>
           <p role="status" aria-live="polite">{message}</p>
         </section>
       )}

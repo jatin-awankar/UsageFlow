@@ -218,12 +218,10 @@ for (const width of [360, 768, 1440])
     const contact = page.getByRole("button", { name: "Discuss a pilot", exact: true });
     await expect(contact).toBeFocused();
     await contact.press("Enter");
-    await expect(page.getByRole("link", { name: "Open email app", exact: true })).toHaveAttribute(
-      "href",
-      process.env.SHOWCASE_TEST_BUILD === "1"
-        ? "mailto:pilot@example.invalid"
-        : "mailto:jatinawankar02@gmail.com",
+    await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText(
+      process.env.SHOWCASE_TEST_BUILD === "1" ? "pilot@example.invalid" : "jatinawankar02@gmail.com",
     );
+    await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
     await contact.press("Enter");
     await page.keyboard.press(tab);
     await expect(
@@ -309,7 +307,7 @@ test("pilot contact stays in the demo and provides a copyable address", async ({
   await expect(page).toHaveURL(before);
   expect(context.pages()).toHaveLength(1);
   await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText("jatinawankar02@gmail.com");
-  await expect(page.getByRole("link", { name: "Open email app", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
+  await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
   const copied: string[] = [];
   await page.exposeFunction("captureCopiedEmail", (value: string) => copied.push(value));
   await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (value: string) => {
