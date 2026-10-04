@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PilotContact } from "../pilot-contact";
 import { pilotContact } from "../contact";
 
 // Pin claims to reviewed, merged evidence rather than a moving branch.
@@ -231,7 +232,7 @@ export default function Evidence() {
               Contact jatinawankar02@gmail.com for an exploratory discussion.
               Publication remains blocked: zero-cost static hosting is not confirmed.
             </p>
-            <a className="primary" href={pilotContact}>Discuss a pilot</a>
+            <PilotContact destination={pilotContact} />
             <a
               className="secondary"
               href="https://github.com/jatin-awankar/UsageFlow"

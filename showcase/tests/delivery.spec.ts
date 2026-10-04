@@ -215,14 +215,14 @@ for (const width of [360, 768, 1440])
     await expect(completion).toContainText(
       "Pilot discussions are exploratory. Onboarding is subject to readiness review.",
     );
-    const contact = page.getByRole("link", { name: "Discuss a pilot" });
+    const contact = page.getByRole("button", { name: "Discuss a pilot", exact: true });
     await expect(contact).toBeFocused();
-    await expect(contact).toHaveAttribute(
-      "href",
-      process.env.SHOWCASE_TEST_BUILD === "1"
-        ? "mailto:pilot@example.invalid"
-        : "mailto:jatinawankar02@gmail.com",
+    await contact.press("Enter");
+    await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText(
+      process.env.SHOWCASE_TEST_BUILD === "1" ? "pilot@example.invalid" : "jatinawankar02@gmail.com",
     );
+    await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
+    await contact.press("Enter");
     await page.keyboard.press(tab);
     await expect(
       page.getByRole("link", {
@@ -296,3 +296,27 @@ for (const width of [360, 768, 1440])
     ).toBeVisible();
     await other.close();
   });
+
+
+test("pilot contact stays in the demo and provides a copyable address", async ({ page, context }) => {
+  await page.goto("/demo/");
+  await finalize(page);
+  await page.getByRole("button", { name: "Simulate delivery", exact: true }).click();
+  const before = page.url();
+  await page.getByRole("button", { name: "Discuss a pilot", exact: true }).click();
+  await expect(page).toHaveURL(before);
+  expect(context.pages()).toHaveLength(1);
+  await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText("jatinawankar02@gmail.com");
+  await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
+  const copied: string[] = [];
+  await page.exposeFunction("captureCopiedEmail", (value: string) => copied.push(value));
+  await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (value: string) => {
+    await Reflect.get(window, "captureCopiedEmail")(value);
+  } } }));
+  await page.getByRole("button", { name: "Copy email address" }).click();
+  await expect(page.getByText("Email address copied.", { exact: true })).toBeVisible();
+  expect(copied).toEqual(["jatinawankar02@gmail.com"]);
+  await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => { throw new Error("denied"); } } }));
+  await page.getByRole("button", { name: "Copy email address" }).click();
+  await expect(page.getByText("Select and copy the email address above.", { exact: true })).toBeVisible();
+});
