@@ -720,3 +720,18 @@ details .facts {
     scroll-behavior: auto !important;
   }
 }
+.accepted-evidence {
+  border-top: 2px solid var(--ink);
+  margin-top: 28px;
+  padding-top: 18px;
+}
+.accepted-evidence h3 {
+  font-weight: 600;
+}
+input[readonly] {
+  background: var(--soft);
+}
+#quantity-error {
+  color: var(--accent);
+  margin-top: 12px;
+}

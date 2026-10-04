@@ -1,15 +1,37 @@
 "use client";
-import { createContext, useContext, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useRef,
+} from "react";
+import { createInitializer } from "./initialization";
+import { freshRun, reduceRun, type Run, type Action } from "./run";
 const Session = createContext<{
-  quantity: string;
-  setQuantity: (value: string) => void;
+  run: Run;
+  dispatch: React.Dispatch<Action>;
 } | null>(null);
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [quantity, setQuantity] = useState("1250");
+  const [run, dispatch] = useReducer(reduceRun, undefined, freshRun);
+  const initialize = useRef<ReturnType<typeof createInitializer> | null>(null);
+  useEffect(() => {
+    let active = true;
+    initialize.current ??= createInitializer();
+    initialize.current(run.attempt).then(
+      () => {
+        if (active) dispatch({ type: "initialized" });
+      },
+      () => {
+        if (active) dispatch({ type: "initialization-failed" });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [run.attempt]);
   return (
-    <Session.Provider value={{ quantity, setQuantity }}>
-      {children}
-    </Session.Provider>
+    <Session.Provider value={{ run, dispatch }}>{children}</Session.Provider>
   );
 }
 export function useSession() {

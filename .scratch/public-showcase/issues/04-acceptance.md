@@ -1,6 +1,6 @@
 # 04: Accept usage, retry safely, and restart
 
-Status: ready-for-agent
+Status: resolved
 
 Parent: [Approved three-page showcase specification](../spec.md).
 
@@ -10,13 +10,13 @@ Parent: [Approved three-page showcase specification](../spec.md).
 
 ## Acceptance checks
 
-- [ ] Playwright: accept 1 and 10,000 as demo-range endpoints; reject empty, zero, negative, fractional, nonnumeric, and out-of-range values with associated accessible feedback and no event. Label 1–10,000 as the demo range, not an ingestion API constraint; preserve the separate documented ingestion/rating-limit discrepancy.
-- [ ] Playwright: accept the prepared event and inspect ID, Customer, metric, quantity, occurrence and receipt times. Assert processing PENDING / reconciliation LEDGER_PENDING, rating awaiting processing, no monetary contribution, and no UNRATED / NO_APPLICABLE_PRICE label. Accepted billable fields become immutable.
-- [ ] Playwright: rapid double acceptance and repeated identical retries return the original identity/evidence and create only one visitor event; baseline source quantities remain unchanged and retries do not add usage. Reset is the only way to edit an accepted quantity.
-- [ ] Playwright: preserve accepted evidence/retries through available in-app page/chapter/detail navigation and Back/Forward; reload restores the initial quantity, clock and two baseline events. Two browser contexts and two tabs in one context share no mutable state, including after reset.
-- [ ] Playwright: reset cancellation preserves every field; confirmation clears visitor event/retry history and restores baseline, quantity, chapter, clock and useful focus. Dialog supports keyboard containment, Escape and focus restoration.
-- [ ] Playwright: test-only delayed initialization/recoverable failure exposes truthful loading, error and retry/reset states without partial acceptance. All fixture/fault controls are absent from normal builds; tests act and assert through rendered UI.
-- [ ] Playwright: complete editing, validation, acceptance, retry and reset by keyboard, with outcome announcements and visible focus. Verify 360px, 768px, 1440px and reduced motion; record manual accessibility findings.
+- [x] Playwright: accept 1 and 10,000 as demo-range endpoints; reject empty, zero, negative, fractional, nonnumeric, and out-of-range values with associated accessible feedback and no event. Label 1–10,000 as the demo range, not an ingestion API constraint; preserve the separate documented ingestion/rating-limit discrepancy.
+- [x] Playwright: accept the prepared event and inspect ID, Customer, metric, quantity, occurrence and receipt times. Assert processing PENDING / reconciliation LEDGER_PENDING, rating awaiting processing, no monetary contribution, and no UNRATED / NO_APPLICABLE_PRICE label. Accepted billable fields become immutable.
+- [x] Playwright: rapid double acceptance and repeated identical retries return the original identity/evidence and create only one visitor event; baseline source quantities remain unchanged and retries do not add usage. Reset is the only way to edit an accepted quantity.
+- [x] Playwright: preserve accepted evidence/retries through available in-app page/chapter/detail navigation and Back/Forward; reload restores the initial quantity, clock and two baseline events. Two browser contexts and two tabs in one context share no mutable state, including after reset.
+- [x] Playwright: reset cancellation preserves every field; confirmation clears visitor event/retry history and restores baseline, quantity, chapter, clock and useful focus. Dialog supports keyboard containment, Escape and focus restoration.
+- [x] Playwright: test-only delayed initialization/recoverable failure exposes truthful loading, error and retry/reset states without partial acceptance. All fixture/fault controls are absent from normal builds; tests act and assert through rendered UI.
+- [x] Playwright: complete editing, validation, acceptance, retry and reset by keyboard, with outcome announcements and visible focus. Verify 360px, 768px, 1440px and reduced motion; record manual accessibility findings.
 
 ## Shared acceptance boundary and constraints
 
@@ -34,3 +34,9 @@ Keep backend integration, database/schema changes, real webhook delivery, produc
 ## Comments
 
 - 2026-10-04: User approved this slice and dependency order for publication. Processing/rating terminology and exact-versus-display money representations follow the clarified specification. Publication of this ticket does not authorize implementation in the current session.
+
+- 2026-10-04, implementation: Completed ticket 04 only on `codex/showcase-04-acceptance`, created from updated clean main `02f139a` after verifying the ticket 02 merge (#110). Quantity validation, immutable accepted evidence, stable identical retries, per-tab run state, accessible confirmed reset and isolated initialization recovery are implemented. Pricing and all later lifecycle actions remain unavailable; no deployment or backend/gate changes.
+- Acceptance: 42 normal static-build Playwright checks pass across Chromium 153 / WebKit 26.6 (21 each), plus 6 isolated initialization checks. Normal export rebuilt afterward; bundle inspection excludes fixture/fault controls and normal-build UI checks ignore injected parameters. Keyboard, focus restoration/containment, history, independent contexts/tabs, reload, reduced motion, 320px reflow and 360/768/1440px layouts verified. The acceptance boxes refer to those verified engines; Firefox 155 cannot launch (“Could not find profile folder”) and is not claimed as passed.
+- Validation: static build, showcase/repository typechecks, focused lint and whitespace checks pass. All 15 registered root test scripts attempted: inventory and current-restore reconciliation pass; 12 Docker-backed scripts are blocked by socket permissions; pilot-evidence is blocked by sandbox `ps` EPERM. No backend behavior changed.
+- Review: independent Standards and Spec reviews against `02f139a` found 0 actionable findings on either axis. [Browser captures, manual visual findings, validation and limitations](../../../showcase/review/acceptance/README.md). Human PR review, screen-reader/native-zoom/physical-touch assessment, full accessibility and participant usability remain pending. Verified contact and zero-cost hosting remain publication blockers.
+- Draft PR: [#111 — feat(showcase): accept usage, retry safely, and restart](https://github.com/jatin-awankar/UsageFlow/pull/111), open as draft. Agent Standards/Spec review complete with no actionable findings; human review pending. No merge or deployment authorized or performed.
