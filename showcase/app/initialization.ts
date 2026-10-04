@@ -9,3 +9,7 @@ export function createInitializer(): (
 export function createRatingAction(): () => boolean {
   return () => true;
 }
+
+export function createFinalizationAction(): () => boolean {
+  return () => true;
+}

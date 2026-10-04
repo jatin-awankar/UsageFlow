@@ -780,6 +780,26 @@ button[aria-disabled="true"] {
   text-align: left;
   margin-top: 6px;
 }
-.monthly-draft, .monthly-time, .baseline-event {
+.monthly-draft,
+.monthly-time,
+.baseline-event {
   overflow-wrap: anywhere;
+}
+.frozen-evidence {
+  overflow-wrap: anywhere;
+}
+.frozen-evidence .facts > div {
+  display: block;
+}
+.frozen-evidence .facts dd {
+  text-align: left;
+  margin-top: 6px;
+}
+.frozen-evidence pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.7;
+  background: var(--soft);
+  padding: 16px;
 }

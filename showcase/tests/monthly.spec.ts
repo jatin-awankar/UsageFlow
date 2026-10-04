@@ -118,7 +118,7 @@ test("explicit time jump preserves evidence, announces readiness and creates no 
   );
   await expect(
     page.getByRole("button", { name: "Finalize monthly record" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await expect(draft).toContainText(
     "No finalized version or outbound event exists",
   );
@@ -258,9 +258,11 @@ for (const timezoneId of ["UTC", "Asia/Kolkata"])
       await expect(
         page.getByRole("region", { name: "Scenario time transition" }),
       ).toContainText(`Current scenario time${instant}`);
-      await expect(
-        page.getByRole("button", { name: "Finalize monthly record" }),
-      ).toBeDisabled();
+      const approval = page.getByRole("button", {
+        name: "Finalize monthly record",
+      });
+      if (fixture === "close-after") await expect(approval).toBeEnabled();
+      else await expect(approval).toBeDisabled();
       await expect(
         page.getByText(/No finalized version or outbound event exists/),
       ).toBeVisible();
@@ -381,6 +383,7 @@ for (const width of [360, 768, 1440])
     await expect(page.getByRole("status")).toContainText(
       "Draft READY_FOR_REVIEW",
     );
+    await page.keyboard.press(tab); // Owner approval
     await page.keyboard.press(tab); // Previous
     await page.keyboard.press(tab); // Next
     for (const id of [

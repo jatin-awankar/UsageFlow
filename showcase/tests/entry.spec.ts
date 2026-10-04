@@ -62,7 +62,7 @@ test("direct demo exposes baseline sources and guards every future action", asyn
     [
       "03 Monthly record",
       "Finalize monthly record",
-      "No finalized version exists.",
+      "No finalized version or outbound event exists.",
     ],
     [
       "04 Webhook delivery",
