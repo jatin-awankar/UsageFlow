@@ -757,3 +757,29 @@ input[readonly] {
 button[aria-disabled="true"] {
   color: var(--ink);
 }
+.monthly-draft {
+  border-top: 2px solid var(--ink);
+  margin-top: 26px;
+}
+.reconciliation {
+  border-block: 1px solid var(--line);
+  padding-block: 16px;
+  margin-block: 18px;
+  font-size: 14px;
+}
+.monthly-time {
+  margin-block: 28px;
+}
+.monthly-time h3 {
+  font-weight: 600;
+}
+.monthly-time .facts > div {
+  display: block;
+}
+.monthly-time .facts dd {
+  text-align: left;
+  margin-top: 6px;
+}
+.monthly-draft, .monthly-time, .baseline-event {
+  overflow-wrap: anywhere;
+}

@@ -1,5 +1,14 @@
 // Fixed, synthetic source evidence. These are existing fixtures, never visitor results.
-export const baselineEvents = [
+export type BaselineSource = Readonly<{
+  id: string;
+  quantity: number;
+  occurred: string;
+  exactTime: string;
+  receivedAt?: string;
+  display: string;
+  exact: string;
+}>;
+export const baselineEvents: readonly BaselineSource[] = [
   {
     id: "evt_demo_prior_01",
     quantity: 6000,
@@ -16,4 +25,4 @@ export const baselineEvents = [
     display: "10.00",
     exact: "10.000",
   },
-] as const;
+];

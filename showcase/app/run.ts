@@ -1,3 +1,5 @@
+import { afterClose, monthlyDraft } from "./monthly";
+import { baselineEvents, type BaselineSource } from "./demo/baseline";
 import {
   rateEvent,
   septemberPrice,
@@ -30,6 +32,7 @@ export type Run = {
   rating: Rating | null;
   ratingError: string;
   prices: readonly PriceVersion[];
+  baseline: readonly BaselineSource[];
   error: string;
   announcement: string;
 };
@@ -46,6 +49,7 @@ export function freshRun(): Run {
     rating: null,
     ratingError: "",
     prices: [septemberPrice],
+    baseline: baselineEvents,
     error: "",
     announcement: "",
   };
@@ -59,6 +63,7 @@ export type Action =
   | { type: "accept" }
   | { type: "retry" }
   | { type: "rate" }
+  | { type: "advance-time" }
   | { type: "rating-action-failed" }
   | { type: "reset" };
 const ratingActionError =
@@ -73,6 +78,7 @@ export function reduceRun(run: Run, action: Action): Run {
       "accept",
       "retry",
       "rate",
+      "advance-time",
       "rating-action-failed",
     ].includes(action.type)
   )
@@ -139,6 +145,14 @@ export function reduceRun(run: Run, action: Action): Run {
       } catch {
         return { ...run, ratingError: ratingActionError };
       }
+    }
+    case "advance-time": {
+      if (run.clock >= afterClose) return run;
+      const advanced = { ...run, clock: afterClose };
+      return {
+        ...advanced,
+        announcement: `Scenario time advanced from ${run.clock} to ${afterClose}. Draft ${monthlyDraft(advanced).state}. Time advancement does not approve or resolve usage.`,
+      };
     }
     case "retry":
       return run.event
