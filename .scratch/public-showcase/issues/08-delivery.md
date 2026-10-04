@@ -1,6 +1,6 @@
 # 08: Follow delivery and reach the completion actions
 
-Status: ready-for-agent
+Status: resolved
 
 Parent: [Approved three-page showcase specification](../spec.md).
 
@@ -10,12 +10,12 @@ Parent: [Approved three-page showcase specification](../spec.md).
 
 ## Acceptance checks
 
-- [ ] Playwright: before finalization, delivery is unavailable with an explanatory not-yet-created state. A finalized pending event is not delivered until the visitor invokes the simulated attempt; then show the selected synthetic endpoint and successful attempt evidence. A test-only no-target fixture must not report delivery success.
-- [ ] Playwright: inspect payload event, BillingRecord, version and source references against the frozen record. Independent literal assertions preserve visitor contribution display INR 3.13 versus exact persisted-form evidence 3.130, and monthly display INR 28.13 versus payload amount 28.130. For 1,500, use INR 3.75 / 3.750 and INR 28.75 / 28.750. Do not substitute two-decimal display strings in exact payload fields or add uncontracted payload fields.
-- [ ] Playwright: repeated inspection, accepted-event retry and chapter navigation do not alter the frozen version/payload or duplicate contribution. Observe network requests and confirm no receiver POST, ingestion/finalization API request or paid dependency.
-- [ ] Playwright: completion presents exploratory pilot/readiness-review wording and the two actions in the approved priority. A test-only contact destination may validate link behavior; it cannot become the published destination. Verified real contact details remain a publication blocker, not a fabricated placeholder.
-- [ ] Playwright: completed journey reset cancellation preserves results; confirmation clears acceptance, retry, draft/frozen/event/delivery evidence and restores baseline and scenario clock. Other tabs remain independent. Available page navigation preserves progress; ticket 09 covers integration with ticket 03.
-- [ ] Playwright: use keyboard for endpoint/payload disclosures, delivery, reset and CTAs; verify outcome announcements, accessible labels, focus and dialog behavior. At 360px, 768px, 1440px, payload uses a labeled contained scroller if needed, with no page overflow or mobile inspector obstruction; reduced motion preserves all evidence. Record manual accessibility findings.
+- [x] Playwright: before finalization, delivery is unavailable with an explanatory not-yet-created state. A finalized pending event is not delivered until the visitor invokes the simulated attempt; then show the selected synthetic endpoint and successful attempt evidence. A test-only no-target fixture must not report delivery success.
+- [x] Playwright: inspect payload event, BillingRecord, version and source references against the frozen record. Independent literal assertions preserve visitor contribution display INR 3.13 versus exact persisted-form evidence 3.130, and monthly display INR 28.13 versus payload amount 28.130. For 1,500, use INR 3.75 / 3.750 and INR 28.75 / 28.750. Do not substitute two-decimal display strings in exact payload fields or add uncontracted payload fields.
+- [x] Playwright: repeated inspection, accepted-event retry and chapter navigation do not alter the frozen version/payload or duplicate contribution. Observe network requests and confirm no receiver POST, ingestion/finalization API request or paid dependency.
+- [x] Playwright: completion presents exploratory pilot/readiness-review wording and the two actions in the approved priority. A test-only contact destination may validate link behavior; it cannot become the published destination. Verified real contact details remain a publication blocker, not a fabricated placeholder.
+- [x] Playwright: completed journey reset cancellation preserves results; confirmation clears acceptance, retry, draft/frozen/event/delivery evidence and restores baseline and scenario clock. Other tabs remain independent. Available page navigation preserves progress; ticket 09 covers integration with ticket 03.
+- [x] Playwright: use keyboard for endpoint/payload disclosures, delivery, reset and CTAs; verify outcome announcements, accessible labels, focus and dialog behavior. At 360px, 768px, 1440px, payload uses a labeled contained scroller if needed, with no page overflow or mobile inspector obstruction; reduced motion preserves all evidence. Record manual accessibility findings.
 
 ## Shared acceptance boundary and constraints
 
@@ -33,3 +33,5 @@ Keep backend integration, database/schema changes, real webhook delivery, produc
 ## Comments
 
 - 2026-10-04: User approved this slice and dependency order for publication. Processing/rating terminology and exact-versus-display money representations follow the clarified specification. Publication of this ticket does not authorize implementation in the current session.
+
+- 2026-10-04, implementation: Verified ticket 07 / PR #114 merged at `f427b98` and a clean working tree; created `codex/showcase-08-delivery` from updated main. Chromium/WebKit full isolated suite: 150 passed / 26 normal-only skips; full normal suite: 128 passed / 48 isolated-only skips. Typecheck and both static builds pass. Firefox cannot launch (“Could not find profile folder”); its checks remain unverified. [Browser evidence and accessibility limitations](../../../showcase/review/delivery/README.md) records the captures, keyboard checks and manual visual findings. Standards review: zero findings. Spec review: zero material findings. Verified real contact and zero-cost hosting remain publication blockers; human usability and full accessibility assessment remain pending. Draft PR [#115](https://github.com/jatin-awankar/UsageFlow/pull/115) is open; human review pending. Implementation commit `167a647`. No backend changes, ticket 09 implementation, merge or deployment.

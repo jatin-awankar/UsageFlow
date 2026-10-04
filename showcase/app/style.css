@@ -803,3 +803,20 @@ button[aria-disabled="true"] {
   background: var(--soft);
   padding: 16px;
 }
+
+.delivery-evidence pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 16px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.completion-actions {
+  margin: 32px 0;
+  padding-block: 24px;
+  border-block: 1px solid var(--line);
+}
+.completion-actions .primary,
+.completion-actions .secondary {
+  margin: 16px 12px 0 0;
+}
