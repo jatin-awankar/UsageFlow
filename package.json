@@ -29,7 +29,11 @@
     "test:customer-month-draft": "bash scripts/test-customer-month-draft.sh",
     "test:legacy-exclusion-report": "bash scripts/test-legacy-exclusion-report.sh",
     "test:webhook-secret-rotation": "bash scripts/test-webhook-secret-rotation.sh",
-    "prototype:showcase": "next dev .scratch/public-showcase/prototype --hostname 127.0.0.1 --port 3210 --webpack"
+    "prototype:showcase": "next dev .scratch/public-showcase/prototype --hostname 127.0.0.1 --port 3210 --webpack",
+    "showcase:build": "npm --prefix showcase run build --",
+    "showcase:typecheck": "npm --prefix showcase run typecheck --",
+    "showcase:test": "npm --prefix showcase run test --",
+    "showcase:serve": "npm --prefix showcase run serve --"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
