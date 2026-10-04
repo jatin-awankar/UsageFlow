@@ -52,7 +52,7 @@ test("direct demo exposes baseline sources and guards every future action", asyn
   }
   await expect(
     page.getByRole("button", { name: "Accept event", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   for (const [chapter, action, evidence] of [
     [
       "02 Inspect pricing",
@@ -170,7 +170,7 @@ test("keyboard skip, navigation, quantity, chapters and reset have visible focus
   await expect(page.getByLabel("Quantity · API calls")).toHaveValue("1500");
   await page.keyboard.press("Enter");
   await page
-    .getByRole("button", { name: "Reset quantity", exact: true })
+    .getByRole("button", { name: "Start fresh", exact: true })
     .press("Enter");
   await expect(page.getByLabel("Quantity · API calls")).toHaveValue("1250");
 });

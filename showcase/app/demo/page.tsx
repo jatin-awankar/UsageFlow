@@ -1,8 +1,10 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useEffect } from "react";
 import { Dialog } from "radix-ui";
 import { ArrowRight, RotateCcw, LockKeyhole } from "lucide-react";
 import { useSession } from "../session";
+import { validDemoQuantity } from "../run";
+import { AcceptedEvidence } from "./accepted-evidence";
 import { baselineEvents } from "./baseline";
 const chapters = [
   {
@@ -12,7 +14,7 @@ const chapters = [
       "Orbit Studio made API calls. Prepare the quantity for an immutable usage record.",
     action: "Accept event",
     reason:
-      "Acceptance is not available in this entry release. No visitor event has been created.",
+      "Accepting preserves a usage fact. Processing and rating follow separately.",
   },
   {
     name: "Inspect pricing",
@@ -43,14 +45,51 @@ const chapters = [
   },
 ];
 export default function Demo() {
-  const { quantity, setQuantity } = useSession();
-  const [chapter, setChapter] = useState(0);
+  const { run, dispatch } = useSession();
+  const { quantity, chapter, error, event, retries, announcement } = run;
   const heading = useRef<HTMLHeadingElement>(null);
+  const quantityInput = useRef<HTMLInputElement>(null);
+  const cancelReset = useRef<HTMLButtonElement>(null);
+  const confirmedReset = useRef(false);
+  useEffect(() => {
+    if (run.phase === "ready" && run.attempt > 0)
+      quantityInput.current?.focus();
+  }, [run.phase, run.attempt]);
   const current = chapters[chapter];
   function selectChapter(index: number) {
-    setChapter(index);
+    dispatch({ type: "chapter", value: index });
     requestAnimationFrame(() => heading.current?.focus());
   }
+  if (run.phase !== "ready")
+    return (
+      <section className="workspace" aria-label="Demo initialization">
+        <h1>Preparing the annotated ledger.</h1>
+        {run.phase === "loading" ? (
+          <p role="status">Preparing your local demo…</p>
+        ) : (
+          <>
+            <p role="alert">
+              Your local demo could not be prepared. No event was accepted. Try
+              again or reset initialization.
+            </p>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <button
+                className="primary"
+                onClick={() => dispatch({ type: "recover" })}
+              >
+                Retry initialization
+              </button>
+              <button
+                className="secondary"
+                onClick={() => dispatch({ type: "recover" })}
+              >
+                Reset initialization
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    );
   return (
     <div className="workspace">
       <div className="workspace-title">
@@ -66,27 +105,43 @@ export default function Demo() {
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Overlay className="dialog-overlay" />
-            <Dialog.Content className="dialog-content">
+            <Dialog.Content
+              className="dialog-content"
+              onOpenAutoFocus={(event) => {
+                event.preventDefault();
+                cancelReset.current?.focus();
+              }}
+              onCloseAutoFocus={(event) => {
+                if (confirmedReset.current) {
+                  event.preventDefault();
+                  confirmedReset.current = false;
+                  quantityInput.current?.focus();
+                }
+              }}
+            >
               <Dialog.Title>Reset this demonstration?</Dialog.Title>
               <Dialog.Description>
-                Your edited quantity returns to 1,250 and the first chapter
-                opens. The two synthetic baseline events stay unchanged. No real
-                data is affected.
+                This clears your accepted event and retry history, restores
+                quantity 1,250, the initial scenario clock and the first
+                chapter. The two synthetic baseline events stay unchanged. No
+                real data is affected.
               </Dialog.Description>
               <div className="flex flex-wrap gap-3 mt-6">
                 <Dialog.Close asChild>
                   <button
                     className="primary"
                     onClick={() => {
-                      setQuantity("1250");
-                      setChapter(0);
+                      confirmedReset.current = true;
+                      dispatch({ type: "reset" });
                     }}
                   >
-                    Reset quantity
+                    Start fresh
                   </button>
                 </Dialog.Close>
                 <Dialog.Close asChild>
-                  <button className="secondary">Keep exploring</button>
+                  <button ref={cancelReset} className="secondary">
+                    Keep exploring
+                  </button>
                 </Dialog.Close>
               </div>
             </Dialog.Content>
@@ -116,7 +171,11 @@ export default function Demo() {
             <span>
               {item.name}
               <small>
-                {index === 0 ? "Prepare your event" : "Not yet available"}
+                {index === 0
+                  ? event
+                    ? "Event accepted"
+                    : "Prepare your event"
+                  : "Not yet available"}
               </small>
             </span>
           </button>
@@ -129,7 +188,11 @@ export default function Demo() {
               0{chapter + 1} / {current.name}
             </span>
             <span className="status">
-              {chapter === 0 ? "Prepared" : "Not yet created"}
+              {chapter === 0
+                ? event
+                  ? "Accepted"
+                  : "Prepared"
+                : "Not yet created"}
             </span>
           </div>
           <h2 id="chapter-title" ref={heading} tabIndex={-1}>
@@ -143,10 +206,17 @@ export default function Demo() {
                   <label htmlFor="quantity">Quantity · API calls</label>
                   <input
                     id="quantity"
+                    ref={quantityInput}
                     inputMode="numeric"
                     value={quantity}
-                    onChange={(event) => setQuantity(event.target.value)}
-                    aria-describedby="quantity-help"
+                    readOnly={Boolean(event)}
+                    onChange={(event) =>
+                      dispatch({ type: "quantity", value: event.target.value })
+                    }
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={
+                      error ? "quantity-help quantity-error" : "quantity-help"
+                    }
                   />
                 </div>
                 <p>
@@ -157,24 +227,31 @@ export default function Demo() {
                 Demo range: 1–10,000 whole calls. This is not an API limit.
                 Editing does not accept or rate an event.
               </p>
-              <dl className="facts">
-                <div>
-                  <dt>Customer reference</dt>
-                  <dd>orbit_studio</dd>
-                </div>
-                <div>
-                  <dt>Metric</dt>
-                  <dd>API_CALL</dd>
-                </div>
-                <div>
-                  <dt>Occurred at</dt>
-                  <dd>28 Sep 2026, 14:32:00 UTC</dd>
-                </div>
-                <div>
-                  <dt>Prepared receipt time</dt>
-                  <dd>28 Sep 2026, 14:32:02 UTC</dd>
-                </div>
-              </dl>
+              {error && (
+                <p id="quantity-error" role="alert">
+                  {error}
+                </p>
+              )}
+              {!event && (
+                <dl className="facts">
+                  <div>
+                    <dt>Customer reference</dt>
+                    <dd>orbit_studio</dd>
+                  </div>
+                  <div>
+                    <dt>Metric</dt>
+                    <dd>API_CALL</dd>
+                  </div>
+                  <div>
+                    <dt>Occurred at</dt>
+                    <dd>28 Sep 2026, 14:32:00 UTC</dd>
+                  </div>
+                  <div>
+                    <dt>Prepared receipt time</dt>
+                    <dd>28 Sep 2026, 14:32:02 UTC</dd>
+                  </div>
+                </dl>
+              )}
             </>
           ) : chapter === 1 ? (
             <dl className="facts">
@@ -211,17 +288,40 @@ export default function Demo() {
               </div>
             </dl>
           ) : null}
+          {chapter === 0 && event && <AcceptedEvidence event={event} />}
           <div className="unavailable">
             <LockKeyhole size={19} aria-hidden="true" />
             <p id="prerequisite">{current.reason}</p>
           </div>
           <button
             className="primary mt-5"
-            disabled
+            disabled={chapter !== 0 || Boolean(event)}
+            onClick={() => {
+              dispatch({ type: "accept" });
+              if (!validDemoQuantity(quantity)) quantityInput.current?.focus();
+            }}
             aria-describedby="prerequisite"
           >
             {current.action} <ArrowRight size={17} aria-hidden="true" />
           </button>
+          {chapter === 0 && event && (
+            <button
+              className="secondary mt-5"
+              onClick={() => dispatch({ type: "retry" })}
+            >
+              Retry identical event
+            </button>
+          )}
+          <p
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="small mt-3"
+          >
+            {announcement}
+          </p>
+          <p className="small">Visitor events: {event ? 1 : 0}</p>
+          <p className="small">Identical retries: {retries}</p>
           <p className="small mt-3">
             Local simulation · No API request is sent.
           </p>
@@ -252,8 +352,8 @@ export default function Demo() {
           <p className="eyebrow">Before this event / Source notes</p>
           <h2>Already in the ledger.</h2>
           <p className="small">
-            Two synthetic, previously rated events. Your prepared event is not
-            included.
+            Two synthetic, previously rated events. Visitor usage is not
+            included in this baseline total.
           </p>
           <div className="ledger-block">
             {baselineEvents.map((event) => (
