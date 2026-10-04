@@ -98,3 +98,9 @@ Documented general limits include 100 deployments/day, one concurrent Hobby buil
 ## Review and handoff
 
 Ticket status remains ready-for-human, not resolved: static-host publication prerequisites and Firefox coverage remain incomplete. [Independent Standards and Spec review](CODE-REVIEW.md): zero remaining findings on either axis, including the final public-contact copy correction. [Draft PR #117](https://github.com/jatin-awankar/UsageFlow/pull/117), implementation commit `b897f41`, is open for human review. Human PR review and any publication approval are separate. No merge or deployment occurred.
+
+## Human-review fix — contact fallback (4 October 2026)
+
+The embedded-browser review found that the direct `mailto:` completion link could open an empty tab instead of a usable contact flow. Both showcase contact actions now reveal the address in the page, with copy support and an optional email-app link. Clipboard denial leaves a selectable address and recovery instruction. The primary action requires no external protocol handler and preserves the current run.
+
+The normal static build, typecheck, changed-file lint, and 34 Chromium/WebKit delivery, evidence, and release checks passed. The new regression verifies in-page contact disclosure without a new tab, the configured email destination, successful copy, and denied-clipboard fallback. The optional mail-client handoff itself remains browser/OS dependent. The earlier checked-in report artifacts describe the preceding candidate; these counts are the focused follow-up, not a replacement full assessment. Firefox, human usability, hosting, and full manual accessibility remain pending. Automatic deployment is disabled for the follow-up branch as well.

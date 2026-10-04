@@ -73,9 +73,10 @@ for (const width of [360, 768, 1440]) {
     await go("Simulate delivery");
     await expect(page.getByText("DELIVERED · Simulated success", { exact: true })).toBeVisible();
     await expect(page.getByRole("region", { name: "Successful simulated attempt", exact: true })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Completion actions" })).toContainText("Opens your email app. No message is sent automatically.");
+    await expect(page.getByRole("region", { name: "Completion actions" })).toContainText("View the email address and contact options. No message is sent automatically.");
     await capture("delivery");
-    await expect(page.getByRole("link", { name: "Discuss a pilot", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
+    await page.getByRole("button", { name: "Discuss a pilot", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Open email app", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
     await expect(page.getByRole("link", { name: "Inspect the implementation", exact: true })).toHaveAttribute("href", "https://github.com/jatin-awankar/UsageFlow");
     await go("Reset demo");
     await page.keyboard.press("Escape");

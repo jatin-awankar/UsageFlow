@@ -1,3 +1,4 @@
+import { PilotContact } from "../pilot-contact";
 import { useSession } from "../session";
 import { FinalizedEvidence } from "./finalization";
 
@@ -119,9 +120,7 @@ export function DeliveryEvidence() {
               readiness review.
             </p>
             {run.contactDestination ? (
-              <a className="primary" href={run.contactDestination}>
-                Discuss a pilot
-              </a>
+              <PilotContact destination={run.contactDestination} />
             ) : (
               <button
                 className="primary"
@@ -139,7 +138,7 @@ export function DeliveryEvidence() {
             </a>
             <p id="contact-blocker" className="small">
               {run.contactDestination
-                ? "Opens your email app. No message is sent automatically."
+                ? "View the email address and contact options. No message is sent automatically."
                 : "Contact destination awaiting verification. Publication remains blocked."}
             </p>
           </section>

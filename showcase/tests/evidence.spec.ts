@@ -114,7 +114,8 @@ test("domain, simulation and dated readiness boundaries have traceable destinati
   await expect(
     page.getByRole("link", { name: "Inspect the implementation", exact: true }),
   ).toHaveAttribute("href", "https://github.com/jatin-awankar/UsageFlow");
-  await expect(page.getByRole("link", { name: "Discuss a pilot", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
+  await page.getByRole("button", { name: "Discuss a pilot", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Open email app", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 2 })).toHaveText([
     "Who owns the usage?",
@@ -140,7 +141,7 @@ for (const width of [360, 768, 1440])
     ).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("main")).toBeFocused();
-    const links = page.getByRole("main").getByRole("link");
+    const links = page.getByRole("main").locator("a, button");
     for (let i = 0; i < (await links.count()); i++) {
       await page.keyboard.press(tab);
       await expect(links.nth(i)).toBeFocused();
