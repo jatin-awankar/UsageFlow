@@ -1,9 +1,11 @@
 "use client";
 import { useRef, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { Dialog } from "radix-ui";
 import { ArrowRight, RotateCcw, LockKeyhole, Calculator } from "lucide-react";
 import { useSession } from "../session";
 import { validDemoQuantity } from "../run";
+import { DeliveryEvidence } from "./delivery-evidence";
 import { FinalizeApproval, FinalizedEvidence } from "./finalization";
 import { PricingEvidence } from "./pricing-evidence";
 import { AcceptedEvidence } from "./accepted-evidence";
@@ -76,8 +78,8 @@ export default function Demo() {
   }, [run.phase, run.attempt]);
   const current = chapters[chapter];
   function selectChapter(index: number) {
-    dispatch({ type: "chapter", value: index });
-    requestAnimationFrame(() => heading.current?.focus());
+    flushSync(() => dispatch({ type: "chapter", value: index }));
+    heading.current?.focus();
   }
   if (run.phase !== "ready")
     return (
@@ -141,10 +143,10 @@ export default function Demo() {
               <Dialog.Title>Reset this demonstration?</Dialog.Title>
               <Dialog.Description>
                 This clears your accepted event, rating evidence, frozen
-                version, pending event and retry history, restores quantity
-                1,250, the initial scenario clock and the first chapter. The two
-                synthetic baseline events stay unchanged. No real data is
-                affected.
+                version, pending event, delivery evidence and retry history,
+                restores quantity 1,250, the initial scenario clock and the
+                first chapter. The two synthetic baseline events stay unchanged.
+                No real data is affected.
               </Dialog.Description>
               <div className="flex flex-wrap gap-3 mt-6">
                 <Dialog.Close asChild>
@@ -203,7 +205,11 @@ export default function Demo() {
                       ? run.finalization
                         ? "Version 1 finalized"
                         : "Review the draft"
-                      : "Not yet available"}
+                      : run.deliveryAttempt
+                        ? "Simulated success"
+                        : run.finalization
+                          ? "Pending delivery"
+                          : "Not yet available"}
               </small>
             </span>
           </button>
@@ -232,9 +238,11 @@ export default function Demo() {
                     ? run.finalization
                       ? "Finalized version 1"
                       : monthlyDraft(run).state
-                    : run.finalization
-                      ? "Pending event"
-                      : "Not yet created"}
+                    : run.deliveryAttempt
+                      ? "Simulated success"
+                      : run.finalization
+                        ? "Pending event"
+                        : "Not yet created"}
             </span>
           </div>
           <h2 id="chapter-title" ref={heading} tabIndex={-1}>
@@ -322,11 +330,11 @@ export default function Demo() {
                 </>
               )}
             </>
-          ) : run.finalization ? (
-            <FinalizedEvidence result={run.finalization} />
-          ) : null}
+          ) : (
+            <DeliveryEvidence />
+          )}
           {chapter === 0 && event && <AcceptedEvidence run={run} />}
-          {chapter !== 2 && (
+          {chapter < 2 && (
             <div className="unavailable">
               {chapter === 1 ? (
                 <Calculator size={19} aria-hidden="true" />
@@ -346,7 +354,7 @@ export default function Demo() {
           )}
           {chapter === 2 ? (
             <FinalizeApproval />
-          ) : (
+          ) : chapter < 2 ? (
             <button
               className="primary mt-5 mr-3"
               disabled={
@@ -368,7 +376,7 @@ export default function Demo() {
             >
               {current.action} <ArrowRight size={17} aria-hidden="true" />
             </button>
-          )}
+          ) : null}
           {chapter <= 1 && event && (
             <button
               className="secondary mt-5"

@@ -34,6 +34,16 @@ export type Run = {
   ratingError: string;
   finalization: Finalization | null;
   finalizationError: string;
+  deliveryTarget: Readonly<{ id: string; url: string }> | null;
+  deliveryAttempt: Readonly<{
+    id: string;
+    eventId: string;
+    endpointId: string;
+    attemptedAt: string;
+    status: "DELIVERED";
+    responseCode: 200;
+  }> | null;
+  contactDestination: string | null;
   prices: readonly PriceVersion[];
   baseline: readonly BaselineSource[];
   error: string;
@@ -53,6 +63,12 @@ export function freshRun(): Run {
     ratingError: "",
     finalization: null,
     finalizationError: "",
+    deliveryTarget: Object.freeze({
+      id: "endpoint_demo_orbit",
+      url: "https://receiver.example.invalid/usageflow",
+    }),
+    deliveryAttempt: null,
+    contactDestination: null,
     prices: [septemberPrice],
     baseline: baselineEvents,
     error: "",
@@ -71,6 +87,7 @@ export type Action =
   | { type: "advance-time" }
   | { type: "rating-action-failed" }
   | { type: "finalize"; failBeforeEvent?: boolean }
+  | { type: "deliver" }
   | { type: "reset" };
 const ratingActionError =
   "The local rating action could not finish. Prior evidence is unchanged. Try again or reset the demo.";
@@ -86,6 +103,7 @@ export function reduceRun(run: Run, action: Action): Run {
       "rate",
       "advance-time",
       "finalize",
+      "deliver",
       "rating-action-failed",
     ].includes(action.type)
   )
@@ -187,6 +205,23 @@ export function reduceRun(run: Run, action: Action): Run {
             "Local finalization could not finish. No version or event was created. Draft evidence is unchanged. Try finalization again or reset the demo.",
         };
       }
+    }
+    case "deliver": {
+      if (!run.finalization || !run.deliveryTarget || run.deliveryAttempt)
+        return run;
+      return {
+        ...run,
+        deliveryAttempt: Object.freeze({
+          id: "attempt_demo_1",
+          eventId: run.finalization.event.id,
+          endpointId: run.deliveryTarget.id,
+          attemptedAt: run.clock,
+          status: "DELIVERED",
+          responseCode: 200,
+        }),
+        announcement:
+          "Simulated delivery succeeded. One successful attempt recorded. No receiver request was sent.",
+      };
     }
     case "retry":
       return run.event

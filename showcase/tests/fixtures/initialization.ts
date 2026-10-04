@@ -13,6 +13,16 @@ export function createInitializer(): (
     "test-monthly",
   );
   return async (attempt) => {
+    const delivery = new URLSearchParams(window.location.search).get(
+      "test-delivery",
+    );
+    if (delivery === "no-target")
+      return { ...freshRun(), deliveryTarget: null };
+    if (delivery === "contact")
+      return {
+        ...freshRun(),
+        contactDestination: "mailto:pilot@example.invalid",
+      };
     if (monthly) {
       const seed = monthlyFixture(monthly);
       if (seed) return seed;

@@ -77,6 +77,7 @@ export function FinalizeApproval() {
 
 export function FinalizedEvidence({ result }: { result: Finalization }) {
   const { version, event } = result;
+  const { run } = useSession();
   return (
     <section
       aria-label="Finalized BillingRecord"
@@ -137,12 +138,16 @@ export function FinalizedEvidence({ result }: { result: Finalization }) {
         </pre>
       </details>
       <div className="reconciliation">
-        <h3>Linked pending event</h3>
+        <h3>Linked event · frozen creation evidence</h3>
         <p className="source-id">
           {event.id} · {event.type}
         </p>
         <p className="small">Linked version: {event.billingRecordVersionId}</p>
-        <p>PENDING · No delivery attempt</p>
+        <p>
+          {run.deliveryAttempt
+            ? "Created PENDING · Delivery attempt recorded separately in chapter 04"
+            : "PENDING · No delivery attempt"}
+        </p>
         <p className="small">
           Event creation is separate from delivery. The technical event name
           invoice.finalized describes a BillingRecord comparison calculation,

@@ -180,7 +180,7 @@ for (const [quantity, calls, sourceDisplay, sourceExact, total, exact] of [
     await page.getByRole("button", { name: "04 Webhook delivery" }).click();
     await expect(
       page.getByRole("button", { name: "Simulate delivery" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     await expect(result).toContainText("PENDING · No delivery attempt");
     await expect(page.getByText(/delivered|delivery succeeded/i)).toHaveCount(
       0,
