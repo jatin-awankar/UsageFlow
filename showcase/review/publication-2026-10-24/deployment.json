@@ -1,0 +1,26 @@
+{
+  "verifiedAt": "2026-10-24T12:02:24.303Z",
+  "origin": "https://usageflow-showcase.pages.dev",
+  "deploymentUrl": "https://fc856e73.usageflow-showcase.pages.dev",
+  "deploymentId": "fc856e73-5ada-4f0f-a3e7-3ec85c49310e",
+  "sourceCommit": "e4586b00d4f8c86e96f08cbbb84a78a010a2279f",
+  "sourceBranch": "codex/recruiter-02-static-publication",
+  "upload": "Cloudflare Pages dashboard Direct Upload",
+  "zipSha256": "3f644df850439b166402225bb37c7101280ba0bb0fca66643aa33567eb203112",
+  "zipBytes": 648659,
+  "archiveFileCount": 54,
+  "deployedAssetCount": 53,
+  "configurationFiles": [
+    "_headers"
+  ],
+  "accountPlanObserved": "Free, $0, Current plan",
+  "environmentVariablesObserved": 0,
+  "gitConnectionObserved": false,
+  "backendDeployed": false,
+  "paidServicesEnabled": false,
+  "limitations": [
+    "Firefox launch unavailable on this Mac (ticket 01 evidence); no new passing Firefox coverage",
+    "Manual accessibility and first-time-user studies pending",
+    "Rollback procedure documented; no live rollback drill and no previous production version for this first release"
+  ]
+}

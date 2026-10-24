@@ -1,0 +1,2446 @@
+{
+  "local": {
+    "stats": {
+      "startTime": "2026-10-24T11:53:08.384Z",
+      "duration": 13058.882,
+      "expected": 8,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 360px",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 768px",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "static direct pages, font decoding and licence asset serving",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 360px",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 768px",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "static direct pages, font decoding and licence asset serving",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      }
+    ],
+    "journeys": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "date": "2026-10-24T11:53:11.588Z",
+        "width": 360,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          }
+        ],
+        "cancelled": [
+          "HEAD http://127.0.0.1:3211/: net::ERR_ABORTED",
+          "HEAD http://127.0.0.1:3211/demo/: net::ERR_ABORTED",
+          "HEAD http://127.0.0.1:3211/evidence/: net::ERR_ABORTED"
+        ]
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "date": "2026-10-24T11:53:14.289Z",
+        "width": 768,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          }
+        ],
+        "cancelled": [
+          "HEAD http://127.0.0.1:3211/: net::ERR_ABORTED",
+          "HEAD http://127.0.0.1:3211/demo/: net::ERR_ABORTED",
+          "HEAD http://127.0.0.1:3211/evidence/: net::ERR_ABORTED"
+        ]
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "date": "2026-10-24T11:53:17.039Z",
+        "width": 1440,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          }
+        ],
+        "cancelled": [
+          "HEAD http://127.0.0.1:3211/: net::ERR_ABORTED",
+          "HEAD http://127.0.0.1:3211/evidence/: net::ERR_ABORTED",
+          "HEAD http://127.0.0.1:3211/demo/: net::ERR_ABORTED"
+        ]
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "date": "2026-10-24T11:53:14.322Z",
+        "width": 360,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          }
+        ],
+        "cancelled": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "date": "2026-10-24T11:53:17.788Z",
+        "width": 768,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          }
+        ],
+        "cancelled": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "date": "2026-10-24T11:53:21.024Z",
+        "width": 1440,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "http://127.0.0.1:3211/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:3211/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          }
+        ],
+        "cancelled": []
+      }
+    ],
+    "accessibility": [
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      }
+    ]
+  },
+  "hosted": {
+    "stats": {
+      "startTime": "2026-10-24T11:59:28.293Z",
+      "duration": 19172.427,
+      "expected": 8,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 360px",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 768px",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "static direct pages, font decoding and licence asset serving",
+        "browser": "chromium",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 360px",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 768px",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "static direct pages, font decoding and licence asset serving",
+        "browser": "webkit",
+        "outcome": "expected",
+        "results": [
+          {
+            "status": "passed",
+            "retry": 0,
+            "errors": []
+          }
+        ]
+      }
+    ],
+    "journeys": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "date": "2026-10-24T11:59:33.822Z",
+        "width": 360,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/index.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          }
+        ],
+        "cancelled": [
+          "HEAD https://usageflow-showcase.pages.dev/: net::ERR_ABORTED",
+          "HEAD https://usageflow-showcase.pages.dev/demo/: net::ERR_ABORTED",
+          "HEAD https://usageflow-showcase.pages.dev/evidence/: net::ERR_ABORTED"
+        ]
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "date": "2026-10-24T11:59:37.399Z",
+        "width": 768,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/index.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          }
+        ],
+        "cancelled": [
+          "HEAD https://usageflow-showcase.pages.dev/evidence/: net::ERR_ABORTED",
+          "HEAD https://usageflow-showcase.pages.dev/demo/: net::ERR_ABORTED",
+          "HEAD https://usageflow-showcase.pages.dev/: net::ERR_ABORTED"
+        ]
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "date": "2026-10-24T11:59:40.206Z",
+        "width": 1440,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          }
+        ],
+        "cancelled": [
+          "HEAD https://usageflow-showcase.pages.dev/demo/: net::ERR_ABORTED",
+          "HEAD https://usageflow-showcase.pages.dev/: net::ERR_ABORTED",
+          "HEAD https://usageflow-showcase.pages.dev/evidence/: net::ERR_ABORTED"
+        ]
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "date": "2026-10-24T11:59:33.804Z",
+        "width": 360,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          }
+        ],
+        "cancelled": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "date": "2026-10-24T11:59:38.044Z",
+        "width": 768,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          }
+        ],
+        "cancelled": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "date": "2026-10-24T11:59:43.224Z",
+        "width": 1440,
+        "fixture": "public-default",
+        "reducedMotion": true,
+        "requests": [
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/css/420289648b167791.css"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/webpack-6ef58eda239684b2.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/4bd1b696-c7408084347438ae.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/794-f09dc234193e386a.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/main-app-5dcec2d422dd23c1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/500-fc3b64d9ff4a32a7.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/582-ee767f7c0a853893.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/layout-86ef1f8f1580e376.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/page-8c50acf339a51ba1.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-600.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/inter-400.woff2"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/fonts/fraunces-500.woff2"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/demo/"
+          },
+          {
+            "method": "HEAD",
+            "url": "https://usageflow-showcase.pages.dev/evidence/"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/__next.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next._tree.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/evidence/__next.evidence.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/index.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/demo/__next.demo.__PAGE__.txt"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/348-1b3b761e801136c5.js"
+          },
+          {
+            "method": "GET",
+            "url": "https://usageflow-showcase.pages.dev/_next/static/chunks/app/demo/page-cfce0e3a463efc61.js"
+          }
+        ],
+        "cancelled": []
+      }
+    ],
+    "accessibility": [
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "chromium",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 360px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 768px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "landing-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "pricing-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "evidence-axe.json",
+        "violations": [],
+        "incomplete": []
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "approval-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-hidden-focus",
+            "impact": "serious",
+            "nodes": 11
+          },
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "finalized-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 2
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "test": "release complete keyboard journey, network, accessibility and layout 1440px",
+        "stage": "delivery-axe.json",
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "aria-valid-attr-value",
+            "impact": "critical",
+            "nodes": 1
+          }
+        ]
+      }
+    ]
+  }
+}
