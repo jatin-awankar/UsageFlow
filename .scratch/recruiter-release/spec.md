@@ -25,3 +25,4 @@ Each implementation ticket has its own branch, acceptance checks, scoped commit,
 ## Comments
 
 - 2026-10-24: User approved proceeding one ticket at a time, starting with the showcase baseline.
+- 2026-10-24: After merging ticket 01 (PR #119) into the contact branch, the user authorized ticket 02: prepare and publish the free static showcase. Only the static showcase is in publication scope; backend deployment and later tickets remain separate.
