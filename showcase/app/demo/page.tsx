@@ -180,7 +180,8 @@ export default function Demo() {
         <span>September 2026 · INR</span>
       </div>
       <p className="small session-note">
-        Progress stays in this tab while you explore. Reload to start fresh.
+        Follow the four chapters below. Progress stays in this tab while you explore.
+        Use Reset demo or reload to start fresh; neither affects real data.
       </p>
       <nav className="chapter-nav" aria-label="Demo chapters">
         {chapters.map((item, index) => (
@@ -249,6 +250,16 @@ export default function Demo() {
             {current.title}
           </h2>
           <p className="chapter-description">{current.description}</p>
+          <p className="journey-hint" role="note" aria-label="Next step">
+            <strong>{run.deliveryAttempt ? "Completed: " : "Next step: "}</strong>
+            {chapter === 0
+              ? event ? "Try an identical retry, then choose Next: Inspect pricing." : "Keep 1,250 calls or enter your own quantity, then Accept event."
+              : chapter === 1
+                ? !event ? "Return to Accept usage and accept an event first." : run.rating ? "Choose Next: Monthly record to review the combined total." : "Choose Process & rate event to calculate this event’s contribution."
+                : chapter === 2
+                  ? run.finalization ? "Choose Next: Webhook delivery to inspect and simulate delivery." : !run.rating ? "Accept and rate your event in the first two chapters before finalizing." : monthlyDraft(run).state === "READY_FOR_REVIEW" ? "Choose Finalize monthly record, then approve in the confirmation dialog." : monthlyDraft(run).state === "BLOCKED" ? "Review the blocked evidence below. Reset demo to return to the prepared scenario." : "Review the draft, then Advance simulated time past close to unlock approval."
+                  : run.deliveryAttempt ? "Explore the implementation below, contact Jatin or reset to try again." : !run.finalization ? "Return to Monthly record and finalize it first." : "Inspect the payload if you wish, then choose Simulate delivery."}
+          </p>
           {chapter === 0 ? (
             <>
               <div className="input-row">

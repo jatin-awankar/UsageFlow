@@ -9,7 +9,7 @@ test("public entry explains the product and opens an editable prepared demo", as
   await expect(
     page.getByText("Synthetic data · Local simulation", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Explore the demo" }).click();
+  await page.getByRole("link", { name: "Try demo" }).click();
   await expect(
     page.getByRole("heading", { name: "One customer. One month." }),
   ).toBeVisible();
@@ -93,7 +93,7 @@ test("quantity survives navigation and history, but resets on reload and is inde
     .click();
   await expect(page.getByLabel("Quantity · API calls")).toHaveValue("1500");
   await page.getByRole("link", { name: "Landing", exact: true }).click();
-  await page.getByRole("link", { name: "Explore the demo" }).click();
+  await page.getByRole("link", { name: "Try demo" }).click();
   await expect(page.getByLabel("Quantity · API calls")).toHaveValue("1500");
   await page.goBack();
   await page.goForward();
@@ -120,7 +120,7 @@ test("keyboard skip, navigation, quantity, chapters and reset have visible focus
   await expect(page.getByRole("main")).toBeFocused();
   await page.keyboard.press(tabKey);
   await expect(
-    page.getByRole("link", { name: "Explore the demo" }),
+    page.getByRole("link", { name: "Try demo" }),
   ).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.getByLabel("Quantity · API calls")).toBeVisible();

@@ -111,7 +111,7 @@ test("accepted run survives pages, chapters, disclosures and history; reload sta
     ).toBeVisible();
   }
   await page.getByRole("link", { name: "Landing", exact: true }).click();
-  await page.getByRole("link", { name: "Explore the demo" }).click();
+  await page.getByRole("link", { name: "Try demo" }).click();
   await expect(
     page.getByRole("button", { name: "04 Webhook delivery" }),
   ).toHaveAttribute("aria-current", "step");

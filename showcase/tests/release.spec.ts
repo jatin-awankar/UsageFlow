@@ -44,7 +44,7 @@ for (const width of [360, 768, 1440]) {
     };
     await page.goto("/");
     await capture("landing");
-    await activate(page, page.getByRole("link", { name: "Explore the demo" }), tab);
+    await activate(page, page.getByRole("link", { name: "Try demo" }), tab);
     await go("Accept event");
     await go("Retry identical event");
     await expect(page.getByText("Identical retries: 1")).toBeVisible();
@@ -75,8 +75,8 @@ for (const width of [360, 768, 1440]) {
     await expect(page.getByRole("region", { name: "Successful simulated attempt", exact: true })).toBeVisible();
     await expect(page.getByRole("region", { name: "Completion actions" })).toContainText("View the email address and contact options. No message is sent automatically.");
     await capture("delivery");
-    await page.getByRole("button", { name: "Discuss a pilot", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText("jatinawankar02@gmail.com");
+    await page.getByRole("button", { name: "Contact Jatin", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Project contact details" })).toContainText("jatinawankar02@gmail.com");
   await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Inspect the implementation", exact: true })).toHaveAttribute("href", "https://github.com/jatin-awankar/UsageFlow");
     await go("Reset demo");
