@@ -11,13 +11,17 @@ async function walk(dir) {
 }
 assert.notEqual(process.env.SHOWCASE_TEST_BUILD, '1', 'Never approve an isolated test build for publication');
 const files = await walk(root);
+for (const file of files) {
+  const relative = path.relative(root.pathname, file.pathname);
+  assert(!relative.split('/').some(part => part === 'functions' || /^\.env(?:\.|$)/.test(part) || /^_worker\.js(?:\.map)?$/.test(part)), `Non-static publication file: ${relative}`);
+}
 const markers = ['test-init', 'test-pricing', 'test-monthly', 'test-finalization', 'test-delivery', 'pilot@example.invalid', 'pv_api_oct_test', 'Signal Desk', 'Switch direction', 'Test-only contact destination'];
 for (const file of files) {
   if (!/\.(js|html|css|txt)$/.test(file.pathname)) continue;
   const content = await readFile(file, 'utf8');
   for (const marker of markers) assert(!content.includes(marker), `Forbidden test/prototype marker ${marker} in ${file.pathname}`);
 }
-const required = ['index.html', 'demo/index.html', 'evidence/index.html', '404.html', 'THIRD-PARTY-NOTICES.txt', 'fonts/Fraunces-OFL.txt', 'fonts/Inter-OFL.txt', 'fonts/README.txt', 'fonts/fraunces-500.woff2', 'fonts/inter-400.woff2', 'fonts/inter-600.woff2'];
+const required = ['index.html', 'demo/index.html', 'evidence/index.html', '404.html', '_headers', 'THIRD-PARTY-NOTICES.txt', 'fonts/Fraunces-OFL.txt', 'fonts/Inter-OFL.txt', 'fonts/README.txt', 'fonts/fraunces-500.woff2', 'fonts/inter-400.woff2', 'fonts/inter-600.woff2'];
 for (const file of required) assert((await stat(new URL(file, root))).size > 0, file);
 const fonts = files.filter(file => /\.(ttf|otf|woff2?)$/.test(file.pathname));
 assert.equal(fonts.length, 3);

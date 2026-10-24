@@ -1,5 +1,9 @@
 # Annotated Ledger — public entry
 
+Static publication and repeatable hosted checks: [deployment runbook](DEPLOYMENT.md).
+
+Public site: [usageflow-showcase.pages.dev](https://usageflow-showcase.pages.dev/). [Initial publication evidence](review/publication-2026-10-24/README.md) records the deployed artifact and hosted checks.
+
 Tickets [02 — Entry](../.scratch/public-showcase/issues/02-entry.md), [04 — Acceptance](../.scratch/public-showcase/issues/04-acceptance.md), [05 — Pricing](../.scratch/public-showcase/issues/05-pricing.md), [06 — Monthly review](../.scratch/public-showcase/issues/06-monthly-review.md), and [07 — Finalization](../.scratch/public-showcase/issues/07-finalization.md). A separate Next/React static export with Landing (`/`), Demo (`/demo/`), and How it works & evidence (`/evidence/`). The production application and original throwaway prototype are unchanged.
 
 ## Install, build, inspect
