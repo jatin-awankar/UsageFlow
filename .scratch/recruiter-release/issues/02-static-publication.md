@@ -19,9 +19,10 @@ Base: `947ed4d` on `origin/codex/showcase-contact-fallback`, containing merged t
 - [x] Publish the reviewed artifact, then verify public HTTPS routes, refresh/navigation, assets/fonts/notices, unknown-page 404, and the full browser simulation on desktop/mobile widths.
 - [x] Record the public URL, deployment identifier, source commit, asset verification, and passing/failed/unavailable checks. Carry forward Firefox and manual accessibility/usability limitations honestly.
 - [x] Document update and rollback steps, including the lack of a previous production rollback target for the first release.
-- [ ] Commit, push, and open a scoped draft PR; do not merge PRs or begin ticket 03.
+- [x] Commit, push, and open a scoped draft PR; do not merge PRs or begin ticket 03.
 
 ## Comments
 
 - 2026-10-24: User authorized this ticket and signed into Cloudflare. Ticket 01's Chromium/WebKit baseline passes; Firefox cannot launch on this Mac. The prior Vercel Hobby eligibility blocker is avoided by using the separately verified Cloudflare free static offering. No claim of three-engine coverage or full accessibility conformance will be made.
 - 2026-10-24 implementation: Published [usageflow-showcase.pages.dev](https://usageflow-showcase.pages.dev/) from `e4586b0`. Cloudflare Free plan confirmed; 54 archive entries (53 assets plus headers config), no runtime functions or environment variables. Eight local and eight hosted release checks pass; all deployed asset hashes and the exact 404 document match. [Publication evidence](../../../showcase/review/publication-2026-10-24/README.md). Update/rollback instructions are recorded. Firefox and manual accessibility/usability limitations remain explicit. Ticket 03 has not started.
+- Draft PR [#120](https://github.com/jatin-awankar/UsageFlow/pull/120) targets `codex/showcase-contact-fallback`. Implementation commit `e4586b0`; publication evidence commit `f4b0ac1`. Local review complete; human review pending. The static site is deployed, but this PR is not merged.
