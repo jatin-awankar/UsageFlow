@@ -1567,7 +1567,7 @@ SOFTWARE.
 
 
 ========================================================================
-@swc/helpers 0.5.15
+@swc/helpers 0.5.23
 
                               Apache License
                         Version 2.0, January 2004
@@ -1770,6 +1770,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
 
 ========================================================================
 @types/react 19.3.0
@@ -2807,7 +2808,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 ========================================================================
-next 16.1.1
+next 16.4.3
 
 The MIT License (MIT)
 
@@ -2833,11 +2834,11 @@ SOFTWARE.
 
 
 ========================================================================
-next/node_modules/postcss 8.4.31
+next/node_modules/postcss 8.5.23
 
 The MIT License (MIT)
 
-Copyright 2013 Andrey Sitnik <andrey@sitnik.ru>
+Copyright 2013 Andrey Sitnik <andrey@sitnik.es>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "codex/showcase-09-release-verification": false,
-      "codex/showcase-contact-fallback": false
+      "codex/showcase-contact-fallback": false,
+      "codex/recruiter-01-showcase-baseline": false
     }
   }
 }

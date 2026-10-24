@@ -57,6 +57,8 @@ Before any separately approved publication, run `npm run build` without `SHOWCAS
 
 The [release-verification record](review/release/README.md) separates passing local checks from publication blockers and unmeasured human/accessibility criteria.
 
+The [24 October dependency and baseline refresh](review/baseline-2026-10-24/README.md) records the standalone Next.js upgrade, current audit, browser regression results, and remaining Firefox environment blocker. After changing Next.js versions, remove only the generated `showcase/.next` directory and build before typechecking so stale framework-generated types do not contaminate the check. The repository-root application's dependency versions are separate.
+
 See [review evidence](review/README.md) for browser captures, checks and limitations.
 
 See [ticket 04 acceptance review](review/acceptance/README.md) for current browser evidence and limitations.
