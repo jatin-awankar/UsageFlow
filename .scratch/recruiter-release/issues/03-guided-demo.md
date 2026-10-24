@@ -21,3 +21,5 @@ Branch: `codex/recruiter-03-guided-demo`, based on merged Ticket 02 commit `7464
 ## Results
 
 Implemented and locally reviewed without blocking findings. Normal suite: 150 passed / 50 mode skips. Scenario suite: 174 passed / 26 mode skips. Final normal export: type check, artifact verification and 36 focused browser checks passed. Evidence: `showcase/review/guidance-2026-10-24/README.md`. Firefox and independent human review remain pending.
+
+Draft PR: https://github.com/jatin-awankar/UsageFlow/pull/121 (open; base `codex/showcase-contact-fallback`). Implementation commit: `38cc56f`.
