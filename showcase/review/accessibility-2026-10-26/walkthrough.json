@@ -1,0 +1,62 @@
+{
+  "browser": "Chromium",
+  "recordedAt": "2026-10-26T14:33:36.058Z",
+  "viewport": "1280x900",
+  "captions": [
+    {
+      "start": 0.046,
+      "end": 3.051,
+      "text": "UsageFlow: a browser simulation with synthetic data. No signup or live billing."
+    },
+    {
+      "start": 3.157,
+      "end": 6.16,
+      "text": "Start with 1,250 API calls. The guidance explains the next action."
+    },
+    {
+      "start": 6.24,
+      "end": 9.242,
+      "text": "An identical retry keeps one visitor event. Acceptance is separate from rating."
+    },
+    {
+      "start": 9.323,
+      "end": 12.324,
+      "text": "Occurrence-time pricing produces INR 3.13 for this event."
+    },
+    {
+      "start": 12.39,
+      "end": 15.39,
+      "text": "Review the month: baseline contributions plus the new event."
+    },
+    {
+      "start": 15.472,
+      "end": 18.472,
+      "text": "Owner approval is explicit. This is a comparison calculation, not a payment."
+    },
+    {
+      "start": 18.59,
+      "end": 21.592,
+      "text": "Inspect the frozen amount and stable event identity in the synthetic payload."
+    },
+    {
+      "start": 21.64,
+      "end": 24.642,
+      "text": "Demo complete. Delivery is simulated; no receiver request occurs."
+    },
+    {
+      "start": 24.69,
+      "end": 27.692,
+      "text": "Copy the public email address or inspect the source. Nothing is sent automatically."
+    },
+    {
+      "start": 27.74,
+      "end": 30.74,
+      "text": "Reset requires confirmation and restores the prepared local scenario."
+    },
+    {
+      "start": 30.79,
+      "end": 33.792,
+      "text": "Ready to explore again. Other tabs and real data are unaffected."
+    }
+  ]
+}

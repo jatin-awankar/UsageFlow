@@ -65,6 +65,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 summary:focus-visible,
+[tabindex]:focus-visible,
 [tabindex="-1"]:focus {
   outline: 3px solid #1562d7;
   outline-offset: 5px;
@@ -806,7 +807,8 @@ button[aria-disabled="true"] {
 
 .delivery-evidence pre {
   max-width: 100%;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   padding: 16px;
   border: 1px solid var(--line);
   font-size: 13px;
@@ -900,3 +902,12 @@ button[aria-disabled="true"] {
 .recruiter-links { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 24px; }
 .recruiter-links > div { flex-basis: 100%; }
 .journey-hint { border-left: 3px solid currentColor; padding: 12px 16px; margin: 20px 0; }
+
+/* Standalone navigation links retain comfortable targets on touch screens. */
+.recruiter-links > a,
+footer > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-underline-offset: 5px;
+}
