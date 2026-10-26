@@ -24,3 +24,5 @@ Branch: `codex/recruiter-04-accessibility`, based on Ticket 03 merge `88b09d0` i
 Added route titles, comfortable standalone link targets, visible payload focus and wrapped payload JSON. Added presentation regression checks and a reproducible walkthrough recorder. Build/type/export checks passed. Full Chromium/WebKit suite: 156 passed, 50 scenario-only skips, two timing failures; both passed unchanged in a single-worker recheck. Firefox still fails before page load. Local review found no blocking code issue.
 
 Evidence: `showcase/review/accessibility-2026-10-26/README.md`. Native zoom, screen-reader audio, physical-device testing and independent recruiter feedback remain pending using the adjacent checklist. Do not mark these as passed or claim WCAG conformance. No public update was deployed.
+
+Draft PR: https://github.com/jatin-awankar/UsageFlow/pull/122 (open; base `codex/showcase-contact-fallback`). Implementation commit: `276d389`.
