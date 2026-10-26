@@ -1,6 +1,6 @@
 # Human review — not yet performed
 
-Use the Ticket 04 build, not the existing public site (which still contains Ticket 02). Record device, operating system, browser, assistive technology/version, date and any difficulty. Do not infer success from this checklist or the automated recording.
+Use the published Ticket 04 build at https://usageflow-showcase.pages.dev/ (deployment `07c8f0c5`, source `a5ed522`). Record device, operating system, browser, assistive technology/version, date and any difficulty. Do not infer success from this checklist or the automated recording.
 
 ## First-time visitor
 

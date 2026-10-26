@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "a5ed522",
+  "date": "2026-10-26",
+  "productionUrl": "https://usageflow-showcase.pages.dev/",
+  "deploymentUrl": "https://07c8f0c5.usageflow-showcase.pages.dev/",
+  "deploymentId": "07c8f0c5-aa73-4cc2-a0c9-34dde3980ed1",
+  "previousDeploymentId": "fc856e73-5ada-4f0f-a3e7-3ec85c49310e",
+  "archiveBytes": 651013,
+  "archiveSha256": "6e4f8a4217bc2b21b92253277fcf6e673d4a7e71c1dc468138a18d90ab6972a7",
+  "hosting": "Existing Cloudflare Pages Free Direct Upload project",
+  "providerUploadedFiles": 55,
+  "hostAssetVerification": "PASS",
+  "localChromiumWebkitRelease": {
+    "passed": 8,
+    "seconds": 13.9
+  },
+  "localFirefoxNormalSuite": {
+    "passed": 79,
+    "scenarioOnlySkipped": 25,
+    "seconds": 56.2
+  },
+  "hostedChromiumWebkitRelease": {
+    "passed": 8,
+    "seconds": 18.3
+  },
+  "humanValidation": "Awaiting user results; user volunteered for all three categories",
+  "pr": "https://github.com/jatin-awankar/UsageFlow/pull/122",
+  "prMerged": false,
+  "hostedFirefoxRelease": {
+    "passed": 4,
+    "seconds": 14.4
+  }
+}

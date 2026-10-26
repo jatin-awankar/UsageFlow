@@ -30,3 +30,5 @@ Draft PR: https://github.com/jatin-awankar/UsageFlow/pull/122 (open; base `codex
 ## Completion follow-up
 
 User requested the remaining work and volunteered for all three human checks. Firefox 155.0 now passes its full normal suite: 79 passed, 25 scenario-only skips (56.2s), using isolated macOS app data. Native Safari landing/reset checks at 200%/300% passed within their limited scope. Full human results remain awaited. Follow-up changes stay on the existing Ticket 04 branch/PR.
+
+Published source `a5ed522` to https://usageflow-showcase.pages.dev/ as deployment `07c8f0c5-aa73-4cc2-a0c9-34dde3980ed1`. All 12 hosted release checks passed across Chromium, WebKit and Firefox; asset hashes and headers verified. Human phone/screen-reader/400% zoom/first-time visitor results remain pending.

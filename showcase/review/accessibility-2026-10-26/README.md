@@ -1,6 +1,6 @@
 # Accessibility and presentation — 26 October 2026
 
-Ticket 04, based on Ticket 03 merge `88b09d0`. This is scoped verification of the browser showcase, not a WCAG conformance assessment or backend-readiness claim.
+Ticket 04, based on Ticket 03 merge `88b09d0`. **The follow-up below supersedes the initial Firefox and publication limitations. Human validation is still pending.** This is scoped verification of the browser showcase, not a WCAG conformance assessment or backend-readiness claim.
 
 ## Findings and changes
 
@@ -56,3 +56,12 @@ The release keyboard helper previously depended on cycling forward through brows
 Native Safari was additionally inspected at 200% (landing) and 300% (demo/reset); percentages were read from its page menu. Reset controls remained visible in the scrollable dialog. This Safari's menu tops out at 300%, so 400% and the full native-zoom matrix still need the human check. The temporary tab was closed after restoring normal zoom.
 
 The user volunteered to perform physical-phone, screen-reader and first-time visitor checks. Results are still awaited; agreement to test is not a passing result.
+
+
+## Published update
+
+On 26 October, source `a5ed522` was deployed to the existing free Cloudflare Pages project: https://usageflow-showcase.pages.dev/ (immutable deployment https://07c8f0c5.usageflow-showcase.pages.dev/). No paid resource was enabled. The previous production deployment remains available as a rollback target; no rollback drill is claimed.
+
+The normal Firefox suite passed 79 tests with 25 scenario-only skips. The final normal build/type/export checks passed, followed by eight local Chromium/WebKit release checks and eight hosted Chromium/WebKit checks. All four hosted Firefox release checks also passed (14.4s). All deployed asset hashes and headers passed verification. See `publication-followup.json`, `published-manifest.json` and `host-assets.json` for the exact release evidence. PR #122 remains open; deployment from its reviewed ticket branch is recorded explicitly.
+
+Human validation was requested against this published version. Do not change its status to passed until actual results are supplied.
