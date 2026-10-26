@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-24T11:24:37.776Z",
+  "files": 53,
+  "matchingFiles": [],
+  "patterns": [
+    "private-key PEM headers",
+    "PostgreSQL/Redis connection URLs",
+    "AWS access key IDs",
+    "GitHub token prefixes",
+    "Stripe live secret prefixes",
+    ".env filenames"
+  ],
+  "limitation": "Heuristic only. Does not prove absence of all secrets. No environment file contents were read."
+}

@@ -111,7 +111,7 @@ test("accepted run survives pages, chapters, disclosures and history; reload sta
     ).toBeVisible();
   }
   await page.getByRole("link", { name: "Landing", exact: true }).click();
-  await page.getByRole("link", { name: "Explore the demo" }).click();
+  await page.getByRole("link", { name: "Try demo" }).click();
   await expect(
     page.getByRole("button", { name: "04 Webhook delivery" }),
   ).toHaveAttribute("aria-current", "step");
@@ -186,81 +186,92 @@ test("contexts and sibling tabs retain independent accepted runs after reset", a
   }
 });
 
-test("keyboard validation, acceptance, retry and reset with containment and restored focus", async ({
-  page,
-  browserName,
-}) => {
-  const tab = browserName === "webkit" ? "Alt+Tab" : "Tab";
-  const backTab = browserName === "webkit" ? "Alt+Shift+Tab" : "Shift+Tab";
-  await page.goto("/demo/");
-  await page.keyboard.press(tab);
-  await page.keyboard.press("Enter"); // skip to main
-  for (let i = 0; i < 6; i++) await page.keyboard.press(tab);
-  const quantity = page.getByLabel("Quantity · API calls");
-  await expect(quantity).toBeFocused();
-  await page.keyboard.press("ControlOrMeta+A");
-  await page.keyboard.type("0");
-  await page.keyboard.press(tab);
-  await page.keyboard.press("Enter");
-  await expect(quantity).toBeFocused();
-  await expect(quantity).toHaveCSS("outline-width", "3px");
-  await expect(quantity).toHaveAttribute("aria-invalid", "true");
-  await page.keyboard.press("ControlOrMeta+A");
-  await page.keyboard.type("1500");
-  await page.keyboard.press(tab);
-  await page.keyboard.press("Enter");
-  await expect(page.getByRole("status")).toContainText("accepted");
-  await page.keyboard.press(tab);
-  await expect(
-    page.getByRole("button", { name: "Retry identical event" }),
-  ).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(page.getByRole("status")).toContainText("Identical retry 1");
-  // Back through the read-only input and four chapter controls to reset.
-  for (let i = 0; i < 6; i++) await page.keyboard.press(backTab);
-  const reset = page.getByRole("button", { name: "Reset demo", exact: true });
-  await expect(reset).toBeFocused();
-  const before = await page.getByRole("main").innerText();
-  await page.keyboard.press("Enter");
-  const cancel = page.getByRole("button", { name: "Keep exploring" });
-  await expect(cancel).toBeFocused();
-  await page.keyboard.press(backTab);
-  await expect(
-    page.getByRole("button", { name: "Start fresh", exact: true }),
-  ).toBeFocused();
-  await page.keyboard.press(tab);
-  await expect(cancel).toBeFocused();
-  // At the boundary, browsers may wrap or retain the last focused control.
-  // In either case focus must remain contained within the dialog.
-  await page.keyboard.press(tab);
-  await expect(page.getByRole("dialog").locator(":focus")).toHaveCount(1);
-  await page.keyboard.press(backTab);
-  await expect(page.getByRole("dialog").locator(":focus")).toHaveCount(1);
-  await page.keyboard.press("Escape");
-  await expect(reset).toBeFocused();
-  await expect(page.getByRole("main")).toHaveText(before, {
-    useInnerText: true,
+for (const initialization of ["normal", "delayed"] as const) {
+  test(`keyboard validation, acceptance, retry and reset with containment and restored focus (${initialization} initialization)`, async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      initialization === "delayed" && process.env.SHOWCASE_TEST_BUILD !== "1",
+      "Delayed initialization requires the isolated build",
+    );
+    const tab = browserName === "webkit" ? "Alt+Tab" : "Tab";
+    const backTab = browserName === "webkit" ? "Alt+Shift+Tab" : "Shift+Tab";
+    await page.goto(
+      initialization === "delayed" ? "/demo/?test-init=delay" : "/demo/",
+    );
+    const quantity = page.getByLabel("Quantity · API calls");
+    // Navigation can finish while local initialization still shows its loading state.
+    // Wait for the rendered control without moving focus or bypassing keyboard traversal.
+    await expect(quantity).toBeVisible();
+    await page.keyboard.press(tab);
+    await page.keyboard.press("Enter"); // skip to main
+    for (let i = 0; i < 6; i++) await page.keyboard.press(tab);
+    await expect(quantity).toBeFocused();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.type("0");
+    await page.keyboard.press(tab);
+    await page.keyboard.press("Enter");
+    await expect(quantity).toBeFocused();
+    await expect(quantity).toHaveCSS("outline-width", "3px");
+    await expect(quantity).toHaveAttribute("aria-invalid", "true");
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.type("1500");
+    await page.keyboard.press(tab);
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("status")).toContainText("accepted");
+    await page.keyboard.press(tab);
+    await expect(
+      page.getByRole("button", { name: "Retry identical event" }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("status")).toContainText("Identical retry 1");
+    // Back through the read-only input and four chapter controls to reset.
+    for (let i = 0; i < 6; i++) await page.keyboard.press(backTab);
+    const reset = page.getByRole("button", { name: "Reset demo", exact: true });
+    await expect(reset).toBeFocused();
+    const before = await page.getByRole("main").innerText();
+    await page.keyboard.press("Enter");
+    const cancel = page.getByRole("button", { name: "Keep exploring" });
+    await expect(cancel).toBeFocused();
+    await page.keyboard.press(backTab);
+    await expect(
+      page.getByRole("button", { name: "Start fresh", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press(tab);
+    await expect(cancel).toBeFocused();
+    // At the boundary, browsers may wrap or retain the last focused control.
+    // In either case focus must remain contained within the dialog.
+    await page.keyboard.press(tab);
+    await expect(page.getByRole("dialog").locator(":focus")).toHaveCount(1);
+    await page.keyboard.press(backTab);
+    await expect(page.getByRole("dialog").locator(":focus")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(reset).toBeFocused();
+    await expect(page.getByRole("main")).toHaveText(before, {
+      useInnerText: true,
+    });
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter"); // cancel
+    await expect(reset).toBeFocused();
+    await expect(page.getByRole("main")).toHaveText(before, {
+      useInnerText: true,
+    });
+    await page.keyboard.press("Enter");
+    await page.keyboard.press(backTab);
+    await page.keyboard.press("Enter");
+    await expect(quantity).toBeFocused();
+    await expect(quantity).toHaveValue("1250");
+    await expect(quantity).not.toHaveAttribute("readonly", "");
+    await expect(page.getByRole("status")).toContainText("Demo reset");
+    await expect(
+      page.getByRole("region", { name: "Accepted event evidence" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText("Identical retries: 0", { exact: true }),
+    ).toBeVisible();
   });
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Enter"); // cancel
-  await expect(reset).toBeFocused();
-  await expect(page.getByRole("main")).toHaveText(before, {
-    useInnerText: true,
-  });
-  await page.keyboard.press("Enter");
-  await page.keyboard.press(backTab);
-  await page.keyboard.press("Enter");
-  await expect(quantity).toBeFocused();
-  await expect(quantity).toHaveValue("1250");
-  await expect(quantity).not.toHaveAttribute("readonly", "");
-  await expect(page.getByRole("status")).toContainText("Demo reset");
-  await expect(
-    page.getByRole("region", { name: "Accepted event evidence" }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByText("Identical retries: 0", { exact: true }),
-  ).toBeVisible();
-});
+}
 
 test("reset from a later chapter preserves state on cancel and restores the first chapter on confirmation", async ({
   page,

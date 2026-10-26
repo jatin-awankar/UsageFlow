@@ -15,7 +15,7 @@ async function activate(page: Page, target: Locator, tab: string) {
 
 for (const width of [360, 768, 1440]) {
   test(`release complete keyboard journey, network, accessibility and layout ${width}px`, async ({
-    page, browserName, browser,
+    page, browserName, browser, baseURL,
   }, info) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -44,7 +44,7 @@ for (const width of [360, 768, 1440]) {
     };
     await page.goto("/");
     await capture("landing");
-    await activate(page, page.getByRole("link", { name: "Explore the demo" }), tab);
+    await activate(page, page.getByRole("link", { name: "Try demo" }), tab);
     await go("Accept event");
     await go("Retry identical event");
     await expect(page.getByText("Identical retries: 1")).toBeVisible();
@@ -73,9 +73,11 @@ for (const width of [360, 768, 1440]) {
     await go("Simulate delivery");
     await expect(page.getByText("DELIVERED · Simulated success", { exact: true })).toBeVisible();
     await expect(page.getByRole("region", { name: "Successful simulated attempt", exact: true })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Completion actions" })).toContainText("Opens your email app. No message is sent automatically.");
+    await expect(page.getByRole("region", { name: "Completion actions" })).toContainText("View the email address and contact options. No message is sent automatically.");
     await capture("delivery");
-    await expect(page.getByRole("link", { name: "Discuss a pilot", exact: true })).toHaveAttribute("href", "mailto:jatinawankar02@gmail.com");
+    await page.getByRole("button", { name: "Contact Jatin", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Project contact details" })).toContainText("jatinawankar02@gmail.com");
+  await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Inspect the implementation", exact: true })).toHaveAttribute("href", "https://github.com/jatin-awankar/UsageFlow");
     await go("Reset demo");
     await page.keyboard.press("Escape");
@@ -86,7 +88,7 @@ for (const width of [360, 768, 1440]) {
     await expect(page.getByLabel("Quantity · API calls")).toBeFocused();
     await expect(page.getByLabel("Quantity · API calls")).toHaveValue("1250");
     expect(failures).toEqual([]);
-    expect(requests.filter(r => !["GET", "HEAD"].includes(r.method) || new URL(r.url).origin !== "http://127.0.0.1:3211")).toEqual([]);
+    expect(requests.filter(r => !["GET", "HEAD"].includes(r.method) || new URL(r.url).origin !== new URL(baseURL!).origin)).toEqual([]);
     await info.attach("environment-network.json", { body: JSON.stringify({ browser: browserName, version: browser.version(), date: new Date().toISOString(), width, fixture: "public-default", reducedMotion: true, requests, cancelled }, null, 2), contentType: "application/json" });
   });
 }
@@ -95,6 +97,8 @@ test("static direct pages, font decoding and licence asset serving", async ({ pa
   for (const route of ["/", "/demo/", "/evidence/"]) {
     const response = await page.goto(route);
     expect(response?.status()).toBe(200);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await page.reload();
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => [...document.fonts].map(font => font.status))).toEqual(["loaded", "loaded", "loaded"]);

@@ -1,5 +1,9 @@
 # Annotated Ledger — public entry
 
+Static publication and repeatable hosted checks: [deployment runbook](DEPLOYMENT.md).
+
+Public site: [usageflow-showcase.pages.dev](https://usageflow-showcase.pages.dev/). [Initial publication evidence](review/publication-2026-10-24/README.md) records the deployed artifact and hosted checks.
+
 Tickets [02 — Entry](../.scratch/public-showcase/issues/02-entry.md), [04 — Acceptance](../.scratch/public-showcase/issues/04-acceptance.md), [05 — Pricing](../.scratch/public-showcase/issues/05-pricing.md), [06 — Monthly review](../.scratch/public-showcase/issues/06-monthly-review.md), and [07 — Finalization](../.scratch/public-showcase/issues/07-finalization.md). A separate Next/React static export with Landing (`/`), Demo (`/demo/`), and How it works & evidence (`/evidence/`). The production application and original throwaway prototype are unchanged.
 
 ## Install, build, inspect
@@ -56,6 +60,8 @@ Only Fraunces 500 and Inter 400/600 are self-hosted as WOFF2, preserving all sou
 Before any separately approved publication, run `npm run build` without `SHOWCASE_TEST_BUILD`, then `npm run verify:export` inside `showcase`. The verifier checks required pages/notices, the three-font budget, forbidden fixture/prototype markers and emits a SHA-256 asset manifest. It deliberately rejects the isolated test export. Publish only the generated `out/` directory at an origin root; root-relative asset URLs do not support a repository subpath without a separately tested base-path change. The proposed `showcase/vercel.json` disables Git deployments; the root `vercel.json` also disables this release branch on the existing Vercel integration. Neither changes the live hosting settings.
 
 The [release-verification record](review/release/README.md) separates passing local checks from publication blockers and unmeasured human/accessibility criteria.
+
+The [24 October dependency and baseline refresh](review/baseline-2026-10-24/README.md) records the standalone Next.js upgrade, current audit, browser regression results, and remaining Firefox environment blocker. After changing Next.js versions, remove only the generated `showcase/.next` directory and build before typechecking so stale framework-generated types do not contaminate the check. The repository-root application's dependency versions are separate.
 
 See [review evidence](review/README.md) for browser captures, checks and limitations.
 

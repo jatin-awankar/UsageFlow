@@ -2,6 +2,10 @@
 
 UsageFlow is a multi-tenant SaaS platform that enables applications to track usage events, configure pricing plans, generate invoices, and deliver billing events to external systems via reliable webhooks.
 It is designed as a developer-first, production-oriented system, inspired by real-world billing platforms like Stripe.
+
+[Try the public demo](https://usageflow-showcase.pages.dev/demo/) · [How it works and evidence](https://usageflow-showcase.pages.dev/evidence/)
+
+The public showcase uses synthetic data and runs locally in your browser; it requires no signup and performs no live billing or webhook delivery.
 <div align=center>
   <img src="public/Landing.png" alt="salesforce-img" width=30% />
   <img src="public/Dashboard.png" alt="salesforce-img" width=30% />

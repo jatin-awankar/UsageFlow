@@ -1,0 +1,304 @@
+{
+  "date": "2026-10-24T11:54:46.043Z",
+  "result": "PASS",
+  "required": [
+    "index.html",
+    "demo/index.html",
+    "evidence/index.html",
+    "404.html",
+    "_headers",
+    "THIRD-PARTY-NOTICES.txt",
+    "fonts/Fraunces-OFL.txt",
+    "fonts/Inter-OFL.txt",
+    "fonts/README.txt",
+    "fonts/fraunces-500.woff2",
+    "fonts/inter-400.woff2",
+    "fonts/inter-600.woff2"
+  ],
+  "absentMarkers": [
+    "test-init",
+    "test-pricing",
+    "test-monthly",
+    "test-finalization",
+    "test-delivery",
+    "pilot@example.invalid",
+    "pv_api_oct_test",
+    "Signal Desk",
+    "Switch direction",
+    "Test-only contact destination"
+  ],
+  "fontBytes": 251028,
+  "totalBytes": 1630221,
+  "manifest": [
+    {
+      "file": "__next.__PAGE__.txt",
+      "bytes": 9131,
+      "sha256": "041a5cfe6391fea6f938548c567463ced8dd1d2e1c3f8d37844459c7ad0d80fd"
+    },
+    {
+      "file": "__next._full.txt",
+      "bytes": 9445,
+      "sha256": "902f51f573657c170b54ce784a939079be530d576354246b94fce97078be36a1"
+    },
+    {
+      "file": "__next._tree.txt",
+      "bytes": 164,
+      "sha256": "0cb4419416b74ed6dab4d91fed3dda7b486e0935f9a06c898623fc8588c58a27"
+    },
+    {
+      "file": "_headers",
+      "bytes": 112,
+      "sha256": "968ca33e5f890eb61748a90bdc42ba4ea6d7b0234bcb45e30d5fc0f18359546f"
+    },
+    {
+      "file": "_next/static/chunks/348-1b3b761e801136c5.js",
+      "bytes": 33387,
+      "sha256": "af3fbcfd67d992bda799f0a8aedf328415106c886f3b9b33ac32257b27477e6a"
+    },
+    {
+      "file": "_next/static/chunks/4bd1b696-c7408084347438ae.js",
+      "bytes": 203721,
+      "sha256": "7d5ccf185a6f85ab38ce400a7f10aa0a3496eb4e9aee1e500a85e01c4222fcec"
+    },
+    {
+      "file": "_next/static/chunks/500-fc3b64d9ff4a32a7.js",
+      "bytes": 7642,
+      "sha256": "905bc34977bb55dd8fda0041a3dbe144347dc46e9cd747d71e6b326deb234d7d"
+    },
+    {
+      "file": "_next/static/chunks/582-ee767f7c0a853893.js",
+      "bytes": 9957,
+      "sha256": "2b66593b31310efefcac78acab0f95d3dd0d0d6f4fbd17c8040bf608cea8b092"
+    },
+    {
+      "file": "_next/static/chunks/794-f09dc234193e386a.js",
+      "bytes": 243104,
+      "sha256": "eed42556d0ed61888a91a1cd8884cba6cb74b572cbdefb0091eb20294feb09c3"
+    },
+    {
+      "file": "_next/static/chunks/app/_global-error/page-aba28f88d5781771.js",
+      "bytes": 147,
+      "sha256": "6b4abe1e19f23770e1f23db931aa4456b149b505e1e8c9c8dfe647b2de4fdd4d"
+    },
+    {
+      "file": "_next/static/chunks/app/_not-found/page-28d83ef6eb87c4fd.js",
+      "bytes": 2667,
+      "sha256": "5926992000e8427982d4f96073fb91e9542b87202ba42f99b32079cc0137c27f"
+    },
+    {
+      "file": "_next/static/chunks/app/demo/page-cfce0e3a463efc61.js",
+      "bytes": 30300,
+      "sha256": "fc1e98e2f0d5868c78ba6496a8174799ec780948343e4e1ec361345286ba52fc"
+    },
+    {
+      "file": "_next/static/chunks/app/evidence/page-8c9dafeac22fbc76.js",
+      "bytes": 1247,
+      "sha256": "f2ce30afd739261576bfd28950e7702cf42bb5bcea8cd3cd2bc0e6fdd00a01d0"
+    },
+    {
+      "file": "_next/static/chunks/app/layout-86ef1f8f1580e376.js",
+      "bytes": 286,
+      "sha256": "6e1c8f092f4b2bf53432453e9df4a8e86deef48d6eaf0e1d5eaa66dfa3b8aef3"
+    },
+    {
+      "file": "_next/static/chunks/app/page-8c50acf339a51ba1.js",
+      "bytes": 183,
+      "sha256": "edbd8bc92591f5e550ac66d25de8609c85ecc4e428eb44b70c63cdf32cb8ad6c"
+    },
+    {
+      "file": "_next/static/chunks/framework-14d42ea918114d61.js",
+      "bytes": 189664,
+      "sha256": "5724ea6df84941240ea0482823d371ad2502644eb6bb97ae3c9ed94fd6aa638c"
+    },
+    {
+      "file": "_next/static/chunks/main-12fb8600e0168951.js",
+      "bytes": 137434,
+      "sha256": "4783e79edccdd932b8f0fa63b41f2cc679991cf451ffed08b39b38c4251634d8"
+    },
+    {
+      "file": "_next/static/chunks/main-app-5dcec2d422dd23c1.js",
+      "bytes": 513,
+      "sha256": "74e3c16aafafb6ddb7b44e89eff087bcd55e654a71b567226f4ec6c6dd5c1d6d"
+    },
+    {
+      "file": "_next/static/chunks/next/dist/client/components/builtin/app-error-aba28f88d5781771.js",
+      "bytes": 147,
+      "sha256": "6b4abe1e19f23770e1f23db931aa4456b149b505e1e8c9c8dfe647b2de4fdd4d"
+    },
+    {
+      "file": "_next/static/chunks/next/dist/client/components/builtin/forbidden-aba28f88d5781771.js",
+      "bytes": 147,
+      "sha256": "6b4abe1e19f23770e1f23db931aa4456b149b505e1e8c9c8dfe647b2de4fdd4d"
+    },
+    {
+      "file": "_next/static/chunks/next/dist/client/components/builtin/global-error-4e99397e4a024b5a.js",
+      "bytes": 179,
+      "sha256": "bacea38d7289dbce0499828922323a77efc4c02bba3f2f65f9a98fc39d3ddb6b"
+    },
+    {
+      "file": "_next/static/chunks/next/dist/client/components/builtin/not-found-aba28f88d5781771.js",
+      "bytes": 147,
+      "sha256": "6b4abe1e19f23770e1f23db931aa4456b149b505e1e8c9c8dfe647b2de4fdd4d"
+    },
+    {
+      "file": "_next/static/chunks/next/dist/client/components/builtin/unauthorized-aba28f88d5781771.js",
+      "bytes": 147,
+      "sha256": "6b4abe1e19f23770e1f23db931aa4456b149b505e1e8c9c8dfe647b2de4fdd4d"
+    },
+    {
+      "file": "_next/static/chunks/polyfills-42372ed130431b0a.js",
+      "bytes": 112594,
+      "sha256": "0973c1d64c88adc8e3c950410cb58b288f72118d5965b78049438deb8f2f9683"
+    },
+    {
+      "file": "_next/static/chunks/webpack-6ef58eda239684b2.js",
+      "bytes": 3265,
+      "sha256": "5079126f9e1340175b454a8f7d453dbf131c97249fbd6146207a226f386dd7ee"
+    },
+    {
+      "file": "_next/static/css/420289648b167791.css",
+      "bytes": 17267,
+      "sha256": "e002cef390eed790092d50e8d734b910bbc5a9b8043fa89305460e0fee25bc2d"
+    },
+    {
+      "file": "_next/static/uH9wA0hY6c9XHy3L98Jp3/_buildManifest.js",
+      "bytes": 515,
+      "sha256": "794f6e8a4b67c550367ee21cb442f848613509361b75e28ef95da06ea3cbac13"
+    },
+    {
+      "file": "_next/static/uH9wA0hY6c9XHy3L98Jp3/_ssgManifest.js",
+      "bytes": 80,
+      "sha256": "678f6ce2cb80b1fe72fc67e7412be6e2ab6ada083111b64f7c40d35e3cba5e00"
+    },
+    {
+      "file": "_not-found/__next._full.txt",
+      "bytes": 4941,
+      "sha256": "3310de0188031cf5a6a52fcc65672fd2114beb0423fbbad097a111eee97c32f1"
+    },
+    {
+      "file": "_not-found/__next._not-found.__PAGE__.txt",
+      "bytes": 4379,
+      "sha256": "6dc6975e863aa5a90c38202d3f89bcba089e30a901a0e188fe2d8cda62bba37f"
+    },
+    {
+      "file": "_not-found/__next._tree.txt",
+      "bytes": 217,
+      "sha256": "42384d17387facf0d2826362502831f7ed2d1c9d73503560831adb972cbd63e7"
+    },
+    {
+      "file": "_not-found/index.html",
+      "bytes": 8841,
+      "sha256": "fbfbca6dcc7712daf2f5f34f08d6f1b0d025733d6f14393f3025d12ff96f31e7"
+    },
+    {
+      "file": "_not-found/index.txt",
+      "bytes": 4941,
+      "sha256": "3310de0188031cf5a6a52fcc65672fd2114beb0423fbbad097a111eee97c32f1"
+    },
+    {
+      "file": "404.html",
+      "bytes": 8841,
+      "sha256": "fbfbca6dcc7712daf2f5f34f08d6f1b0d025733d6f14393f3025d12ff96f31e7"
+    },
+    {
+      "file": "404/index.html",
+      "bytes": 8841,
+      "sha256": "fbfbca6dcc7712daf2f5f34f08d6f1b0d025733d6f14393f3025d12ff96f31e7"
+    },
+    {
+      "file": "demo/__next._full.txt",
+      "bytes": 5249,
+      "sha256": "d3a299d315e657a75c53283ce2a2af365a1f02ea01a9c36f065ea3a7327afb30"
+    },
+    {
+      "file": "demo/__next._tree.txt",
+      "bytes": 211,
+      "sha256": "25bb8e926094b6b56fe79a4f1eb04db091c972b5e85fa8abeff17c49b415f28d"
+    },
+    {
+      "file": "demo/__next.demo.__PAGE__.txt",
+      "bytes": 4716,
+      "sha256": "9c7155a8097de4e7037b14295750bc1bdbb2db559a248603c6651c7833b5f861"
+    },
+    {
+      "file": "demo/index.html",
+      "bytes": 8600,
+      "sha256": "7764b11d919004feaf8e03b813729c473f1199987d010a9cea606786ba6010cf"
+    },
+    {
+      "file": "demo/index.txt",
+      "bytes": 5249,
+      "sha256": "d3a299d315e657a75c53283ce2a2af365a1f02ea01a9c36f065ea3a7327afb30"
+    },
+    {
+      "file": "evidence/__next._full.txt",
+      "bytes": 17309,
+      "sha256": "138b923730bd454427c2da8b014e43ac703a9f9da4eaafcb9aa0c10205849c19"
+    },
+    {
+      "file": "evidence/__next._tree.txt",
+      "bytes": 215,
+      "sha256": "4db817ca4dc9d090114e89c286822384c713b2fca116d5d31a0108dd39da8b9e"
+    },
+    {
+      "file": "evidence/__next.evidence.__PAGE__.txt",
+      "bytes": 16792,
+      "sha256": "67ba4433b607c5bb2d4c3322541f3ee78e0598dbad9bdda97794c3cbb0ee4ee3"
+    },
+    {
+      "file": "evidence/index.html",
+      "bytes": 31110,
+      "sha256": "40ffc9c5e6f9b15128d1d5f9a4d558e916839d7af3c9348b351f84db16f2f192"
+    },
+    {
+      "file": "evidence/index.txt",
+      "bytes": 17309,
+      "sha256": "138b923730bd454427c2da8b014e43ac703a9f9da4eaafcb9aa0c10205849c19"
+    },
+    {
+      "file": "fonts/fraunces-500.woff2",
+      "bytes": 30620,
+      "sha256": "efbd2467045a9372a974294076065eec3e9a0ae590b8ea36102260951c0b49b5"
+    },
+    {
+      "file": "fonts/Fraunces-OFL.txt",
+      "bytes": 4390,
+      "sha256": "6732d6cc72c5d09292ff754dc1f39d9ea14918f74e87a17afa3f00a5120c3d48"
+    },
+    {
+      "file": "fonts/inter-400.woff2",
+      "bytes": 108200,
+      "sha256": "5dc3b4f85173a5c5d4680204d9e8c944ae371df0eb859e3ea5c0e1e1e0b0f12b"
+    },
+    {
+      "file": "fonts/inter-600.woff2",
+      "bytes": 112208,
+      "sha256": "7ac206e513bcb9730d16f75bf77b407207d2ac6828697328821443db545669b4"
+    },
+    {
+      "file": "fonts/Inter-OFL.txt",
+      "bytes": 4380,
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+    },
+    {
+      "file": "fonts/README.txt",
+      "bytes": 1334,
+      "sha256": "808871554794575bdeacb284385b1ab5a37079bb6f112e5f0b15cf740d940237"
+    },
+    {
+      "file": "index.html",
+      "bytes": 16417,
+      "sha256": "66b2812f3107efc94268f41cc45f79d2c56a3be81878e6ab68b9fd094a695228"
+    },
+    {
+      "file": "index.txt",
+      "bytes": 9445,
+      "sha256": "902f51f573657c170b54ce784a939079be530d576354246b94fce97078be36a1"
+    },
+    {
+      "file": "THIRD-PARTY-NOTICES.txt",
+      "bytes": 181874,
+      "sha256": "ea4515dd1089019e61e092d2a17eb88f3b30e5d4d79cdd0a6bf10ac399e6bbb5"
+    }
+  ]
+}

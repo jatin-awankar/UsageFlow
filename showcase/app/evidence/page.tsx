@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PilotContact } from "../pilot-contact";
 import { pilotContact } from "../contact";
 
 // Pin claims to reviewed, merged evidence rather than a moving branch.
@@ -223,15 +224,15 @@ export default function Evidence() {
             Inspect outstanding operations gates
           </a>
           <div className="completion-actions">
-            <h3>Discuss a pilot</h3>
+            <h3>Talk about the engineering</h3>
             <p>
-              Pilot discussions are exploratory and subject to readiness review.
+              Contact Jatin about the project, implementation decisions or an engineering opportunity.
             </p>
             <p>
-              Contact jatinawankar02@gmail.com for an exploratory discussion.
-              Publication remains blocked: zero-cost static hosting is not confirmed.
+              The browser showcase is publicly hosted on Cloudflare Pages.
+              Real backend hosting and pilot readiness remain separate work.
             </p>
-            <a className="primary" href={pilotContact}>Discuss a pilot</a>
+            <PilotContact destination={pilotContact} />
             <a
               className="secondary"
               href="https://github.com/jatin-awankar/UsageFlow"

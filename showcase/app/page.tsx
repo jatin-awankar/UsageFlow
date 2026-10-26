@@ -1,24 +1,33 @@
 import Link from "next/link";
 import { ArrowUpRight, Fingerprint } from "lucide-react";
+import { PilotContact } from "./pilot-contact";
+import { pilotContact } from "./contact";
 export default function Landing() {
   return (
     <>
       <section className="landing-hero">
         <div className="hero-copy">
-          <p className="eyebrow">Usage billing, made explainable</p>
+          <p className="eyebrow">An engineering project by Jatin Awankar</p>
           <h1>
             Every number
             <br />
             has a story.
           </h1>
           <p className="intro">
-            Follow usage from an accepted event to a priced monthly
-            BillingRecord. See the evidence behind every amount.
+            Usage billing gets hard when events are retried, prices change,
+            or totals need explaining. UsageFlow connects each usage event
+            to a traceable monthly billing calculation.
           </p>
           <Link className="primary hero-cta" href="/demo/">
-            Explore the demo <ArrowUpRight size={20} aria-hidden="true" />
+            Try demo <ArrowUpRight size={20} aria-hidden="true" />
           </Link>
-          <p className="small mt-4">Prepared workspace · No signup</p>
+          <p className="small mt-4">Four guided chapters · No signup or setup</p>
+          <p className="small">Browser simulation with synthetic data. No live billing or webhook requests.</p>
+          <div className="recruiter-links">
+            <a href="https://github.com/jatin-awankar/UsageFlow">View source code</a>
+            <Link href="/evidence/">Engineering evidence</Link>
+            <PilotContact destination={pilotContact} />
+          </div>
         </div>
         <figure className="hero-figure">
           <div className="figure-top">
@@ -60,7 +69,7 @@ export default function Landing() {
       </section>
       <section className="landing-bottom">
         <div>
-          <p className="eyebrow">The thread that connects it all</p>
+          <p className="eyebrow">Engineering decisions to explore</p>
           <h2>
             One customer. One month.
             <br />A calculation you can explain.
@@ -71,17 +80,17 @@ export default function Landing() {
             [
               "01",
               "Accept once",
-              "An immutable usage fact. A stable identity for identical retries.",
+              "Keep an immutable ledger and deduplicate identical retries so the same usage is counted once.",
             ],
             [
               "02",
               "Explain the amount",
-              "The price at occurrence, rounded once for each event.",
+              "Select the price at occurrence time and use exact integer arithmetic to avoid floating-point money errors.",
             ],
             [
               "03",
               "Keep the evidence",
-              "A reviewed monthly record with traceable delivery evidence.",
+              "Separate acceptance, rating, owner approval and delivery so each outcome has its own evidence.",
             ],
           ].map(([number, title, copy]) => (
             <article key={number}>
