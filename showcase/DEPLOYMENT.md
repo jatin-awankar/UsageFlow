@@ -48,7 +48,7 @@ SHOWCASE_HOSTED_URL=https://usageflow-showcase.pages.dev npm --prefix showcase r
 
 The host verifier checks exported bytes against the local SHA-256 manifest, the configured headers, font/text content types, and the actual 404 document. The hosted browser configuration runs only the release suite and starts no local server. It verifies direct navigation/refresh and the full keyboard journey at three widths, including history, monetary evidence, contact fallback, reset, accessibility scans, and a same-origin static-only network boundary.
 
-Firefox is still configured and can be selected on a working host, but it fails before page load on the current Mac. Do not report it as passed. Full manual accessibility and first-time-user assessment remain later work; automated scans alone do not establish conformance. Preserve these limitations in publication evidence.
+For Firefox on this Mac, use `npm --prefix showcase run test:firefox -- --workers=1` to isolate app data from the macOS-protected shared location. For hosted checks, add `--config playwright.hosted.config.ts` and set `SHOWCASE_HOSTED_URL`. The launcher reports protected temporary-folder cleanup warnings separately from test outcomes. Full manual accessibility and first-time-user assessment remain later work; automated scans alone do not establish conformance. Preserve these limitations in publication evidence.
 
 ## Rollback and recovery
 

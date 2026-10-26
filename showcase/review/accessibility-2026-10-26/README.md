@@ -46,3 +46,13 @@ Public Cloudflare deployment remains Ticket 02. This ticket introduces no paid s
 ## References
 
 Test scope follows W3C guidance for [reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html), [text resizing](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html), and [target size and spacing exceptions](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html). The checks above cover only a subset of the requirements.
+
+## Follow-up verification
+
+Firefox startup was isolated to app-data resolution, consistent with [upstream Playwright issue 42768](https://github.com/microsoft/playwright/issues/42768). A workspace profile and minimal environment still failed. Providing a fresh `CFFIXED_USER_HOME` to the browser test process launched Firefox 155.0 successfully, without changing HOME, privacy permissions or personal browser data. Use `npm --prefix showcase run test:firefox -- --workers=1`. macOS can retain protected subdirectories in that temporary app-data folder; the launcher reports cleanup warnings separately from test results.
+
+The release keyboard helper previously depended on cycling forward through browser chrome to reach earlier controls. Firefox did not wrap back into the document. It now uses reverse Tab for earlier controls; all navigation still uses actual keyboard input with no programmatic focus.
+
+Native Safari was additionally inspected at 200% (landing) and 300% (demo/reset); percentages were read from its page menu. Reset controls remained visible in the scrollable dialog. This Safari's menu tops out at 300%, so 400% and the full native-zoom matrix still need the human check. The temporary tab was closed after restoring normal zoom.
+
+The user volunteered to perform physical-phone, screen-reader and first-time visitor checks. Results are still awaited; agreement to test is not a passing result.

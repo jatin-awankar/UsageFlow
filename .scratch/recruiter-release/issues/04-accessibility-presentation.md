@@ -26,3 +26,7 @@ Added route titles, comfortable standalone link targets, visible payload focus a
 Evidence: `showcase/review/accessibility-2026-10-26/README.md`. Native zoom, screen-reader audio, physical-device testing and independent recruiter feedback remain pending using the adjacent checklist. Do not mark these as passed or claim WCAG conformance. No public update was deployed.
 
 Draft PR: https://github.com/jatin-awankar/UsageFlow/pull/122 (open; base `codex/showcase-contact-fallback`). Implementation commit: `276d389`.
+
+## Completion follow-up
+
+User requested the remaining work and volunteered for all three human checks. Firefox 155.0 now passes its full normal suite: 79 passed, 25 scenario-only skips (56.2s), using isolated macOS app data. Native Safari landing/reset checks at 200%/300% passed within their limited scope. Full human results remain awaited. Follow-up changes stay on the existing Ticket 04 branch/PR.
