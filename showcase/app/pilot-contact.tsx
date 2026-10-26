@@ -19,12 +19,12 @@ export function PilotContact({ destination }: { destination: string }) {
 
   return (
     <div>
-      <button className="primary" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
-        Discuss a pilot
+      <button className="secondary" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+        Contact Jatin
       </button>
       {open && (
-        <section id={id} aria-label="Pilot contact details">
-          <p>Email <strong style={{ overflowWrap: "anywhere", userSelect: "text" }}>{email}</strong> to discuss a pilot.</p>
+        <section id={id} aria-label="Project contact details">
+          <p>Email <strong style={{ overflowWrap: "anywhere", userSelect: "text" }}>{email}</strong> to discuss the project or an engineering opportunity.</p>
           <button className="secondary" onClick={copyEmail}>Copy email address</button>
           <p className="small">Copy the address into your preferred email service. No message is sent automatically.</p>
           <p role="status" aria-live="polite">{message}</p>

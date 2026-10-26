@@ -1,0 +1,36 @@
+import { test, expect } from "@playwright/test";
+
+test("recruiter can discover contact and follow the guided journey through reset", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("An engineering project by Jatin Awankar")).toBeVisible();
+  await expect(page.getByRole("link", { name: "View source code" })).toHaveAttribute("href", "https://github.com/jatin-awankar/UsageFlow");
+  await expect(page.getByRole("link", { name: "Engineering evidence" })).toHaveAttribute("href", "/evidence/");
+  await page.getByRole("button", { name: "Contact Jatin" }).click();
+  await expect(page.getByRole("region", { name: "Project contact details" })).toContainText("jatinawankar02@gmail.com");
+  await page.getByRole("link", { name: "Try demo", exact: true }).click();
+  const hint = page.getByRole("note", { name: "Next step" });
+  await expect(hint).toContainText("Accept event");
+  await page.getByRole("button", { name: "Next: Inspect pricing" }).click();
+  await expect(hint).toContainText("accept an event first");
+  await page.getByRole("button", { name: "Previous chapter" }).click();
+  await page.getByRole("button", { name: "Accept event", exact: true }).click();
+  await expect(hint).toContainText("Try an identical retry");
+  await page.getByRole("button", { name: "Next: Inspect pricing" }).click();
+  await page.getByRole("button", { name: "Process & rate event", exact: true }).click();
+  await expect(hint).toContainText("Next: Monthly record");
+  await page.getByRole("button", { name: "Next: Monthly record" }).click();
+  await expect(hint).toContainText("Advance simulated time past close");
+  await page.getByRole("button", { name: "Advance simulated time past close" }).click();
+  await expect(hint).toContainText("confirmation dialog");
+  await page.getByRole("button", { name: "Finalize monthly record", exact: true }).click();
+  await page.getByRole("button", { name: "Approve simulated finalization" }).click();
+  await expect(hint).toContainText("Next: Webhook delivery");
+  await page.getByRole("button", { name: "Next: Webhook delivery" }).click();
+  await page.getByRole("button", { name: "Simulate delivery", exact: true }).click();
+  await expect(hint).toContainText("Completed:");
+  await expect(page.getByRole("region", { name: "Completion actions" })).toContainText("Demo complete");
+  await page.getByRole("button", { name: "Reset demo", exact: true }).click();
+  await page.getByRole("button", { name: "Start fresh" }).click();
+  await expect(hint).toContainText("Keep 1,250 calls");
+  await expect(page.getByLabel("Quantity · API calls")).toHaveValue("1250");
+});

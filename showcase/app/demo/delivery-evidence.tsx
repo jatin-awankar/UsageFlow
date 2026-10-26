@@ -114,10 +114,11 @@ export function DeliveryEvidence() {
             className="completion-actions"
           >
             <p className="eyebrow">The evidence is connected</p>
-            <h3>Explore what a pilot could look like.</h3>
+            <h3>Demo complete. Follow the engineering.</h3>
             <p>
-              Pilot discussions are exploratory. Onboarding is subject to
-              readiness review.
+              You connected an accepted event to its price, a reviewed monthly
+              record and a simulated delivery. Explore the source or contact
+              Jatin about the project. Use Reset demo above to try another quantity.
             </p>
             {run.contactDestination ? (
               <PilotContact destination={run.contactDestination} />
@@ -127,7 +128,7 @@ export function DeliveryEvidence() {
                 aria-disabled="true"
                 aria-describedby="contact-blocker"
               >
-                Discuss a pilot
+                Contact Jatin
               </button>
             )}
             <a
@@ -139,7 +140,7 @@ export function DeliveryEvidence() {
             <p id="contact-blocker" className="small">
               {run.contactDestination
                 ? "View the email address and contact options. No message is sent automatically."
-                : "Contact destination awaiting verification. Publication remains blocked."}
+                : "Contact is unavailable in this scenario. You can still inspect the source."}
             </p>
           </section>
         </>

@@ -213,12 +213,12 @@ for (const width of [360, 768, 1440])
     await page.keyboard.press(tab);
     const completion = page.getByRole("region", { name: "Completion actions" });
     await expect(completion).toContainText(
-      "Pilot discussions are exploratory. Onboarding is subject to readiness review.",
+      "Demo complete. Follow the engineering.",
     );
-    const contact = page.getByRole("button", { name: "Discuss a pilot", exact: true });
+    const contact = page.getByRole("button", { name: "Contact Jatin", exact: true });
     await expect(contact).toBeFocused();
     await contact.press("Enter");
-    await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText(
+    await expect(page.getByRole("region", { name: "Project contact details" })).toContainText(
       process.env.SHOWCASE_TEST_BUILD === "1" ? "pilot@example.invalid" : "jatinawankar02@gmail.com",
     );
     await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
@@ -303,10 +303,10 @@ test("pilot contact stays in the demo and provides a copyable address", async ({
   await finalize(page);
   await page.getByRole("button", { name: "Simulate delivery", exact: true }).click();
   const before = page.url();
-  await page.getByRole("button", { name: "Discuss a pilot", exact: true }).click();
+  await page.getByRole("button", { name: "Contact Jatin", exact: true }).click();
   await expect(page).toHaveURL(before);
   expect(context.pages()).toHaveLength(1);
-  await expect(page.getByRole("region", { name: "Pilot contact details" })).toContainText("jatinawankar02@gmail.com");
+  await expect(page.getByRole("region", { name: "Project contact details" })).toContainText("jatinawankar02@gmail.com");
   await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
   const copied: string[] = [];
   await page.exposeFunction("captureCopiedEmail", (value: string) => copied.push(value));
