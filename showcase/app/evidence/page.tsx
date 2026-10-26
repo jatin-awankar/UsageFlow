@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PilotContact } from "../pilot-contact";
 import { pilotContact } from "../contact";
+
+export const metadata: Metadata = {
+  title: "Engineering evidence — UsageFlow",
+};
 
 // Pin claims to reviewed, merged evidence rather than a moving branch.
 const source =

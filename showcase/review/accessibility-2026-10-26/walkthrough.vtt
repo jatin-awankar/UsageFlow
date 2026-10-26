@@ -1,0 +1,34 @@
+WEBVTT
+
+00:00:00.046 --> 00:00:03.051
+UsageFlow: a browser simulation with synthetic data. No signup or live billing.
+
+00:00:03.157 --> 00:00:06.160
+Start with 1,250 API calls. The guidance explains the next action.
+
+00:00:06.240 --> 00:00:09.242
+An identical retry keeps one visitor event. Acceptance is separate from rating.
+
+00:00:09.323 --> 00:00:12.324
+Occurrence-time pricing produces INR 3.13 for this event.
+
+00:00:12.390 --> 00:00:15.390
+Review the month: baseline contributions plus the new event.
+
+00:00:15.472 --> 00:00:18.472
+Owner approval is explicit. This is a comparison calculation, not a payment.
+
+00:00:18.590 --> 00:00:21.592
+Inspect the frozen amount and stable event identity in the synthetic payload.
+
+00:00:21.640 --> 00:00:24.642
+Demo complete. Delivery is simulated; no receiver request occurs.
+
+00:00:24.690 --> 00:00:27.692
+Copy the public email address or inspect the source. Nothing is sent automatically.
+
+00:00:27.740 --> 00:00:30.740
+Reset requires confirmation and restores the prepared local scenario.
+
+00:00:30.790 --> 00:00:33.792
+Ready to explore again. Other tabs and real data are unaffected.

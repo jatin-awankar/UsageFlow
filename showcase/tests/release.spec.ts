@@ -8,7 +8,15 @@ async function activate(page: Page, target: Locator, tab: string) {
       await page.keyboard.press("Enter");
       return;
     }
-    await page.keyboard.press(await page.getByRole("dialog").count() ? "Tab" : tab);
+    // Walk backwards to earlier controls instead of relying on focus wrapping
+    // through browser chrome, which differs between engines.
+    const backwards = await target.evaluate(element => {
+      const active = document.activeElement;
+      return active !== document.body && active !== null &&
+        Boolean(element.compareDocumentPosition(active) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    const key = backwards ? (tab === "Alt+Tab" ? "Alt+Shift+Tab" : "Shift+Tab") : tab;
+    await page.keyboard.press(await page.getByRole("dialog").count() ? "Tab" : key);
   }
   throw new Error(`Keyboard traversal did not reach ${await target.innerText()}`);
 }

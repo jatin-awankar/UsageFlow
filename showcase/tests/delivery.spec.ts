@@ -199,9 +199,8 @@ for (const width of [360, 768, 1440])
     await expect(
       page.getByRole("region", { name: "Webhook payload JSON" }),
     ).toBeFocused();
-    await expect(
-      page.getByRole("region", { name: "Webhook payload JSON" }),
-    ).toHaveCSS("overflow-x", "auto");
+    expect(await page.getByRole("region", { name: "Webhook payload JSON" })
+      .evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
     await page.keyboard.press(tab);
     await expect(
       page.getByRole("button", { name: "Simulate delivery", exact: true }),

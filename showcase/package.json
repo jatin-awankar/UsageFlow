@@ -9,7 +9,8 @@
     "test:hosted": "playwright test --config playwright.hosted.config.ts",
     "serve": "python3 serve.py",
     "verify:export": "node scripts/verify-export.mjs",
-    "verify:host": "node scripts/verify-host.mjs"
+    "verify:host": "node scripts/verify-host.mjs",
+    "test:firefox": "node scripts/test-firefox.mjs"
   },
   "dependencies": {
     "lucide-react": "0.562.0",

@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-26",
+  "build": "normal static export",
+  "buildPassed": true,
+  "typecheckPassed": true,
+  "exportVerificationPassed": true,
+  "fullSuite": {
+    "projects": ["chromium", "webkit"],
+    "passed": 156,
+    "scenarioOnlySkipped": 50,
+    "failed": 2,
+    "failures": [
+      "Chromium: public time transition cannot resolve accepted pending usage — context teardown exceeded 30 seconds",
+      "Chromium: 200 percent text stress — screenshot exceeded 30 seconds"
+    ]
+  },
+  "isolatedRecheck": {
+    "sameAssertionsAndTimeouts": true,
+    "workers": 1,
+    "passed": 2,
+    "failed": 0,
+    "durationSeconds": 1.7
+  },
+  "firefox": {
+    "attempted": true,
+    "status": "unavailable",
+    "reason": "Browser process failed before page load: Could not find profile folder"
+  },
+  "pending": ["native browser zoom", "screen-reader audio", "physical mobile devices", "independent recruiter feedback"],
+  "deployed": false
+}

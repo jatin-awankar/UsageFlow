@@ -16,7 +16,7 @@ Make UsageFlow publicly accessible as a credible recruiter portfolio at zero hos
 6. Measure free-tier feasibility before deploying a restricted real backend sandbox.
 7. Improve repository documentation, continuous verification, and targeted refactoring.
 
-Tickets 01 and 02 are complete. The current iteration authorizes ticket 03: recruiter positioning and the guided demo journey. Later tickets are scoped when reached, using current evidence. No paid resource, PR merge, production-data change, backend deployment, or pilot-gate change is part of this iteration.
+Tickets 01–03 are complete. The current iteration authorizes ticket 04: accessibility and presentation review, fixes and walkthrough evidence. Later tickets are scoped when reached, using current evidence. No paid resource, PR merge, production-data change, backend deployment, or pilot-gate change is part of this iteration.
 
 ## Delivery workflow
 
@@ -28,3 +28,5 @@ Each implementation ticket has its own branch, acceptance checks, scoped commit,
 - 2026-10-24: After merging ticket 01 (PR #119) into the contact branch, the user authorized ticket 02: prepare and publish the free static showcase. Only the static showcase is in publication scope; backend deployment and later tickets remain separate.
 
 - 2026-10-24: User authorized ticket 03 after ticket 02 merged as PR #120. Preserve the existing visual design; deliver a reviewed draft PR before updating the public export.
+
+- 2026-10-26: User confirmed Ticket 03 merged and authorized Ticket 04. Human feedback and unavailable assistive-technology checks must remain distinct from automated evidence.

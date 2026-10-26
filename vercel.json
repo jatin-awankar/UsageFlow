@@ -6,7 +6,8 @@
       "codex/showcase-contact-fallback": false,
       "codex/recruiter-01-showcase-baseline": false,
       "codex/recruiter-02-static-publication": false,
-      "codex/recruiter-03-guided-demo": false
+      "codex/recruiter-03-guided-demo": false,
+      "codex/recruiter-04-accessibility": false
     }
   }
 }
